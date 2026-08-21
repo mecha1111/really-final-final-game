@@ -179,6 +179,60 @@ export function drawClickMarkers(ctx, clicks, now) {
     }
   });
   ctx.restore();
+
+  drawClickEnv(ctx, fresh[fresh.length - 1]);
+}
+
+/**
+ * 디버그 전용(H키). 마지막 클릭 때의 "화면 배율에 관여하는 값"들을 화면 왼쪽 위에
+ * 글씨로 찍는다. 십자선이 커서에서 벗어날 때 어느 변수가 튀었는지 스크린샷 한 장으로
+ * 알 수 있게 하려는 것이다.
+ *
+ * 왜 이렇게까지 하나: 화면 배율은 한 겹이 아니다 — CSS zoom(#desktop), 브라우저
+ * 페이지줌(Cmd +/-, devicePixelRatio에 반영), 트랙패드 핀치줌(visualViewport)이
+ * 겹칠 수 있고, 그중 어느 것이 getBoundingClientRect()에 반영되고 어느 것이 안 되는지가
+ * 브라우저·버전마다 다르다(크롬은 128 언저리에서 zoom 처리가 바뀌었다). 변환식이
+ * 맞는지는 이 값들을 실제 환경에서 같이 봐야 판단할 수 있다.
+ *
+ * 읽는 법: rect의 폭이 "화면에 실제 보이는 캔버스 CSS 폭"이고, 여기에 zoom·페이지줌이
+ * 이미 반영돼 있어야 정상이다. vv(visualViewport) scale이 1이 아니면 핀치줌 상태다.
+ * 십자선이 밀렸는데 vv scale이 1이 아니라면 그게 유력한 원인이다.
+ */
+function drawClickEnv(ctx, c) {
+  if (!c?.env) return;
+  const e = c.env;
+
+  // 두 방식의 결과가 다르면 그 자체가 "rect가 배율을 잘못 반영한다"는 증거다.
+  // offsetX는 (clientX - rect.left)와 같은 값이어야 정상이다(둘 다 화면에 보이는 크기 기준).
+  // 갈리면 rect가 조상의 zoom을 잘못 반영하고 있다는 뜻 = 클릭만 밀리는 원인.
+  const offVsRect = Math.round(Math.abs(e.offset[0] - (e.client[0] - e.rect[0])));
+
+  const lines = [
+    `client ${e.client[0]},${e.client[1]}  →  world ${Math.round(c.x)},${Math.round(c.y)}  [판정에 쓰는 값]`,
+    `rect ${e.rect[2]}x${e.rect[3]} @${e.rect[0]},${e.rect[1]}   box ${e.box[0]}x${e.box[1]}   backing ${e.backing[0]}x${e.backing[1]}`,
+    `offsetX ${e.offset[0]} vs clientX-rect.left ${e.client[0] - e.rect[0]}  차이 ${offVsRect}px ${offVsRect > 3 ? '★ rect 이상' : '(정상)'}`,
+    `cfg ${e.cfg[0]}x${e.cfg[1]}   w2b ${e.w2b}   zoom ${e.zoom}   dpr ${e.dpr}`,
+    `visualViewport ${e.vv ? e.vv[0] + ' @' + e.vv[1] + ',' + e.vv[2] : '-'}`,
+  ];
+
+  const size = 11;
+  const pad = 6;
+  const lineH = size + 4;
+  const w = 430;
+  const h = lines.length * lineH + pad * 2;
+
+  ctx.save();
+  ctx.globalAlpha = 0.85;
+  ctx.fillStyle = cssColor('--color-debug-bg');
+  ctx.fillRect(6, 6, w, h);
+  ctx.strokeStyle = cssColor('--color-hitbox');
+  ctx.lineWidth = 1;
+  ctx.strokeRect(6.5, 6.5, w, h);
+  ctx.globalAlpha = 1;
+  lines.forEach((ln, i) => {
+    text(ctx, ln, 6 + pad, 6 + pad + lineH * (i + 0.8), { size, color: '--color-debug-text' });
+  });
+  ctx.restore();
 }
 
 /** "+60MB" / "-10%" 처럼 위로 떠오르며 사라지는 글씨 */

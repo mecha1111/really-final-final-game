@@ -30,13 +30,19 @@ let clickThroughTarget = null;
  *   캔버스는 DOM 노드 하나뿐이라, 렌더가 거기 적어둔 값을 읽으면 항상 같은 배율이 보장된다.
  */
 function canvasPoint(canvas, evt) {
-  const rect = canvas.getBoundingClientRect();
   // 첫 프레임이 그려지기 전에 클릭이 들어오는 극단적인 경우만 config로 폴백한다.
   const worldToBacking = canvas.__worldToBacking || canvas.width / config.canvas.width;
+  const rect = canvas.getBoundingClientRect();
 
+  // ★ offsetX/Y로 rect를 피해보려 했지만 안 된다 — 실측으로 확인했다:
+  //   zoom 0.625가 걸린 상태에서 offsetX와 (clientX - rect.left)가 정확히 같은 값(900)이고,
+  //   둘 다 "화면에 보이는 크기" 기준이다. 반면 clientWidth는 레이아웃 크기(1920, zoom 이전)라
+  //   스케일이 다르다. offsetX를 clientWidth로 나누면 딱 zoom배(0.625)만큼 틀린다.
+  //   즉 offsetX는 (clientX - rect.left)와 같은 값이라 rect 없이 갈 수 있는 길이 아니다.
+  //   → 여기서는 rect를 쓰되, 어떤 값이 쓰였는지는 H키 디버그 표시로 항상 확인할 수 있게 했다
+  //     (state.debugClicks의 env: 두 방식의 결과를 나란히 찍어 갈리는지 바로 보인다).
   const backingX = (evt.clientX - rect.left) * (canvas.width / rect.width);
   const backingY = (evt.clientY - rect.top) * (canvas.height / rect.height);
-
   return { x: backingX / worldToBacking, y: backingY / worldToBacking };
 }
 
@@ -90,8 +96,37 @@ function onPointerDown(canvas, pt, evt) {
   // 화면에서 누른 자리와 십자선이 어긋나면 그게 곧 좌표 변환 오차다(ui/renderEnemies.js).
   // t를 같이 남겨서 잠깐만 보이게 한다 — 오래된 마커는 창 크기가 바뀌면 엉뚱한 자리에
   // 그려져 오해를 부른다(core/state.js의 debugClicks 주석 참고).
+  //
+  // ★ 변환에 관여하는 값들을 그 순간 그대로 같이 담는다. 십자선이 커서에서 벗어날 때
+  //   "어느 변수가 튀었나"를 스크린샷 한 장으로 알 수 있게 하려는 것 — 화면 배율은
+  //   CSS zoom·브라우저 페이지줌(dpr에 반영)·트랙패드 핀치줌(visualViewport)이 겹칠 수
+  //   있고, 어느 것이 rect에 반영되고 어느 것이 안 되는지가 브라우저/버전마다 다르다.
   if (debugState.showHitbox) {
-    state.debugClicks.push({ x: pt.x, y: pt.y, t: performance.now() });
+    const rect = canvas.getBoundingClientRect();
+    const vv = window.visualViewport;
+    state.debugClicks.push({
+      x: pt.x,
+      y: pt.y,
+      t: performance.now(),
+      env: {
+        client: [Math.round(evt.clientX), Math.round(evt.clientY)],
+        offset: [Math.round(evt.offsetX), Math.round(evt.offsetY)],
+        rect: [Math.round(rect.left), Math.round(rect.top), Math.round(rect.width), Math.round(rect.height)],
+        box: [canvas.clientWidth, canvas.clientHeight],
+        backing: [canvas.width, canvas.height],
+        cfg: [config.canvas.width, config.canvas.height],
+        w2b: canvas.__worldToBacking,
+        dpr: window.devicePixelRatio,
+        zoom: getComputedStyle(document.getElementById('desktop')).zoom,
+        vv: vv ? [Number(vv.scale.toFixed(3)), Math.round(vv.offsetLeft), Math.round(vv.offsetTop)] : null,
+        // 두 방식이 갈리면 그 차이가 곧 "rect가 배율을 잘못 반영하고 있다"는 증거다.
+        // 지금 판정에 실제로 쓰는 건 offset 쪽(위 canvasPoint 1순위).
+        viaRect: [
+          Math.round(((evt.clientX - rect.left) * (canvas.width / rect.width)) / (canvas.__worldToBacking || 1)),
+          Math.round(((evt.clientY - rect.top) * (canvas.height / rect.height)) / (canvas.__worldToBacking || 1)),
+        ],
+      },
+    });
     if (state.debugClicks.length > 6) state.debugClicks.shift();
   }
 
