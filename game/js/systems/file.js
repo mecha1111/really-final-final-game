@@ -1,16 +1,17 @@
 // 이 파일 역할: 업로드할 파일의 지급/완료/스킵. 파일 크기·시간은 stage 시트에서 온다.
 
-import { config, getFileTiers, getUiScaleFactor } from '../config.js';
+import { config, getFileTiers } from '../config.js';
 import { state } from '../core/state.js';
 import { addFloat } from './floats.js';
 
-/** 놀이 영역(HUD 아래) 사각형. 뜬 글씨를 화면 가운데 띄울 때 쓴다. */
+/**
+ * "+60MB" 같은 뜬 글씨를 띄울 자리. 화면 가로 중앙, 세로는 위쪽 1/4쯤.
+ * (HUD가 HTML 창으로 옮겨가서 캔버스 위쪽을 비워둘 이유가 없어졌다)
+ */
 function playAreaCenterTop() {
-  // config.hud.height는 1920 기준값이라 실제 물리 픽셀로 변환한다 —
-  // 안 그러면(캔버스가 1920보다 작을 때) 뜬 글씨가 HUD 띠에 파묻힌다.
   return {
     x: config.canvas.width / 2,
-    y: config.hud.height * getUiScaleFactor() + 70,
+    y: config.canvas.height * config.fx.floatTopRatio,
   };
 }
 

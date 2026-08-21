@@ -1,6 +1,6 @@
 // 이 파일 역할: 판의 시작/진행/승패를 총괄한다. 매 프레임 각 시스템을 정해진 순서로 부르는 지휘자.
 
-import { config, gameData, createRules, getUiScaleFactor } from '../config.js';
+import { config, gameData, createRules } from '../config.js';
 import { state, emptyStats } from './state.js';
 import { Spawner, buildPool } from '../enemies/spawner.js';
 import { splitEnemy, applyExpiryEffect, triggerSelfDestruct, updateFakeCursors } from '../enemies/effects.js';
@@ -12,19 +12,13 @@ import { bindRules } from '../debug.js';
 
 const spawner = new Spawner();
 
-/** 놀이 영역 = HUD 아래 전체. 방해꾼은 이 안에서만 논다.
- * config.hud.height는 1920 기준 값이라 getUiScaleFactor()를 곱해 실제
- * 캔버스에서 HUD가 차지하는 물리 픽셀 높이로 바꾼다 — 이렇게 안 하면
- * (실제 캔버스가 1920보다 작을 때) 화면에 그려지는 HUD 띠는 얇아졌는데
- * 방해꾼이 못 들어오는 영역은 그대로 96px이라 그 사이에 빈 틈이 생긴다. */
+/**
+ * 놀이 영역 = 바탕화면 전체. 방해꾼이 화면 어디든 활보한다.
+ * HUD가 캔버스에서 HTML 창(ui/statusWindow.js)으로 옮겨가면서 위쪽을
+ * 비워둘 이유가 없어졌다 — 창과 겹치면 "창이 위" 규칙으로 방해꾼이 뒤로 지나간다.
+ */
 export function getPlayArea() {
-  const hudHeight = config.hud.height * getUiScaleFactor();
-  return {
-    x: 0,
-    y: hudHeight,
-    w: config.canvas.width,
-    h: config.canvas.height - hudHeight,
-  };
+  return { x: 0, y: 0, w: config.canvas.width, h: config.canvas.height };
 }
 
 /**

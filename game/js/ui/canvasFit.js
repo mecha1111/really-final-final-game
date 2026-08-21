@@ -1,52 +1,60 @@
-// 이 파일 역할: 캔버스의 CSS 표시 크기를 내부 렌더 해상도의 비율을 지키면서 창에 꽉 차게(레터박스 포함) 맞춘다.
+// 이 파일 역할: #desktop(1920x1080 고정 좌표계)을 창 크기에 맞춰 통째로 확대/축소한다(비율 유지 + 레터박스).
 //
-// CSS의 width:auto/max-width만으로는 "안 넘치게 줄이기"는 되지만 "창을 꽉 채우게
-// 키우기"는 안 된다(replaced element의 auto 크기는 내재 크기 이상 안 커진다).
-// object-fit으로 키울 수도 있지만, 그러면 캔버스의 getBoundingClientRect()가
-// 실제로 보이는 크기가 아니라 박스 전체 크기를 돌려줘서 systems/input.js의
-// 클릭 좌표 변환이 레터박스 구간에서 어긋난다. 그래서 실제 표시 크기를 JS로
-// 계산해 style.width/height에 그대로 박아 넣는다 — getBoundingClientRect()가
-// 항상 "진짜로 보이는 크기"와 정확히 일치하게 된다.
+// 캔버스만 늘리지 않고 #desktop에 transform:scale을 거는 이유:
+// HTML 창·개그요소와 캔버스(방해꾼)가 같은 좌표계 위에 얹혀 있어야 서로 위치가
+// 안 어긋난다. #desktop 하나만 스케일하면 그 안의 모든 것이 함께 움직인다.
 //
-// style.width/height를 px로 명시하는 게 핵심이다 — %나 vw/vh를 쓰면 브라우저가
-// 세로/가로 중 한쪽만 맞추고 나머지는 박스에 맞춰 늘려버릴 수 있어(찌그러짐),
-// 반드시 아래 계산된 실제 px 값 하나로만 정해야 한다.
+// 클릭 좌표는 손댈 필요가 없다 — transform은 getBoundingClientRect()에 반영되므로
+// systems/input.js의 역변환((clientX-rect.left) * canvas.width/rect.width)이
+// 그대로 맞는다. (canvas의 CSS 크기는 내부 해상도와 같게 두고 배율은 transform이 전담)
 
-import { config } from '../config.js';
+import { config, getUiReferenceCanvas } from '../config.js';
 
-/**
- * 지금 창 크기에 맞춰 캔버스의 CSS 표시 크기를 다시 계산한다.
- * 내부 해상도(canvas.width/height, = config.canvas.width/height)는 안 건드린다.
- *
- * scale = min(창 폭 / 내부 폭, 창 높이 / 내부 높이)
- * styleW = 내부 폭 * scale, styleH = 내부 높이 * scale
- * → 두 축 중 "더 좁게 맞춰야 하는" 쪽에 맞추므로 항상 비율이 유지되고,
- *   남는 쪽에 레터박스(빈 여백)가 생긴다. 창보다 커지는 일은 없다(scale이 항상
- *   두 후보 중 작은 쪽이므로).
- */
+/** 지금 창 크기에 맞춰 #desktop의 배율과 위치(레터박스 중앙정렬)를 다시 계산한다. */
 export function fitCanvasToViewport(canvas) {
+  const desktop = document.getElementById('desktop');
+  if (!desktop) return;
+
   const viewportW = window.innerWidth;
   const viewportH = window.innerHeight;
 
-  // 내부 해상도는 canvas.width/height(정수 px)를 그대로 쓴다 — config.canvas가
-  // 아직 반영 전이어도(예: 부팅 극초반) canvas 엘리먼트 자체의 값이 항상 최신이다.
-  const internalW = canvas.width;
-  const internalH = canvas.height;
+  // ★ #desktop의 좌표계는 "UI 기준 해상도"(uiBaseWidth=1920)다. 캔버스 내부
+  //   해상도(시트의 canvas_w, 지금 960)와는 다를 수 있다 — index.html/style.css의
+  //   HTML 좌표(아이콘 left:24, 창 left:150 …)가 전부 1920을 놓고 짠 값이라
+  //   여기를 캔버스 내부 해상도로 잡으면 HTML만 2배로 커져 다 어긋난다.
+  //
+  //   캔버스는 CSS 크기를 이 좌표계에 맞춰 늘려서(내부 960 → 표시 1920) 겹쳐 놓는다.
+  //   클릭 역변환은 canvas.width / rect.width 를 쓰므로(systems/input.js)
+  //   이 확대까지 자동으로 흡수된다 — 좌표는 여전히 정확하다.
+  //   방해꾼이 화면에서 보이는 크기도 결과적으로 시트 크기 × (1920/baseWidth)로
+  //   고정되어, 시트의 canvas_w를 바꿔도 체감 크기가 안 변한다.
+  const ref = getUiReferenceCanvas();
+  const baseW = ref.width;
+  const baseH = ref.height;
+  desktop.style.width = `${baseW}px`;
+  desktop.style.height = `${baseH}px`;
+  canvas.style.width = `${baseW}px`;
+  canvas.style.height = `${baseH}px`;
 
-  const scale = Math.min(viewportW / internalW, viewportH / internalH);
-  const styleW = internalW * scale;
-  const styleH = internalH * scale;
+  // 두 축 중 더 좁게 맞춰야 하는 쪽에 맞춘다 → 비율 유지 + 반대쪽에 레터박스
+  const scale = Math.min(viewportW / baseW, viewportH / baseH);
+  const shownW = baseW * scale;
+  const shownH = baseH * scale;
 
-  canvas.style.width = `${styleW}px`;
-  canvas.style.height = `${styleH}px`;
+  // transform-origin이 top left라 스케일 후 남는 여백만큼 직접 밀어 가운데 정렬한다.
+  const offsetX = (viewportW - shownW) / 2;
+  const offsetY = (viewportH - shownH) / 2;
+  desktop.style.transform = `translate(${offsetX}px, ${offsetY}px) scale(${scale})`;
 
   if (config.debug.enabled) {
     console.log('[canvasFit]', {
-      internal: `${internalW}x${internalH}`,
+      canvasInternal: `${canvas.width}x${canvas.height}`, // 시트의 canvas_w/h
+      desktopBase: `${baseW}x${baseH}`, // UI 좌표계(uiBaseWidth 기준)
       viewport: `${viewportW}x${viewportH}`,
       scale: scale.toFixed(4),
-      style: `${styleW.toFixed(1)}x${styleH.toFixed(1)}`,
-      ratioCheck: `내부=${(internalW / internalH).toFixed(4)} 표시=${(styleW / styleH).toFixed(4)}`,
+      shown: `${shownW.toFixed(1)}x${shownH.toFixed(1)}`,
+      letterbox: `x=${offsetX.toFixed(1)} y=${offsetY.toFixed(1)}`,
+      ratioCheck: `내부=${(canvas.width / canvas.height).toFixed(4)} 표시=${(shownW / shownH).toFixed(4)}`,
     });
   }
 }

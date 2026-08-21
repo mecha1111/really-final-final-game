@@ -7,7 +7,6 @@ import { skipFile } from './file.js';
 import { damageUpload } from './upload.js';
 import { pointInRect } from '../ui/draw.js';
 import { getStartButton, getRestartButton } from '../ui/screens.js';
-import { isPointOverHud } from '../ui/hud.js';
 import { handleDebugKey } from '../debug.js';
 
 /** 화면 좌표(clientX/Y)를 캔버스 논리 좌표로. CSS로 축소돼 있어도 정확하다. */
@@ -40,15 +39,18 @@ export function initInput(canvas) {
 /**
  * 클릭 라우팅. 우선순위는 딱 한 줄로 요약된다: **UI가 방해꾼보다 항상 먼저다.**
  *
- * 방해꾼(baseWidth=1280)과 UI(uiBaseWidth=1920)는 스케일 기준이 달라서 한 클릭이
- * 양쪽에 동시에 걸리는 경계 구간이 실제로 존재한다(ui/hud.js의 isPointOverHud
- * 주석에 실측값). 그래서 아래 두 가드가 "UI가 먼저 잡으면 거기서 return" 하도록
- * 명시적으로 배치돼 있다 — 각 가드는 클릭을 소비하며, 방해꾼 히트 테스트로
- * 절대 흘려보내지 않는다(= 한 클릭이 두 번 처리되는 일 없음).
- *   1) select/cleared/failed 단계: 화면 전체가 UI다. 방해꾼은 아직/여전히 배열에
- *      남아 그려지고 있을 수 있지만 클릭 대상이 아니다.
- *   2) playing 단계: HUD 띠 위 클릭.
- * 이 두 return을 지우면 "버튼 눌렀는데 뒤 방해꾼도 맞는" 버그가 되살아난다.
+ * 지금은 두 층에서 이 원칙이 지켜진다:
+ *
+ *  (1) HTML 층 — 브라우저가 알아서 해준다. HTML 창(.layer-win)·개그팝업(.layer-gag)은
+ *      캔버스보다 위(z-index)라 그 위를 누르면 이벤트가 창에서 끝나고 캔버스의
+ *      pointerdown은 아예 안 뜬다 = 뒤 방해꾼이 안 맞는다(의도: 창 우선).
+ *      반대로 개그아이콘·작업표시줄(.layer-deco)은 pointer-events:none이라
+ *      클릭이 그대로 통과해 방해꾼에게 간다(의도: 장식은 클릭 안 훔침).
+ *
+ *  (2) 캔버스 층 — 아래 가드. select/cleared/failed 단계에서는 화면 전체가
+ *      캔버스 오버레이(UI)라, 방해꾼이 배열에 남아 그려지고 있어도 클릭 대상이
+ *      아니다. 이 return을 지우면 "버튼 눌렀는데 뒤 방해꾼도 맞는" 버그가 된다.
+ *
  * (자동 테스트가 이 규칙을 지킨다 — pwtest run.mjs의 "경계 클릭 라우팅" 항목)
  */
 function onPointerDown(canvas, pt) {
@@ -74,11 +76,10 @@ function onPointerDown(canvas, pt) {
 
   if (state.phase !== 'playing') return;
 
-  // [가드 2] HUD 띠 위 클릭은 UI가 가져간다. 방해꾼 히트박스가 이 띠 안으로
-  // 삐져 들어와 있어도(실측 3.75px) 방해꾼에게 넘기지 않는다 — UI 우선 원칙.
-  // 겸사겸사 정확도 통계(stats.clicks)도 오염되지 않는다.
-  if (isPointOverHud(pt)) return;
-
+  // 예전엔 여기서 "HUD 띠 위 클릭"을 걸렀지만, HUD가 캔버스에서 HTML 창으로
+  // 옮겨가면서 캔버스에는 더 이상 UI가 없다 — 이제 창 위 클릭은 브라우저가
+  // 캔버스까지 내려보내지도 않으므로(위 주석 (1)) 별도 가드가 필요 없다.
+  // 방해꾼은 바탕화면 전체를 쓴다.
   state.stats.clicks += 1;
   hitTestEnemies(pt);
 }

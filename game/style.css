@@ -70,6 +70,14 @@
   --color-debug-text: #00ff00;
 }
 
+/* 픽셀 폰트. base64 인라인이 아니라 파일 참조 — 시안(mockup7.html)은 2MB짜리
+   base64를 물고 있었지만 그대로 쓰면 HTML이 그만큼 뚱뚱해진다. */
+@font-face {
+  font-family: 'DGM';
+  src: url('./assets/enemies/DungGeunMo.woff') format('woff');
+  font-display: swap;
+}
+
 * {
   box-sizing: border-box;
 }
@@ -84,32 +92,229 @@ body {
   background: var(--color-bg);
 }
 
-/* body 자체가 캔버스를 가운데 놓는 자리다 — 디버그 패널은 더 이상 레이아웃에
-   자리를 차지하지 않으므로(overlay) 이걸로 충분하고, position:fixed 오버레이의
-   기준(관성적으로 뷰포트)도 이걸로 맞춰둔다. */
 body {
-  display: flex;
-  align-items: center;
-  justify-content: center;
   position: relative;
 }
 
-/* 실제 표시 크기(width/height)는 ui/canvasFit.js가 창 크기에 맞춰 매번
-   style.width/height에 직접 px로 써넣는다(비율 유지 + 레터박스). 여기 auto는
-   JS가 아직 안 돌았을 아주 짧은 순간을 위한 안전망일 뿐이다.
-   CSS의 width:auto/max-width만으로는 "안 넘치게 줄이기"는 되지만 "창을 꽉
-   채우게 키우기"는 안 되고(replaced element는 내재 크기 이상 자동으로 안
-   커진다), object-fit으로 키우면 getBoundingClientRect()가 실제로 보이는
-   크기가 아니라 박스 전체 크기를 돌려줘서 클릭 좌표 변환(systems/input.js)이
-   레터박스 구간에서 어긋난다 — 그래서 JS가 직접 계산해 넣는다. */
+/* ---------------------------------------------------------------------------
+   #desktop — 1920x1080 고정 좌표계 하나. ui/canvasFit.js가 여기에만
+   transform:scale을 걸어 창 크기에 맞춘다(비율 유지 + 레터박스).
+   캔버스도 이 안에 있으므로 HTML 장식/창과 캔버스가 항상 같은 배율로 함께 움직인다.
+   transform은 getBoundingClientRect()에 반영되니 클릭 역변환(systems/input.js)도
+   손댈 필요 없이 그대로 맞는다.
+   --------------------------------------------------------------------------- */
+/* 좌상단(0,0)에 고정한다 — 가운데 정렬은 canvasFit이 transform의 translate로
+   직접 한다. body가 flex로 또 가운데 정렬하면 이중으로 밀려서 화면 밖으로 나간다. */
+#desktop {
+  position: fixed;
+  left: 0;
+  top: 0;
+  width: 1920px;
+  height: 1080px;
+  transform-origin: top left;
+  overflow: hidden;
+  font-family: 'DGM', 'Galmuri11', monospace;
+  -webkit-font-smoothing: none;
+  image-rendering: pixelated;
+  /* Bliss 배경 (하늘 → 잔디) */
+  background: linear-gradient(
+    180deg,
+    #3f7fc8 0%,
+    #5c9bd8 20%,
+    #8fbfe8 38%,
+    #bfe0f2 50%,
+    #5aa832 50%,
+    #4f9c2a 74%,
+    #3f8420 100%
+  );
+}
+
+/* 레이어 z순서. 이 순서가 곧 클릭 라우팅이다(위에 있는 게 클릭을 먼저 가져간다). */
+#desktop .layer-bg { position: absolute; inset: 0; z-index: 1; pointer-events: none; }
+#desktop .layer-deco { position: absolute; inset: 0; z-index: 2; pointer-events: none; }
+#desktop #game-canvas { position: absolute; inset: 0; z-index: 3; pointer-events: auto; }
+#desktop .layer-gag { position: absolute; inset: 0; z-index: 4; pointer-events: none; }
+#desktop .layer-win { position: absolute; inset: 0; z-index: 5; pointer-events: none; }
+/* 레이어 자체는 클릭을 통과시키고, 그 안의 "실제 창"만 클릭을 받는다 —
+   빈 공간을 눌렀을 때 뒤 캔버스(방해꾼)로 통과되게 하려는 것. */
+#desktop .layer-gag > *,
+#desktop .layer-win > * { pointer-events: auto; }
+
+/* 캔버스는 내부 해상도(1920x1080) 그대로 CSS 크기를 잡는다.
+   축소/확대는 #desktop의 transform이 전담한다. */
 #game-canvas {
   display: block;
-  background: var(--color-bg);
-  width: auto;
-  height: auto;
-  max-width: 100vw;
-  max-height: 100vh;
+  width: 1920px;
+  height: 1080px;
+  background: transparent; /* 뒤 Bliss 배경이 비쳐야 한다 */
   touch-action: none;
+}
+
+/* 게임이 '대기/결과' 화면일 땐 캔버스 전체 오버레이가 떠야 하므로
+   그 위에 뜨는 HTML 창·팝업을 숨긴다(안 그러면 오버레이 위로 창이 떠버린다). */
+#desktop:not(.phase-playing) .layer-gag,
+#desktop:not(.phase-playing) .layer-win,
+#desktop:not(.phase-playing) .layer-deco {
+  display: none;
+}
+
+/* ===== 배경(하늘 격자 · 언덕 · 구름) — 시안 그대로 ===== */
+#desktop .grid {
+  position: absolute; left: 0; right: 0; top: 0; height: 50%; opacity: 0.12;
+  background-image: linear-gradient(#fff 1px, transparent 1px), linear-gradient(90deg, #fff 1px, transparent 1px);
+  background-size: 60px 60px;
+}
+#desktop .hill {
+  position: absolute; left: -5%; right: -5%; bottom: 0; height: 52%;
+  background: radial-gradient(ellipse 120% 150% at 42% 120%, #a4d65e 0%, #86c249 38%, #6cae37 62%, #5a9e2c 100%);
+  border-radius: 60% 40% 0 0 / 90% 80% 0 0;
+}
+#desktop .hill2 {
+  position: absolute; left: -10%; bottom: 0; width: 70%; height: 38%;
+  background: radial-gradient(ellipse 120% 140% at 30% 120%, #8fc94e 0%, #74b23a 60%, #5f9e2d 100%);
+  border-radius: 70% 30% 0 0 / 100% 70% 0 0; opacity: 0.9;
+}
+#desktop .cloud { position: absolute; background: #fff; border-radius: 50%; opacity: 0.9; }
+#desktop .cloud::before, #desktop .cloud::after { content: ''; position: absolute; background: #fff; border-radius: 50%; }
+#desktop .c1 { width: 170px; height: 54px; left: 110px; top: 100px; }
+#desktop .c1::before { width: 88px; height: 88px; left: 20px; top: -38px; }
+#desktop .c1::after { width: 66px; height: 66px; right: 20px; top: -22px; }
+#desktop .c2 { width: 120px; height: 42px; left: 1560px; top: 60px; }
+#desktop .c2::before { width: 66px; height: 66px; left: 14px; top: -30px; }
+
+/* ===== 개그 아이콘 (레이어4, 클릭 무반응 장식) ===== */
+/* 행 높이는 아이콘(76px) + 라벨 3줄(약 52px) + 여백이 들어가야 아래 칸을 안 침범한다 */
+#desktop .icons {
+  position: absolute; left: 24px; top: 24px; display: grid;
+  grid-template-columns: repeat(2, 110px); grid-auto-rows: 148px; gap: 10px 20px;
+}
+#desktop .icon {
+  width: 110px; text-align: center; color: #fff; padding: 8px 4px;
+  display: flex; flex-direction: column; align-items: center; justify-content: flex-start;
+  text-shadow: 1px 1px 2px #000, -1px -1px 2px #000; border: 1px dotted transparent;
+}
+#desktop .icon .ib {
+  width: 76px; height: 76px; margin: 0 auto 6px; border: 2px solid rgba(255, 255, 255, 0.5);
+  display: flex; align-items: center; justify-content: center; font-size: 38px; background: rgba(30, 60, 120, 0.35);
+  flex: none;
+}
+/* 라벨이 길어도(돌고래.exe 등) 아래 아이콘을 침범하지 않게 3줄에서 자른다 */
+#desktop .icon .il {
+  font-size: 15px; line-height: 1.15; width: 100%;
+  display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 3;
+  overflow: hidden; word-break: break-all;
+}
+
+/* ===== 작업표시줄 (레이어4, 클릭 무반응 장식) ===== */
+#desktop .taskbar {
+  position: absolute; left: 0; right: 0; bottom: 0; height: 52px;
+  background: linear-gradient(180deg, #3c91f2 0, #1c6fd8 8%, #1358c4 100%);
+  border-top: 2px solid #5aa0f5; display: flex; align-items: center;
+}
+#desktop .start {
+  height: 52px; padding: 0 32px 0 18px;
+  background: linear-gradient(180deg, #5eb63f 0, #469b2c 45%, #38851f 100%);
+  color: #fff; font-size: 23px; font-style: italic; display: flex; align-items: center; gap: 8px;
+  border-radius: 0 16px 16px 0; text-shadow: 1px 1px 0 rgba(0, 0, 0, 0.4); border-right: 2px solid #2a6018;
+}
+#desktop .ti {
+  margin-left: 10px; height: 36px; padding: 0 16px; display: flex; align-items: center; gap: 8px;
+  background: linear-gradient(180deg, #4a8fe0, #1c62c8); border: 1px solid #1a4a9a; border-radius: 3px;
+  font-size: 15px; color: #fff;
+}
+#desktop .clock {
+  margin-left: auto; height: 100%; padding: 0 20px; display: flex; align-items: center;
+  background: linear-gradient(180deg, #1560c8, #1250b0); border-left: 2px solid #5aa0f5; font-size: 17px; color: #fff;
+}
+
+/* ===== 개그 팝업 (레이어3) ===== */
+#desktop .gagpop { position: absolute; border: 3px solid #111; box-shadow: 4px 4px 0 rgba(0, 0, 0, 0.35); }
+#desktop .gagpop .bar {
+  background: linear-gradient(180deg, #3c91f2, #0f5fc8); color: #fff; font-size: 14px; cursor: move;
+  padding: 5px 8px; display: flex; justify-content: space-between; align-items: center;
+}
+#desktop .gagpop .bar .x {
+  background: #d1330f; color: #fff; width: 20px; height: 18px; text-align: center; line-height: 16px;
+  border: 1px solid #fff; cursor: pointer;
+}
+#desktop .gagpop .c { background: #ece9d8; padding: 14px 16px; font-size: 16px; color: #111; line-height: 1.5; text-align: center; }
+#desktop .gagpop .c button {
+  margin-top: 10px; font-family: 'DGM', monospace; font-size: 15px; padding: 5px 16px;
+  background: linear-gradient(180deg, #fff, #cfcbb2); border: 2px solid #111; cursor: pointer;
+}
+
+/* ===== 창 공통 (레이어2, 항상 위) ===== */
+#desktop .win {
+  position: absolute; background: #ece9d8; border: 1px solid #003c9d; border-radius: 8px 8px 0 0;
+  box-shadow: 0 0 0 1px #0054e3, 4px 4px 0 rgba(0, 0, 0, 0.25), 10px 14px 30px rgba(0, 0, 0, 0.35);
+  display: flex; flex-direction: column; overflow: hidden;
+}
+#desktop .tbar {
+  height: 48px; background: linear-gradient(180deg, #3c91f2 0, #177bea 6%, #0f66d8 50%, #1a72e0 92%, #0f5fc8 100%);
+  display: flex; align-items: center; gap: 8px; padding: 0 6px 0 10px; cursor: move;
+}
+#desktop .tbar .ico {
+  width: 28px; height: 28px; background: #ffd34d; border: 2px solid #111;
+  display: flex; align-items: center; justify-content: center; font-size: 16px; color: #111;
+}
+#desktop .tbar .t { color: #fff; font-size: 20px; flex: 1; text-shadow: 1px 1px 0 rgba(0, 0, 0, 0.5); white-space: nowrap; overflow: hidden; }
+#desktop .wb { display: flex; gap: 3px; }
+#desktop .wb span {
+  width: 32px; height: 28px; border: 1px solid #fff; color: #fff; font-size: 15px;
+  display: flex; align-items: center; justify-content: center;
+  background: linear-gradient(180deg, #4a9bf5, #1668d4); border-radius: 3px; cursor: pointer;
+}
+#desktop .wb .x { background: linear-gradient(180deg, #f2724d, #d1330f); }
+#desktop .win::after {
+  content: ''; position: absolute; inset: 0; border: 3px solid #1668d4; border-top: none;
+  border-radius: 0 0 6px 6px; pointer-events: none;
+}
+
+#desktop .winA { left: 150px; top: 150px; width: 400px; }
+#desktop .winA .body { padding: 14px; display: flex; flex-direction: column; gap: 12px; }
+#desktop .dayflag { background: #ffcf3f; border: 3px solid #111; display: flex; align-items: center; padding: 8px 14px; box-shadow: 3px 3px 0 #b8912a; }
+#desktop .dayflag .d { font-size: 32px; color: #111; }
+#desktop .dayflag .hard { margin-left: auto; font-size: 22px; color: #c0281a; }
+#desktop .grp { border: 2px solid #a9a488; background: #fff; }
+#desktop .grp .h { background: #dfe6f2; border-bottom: 2px solid #a9a488; padding: 6px 12px; font-size: 17px; color: #0a327a; }
+#desktop .grp .c { padding: 12px 14px; }
+#desktop .grp .big { font-size: 32px; color: #111; line-height: 1; }
+#desktop .grp .big.time { color: #c0281a; }
+#desktop .grp .unit { font-size: 16px; color: #888; }
+#desktop .xpbar { height: 20px; background: #fff; border: 2px solid #7f9db9; margin-top: 10px; padding: 2px; display: flex; gap: 2px; overflow: hidden; }
+#desktop .xpbar i { width: 13px; background: #3fae2a; flex-shrink: 0; }
+#desktop .skips { display: flex; gap: 8px; }
+#desktop .skips .s {
+  width: 42px; height: 42px; border: 2px solid #111; background: #ffcf3f;
+  display: flex; align-items: center; justify-content: center; font-size: 22px; box-shadow: 2px 2px 0 #b8912a;
+}
+#desktop .skips .s.used { background: #cfcbb2; color: #8a866f; box-shadow: 2px 2px 0 #a8a48c; }
+
+#desktop .winB { left: 600px; top: 70px; width: 760px; }
+#desktop .winB .menu {
+  height: 26px; background: #f4f2e7; border-bottom: 1px solid #c9c5b0;
+  display: flex; align-items: center; gap: 18px; padding: 0 14px; font-size: 15px; color: #333;
+}
+#desktop .winB .body { padding: 20px; display: flex; flex-direction: column; align-items: center; gap: 18px; }
+#desktop .frame { background: #fff; border: 3px solid #111; padding: 10px; box-shadow: 4px 4px 0 #999; }
+#desktop .frame .img {
+  width: 540px; height: 540px;
+  background: repeating-conic-gradient(#5a5a5a 0 25%, #4c4c4c 0 50%) 0 / 54px 54px;
+  display: flex; align-items: center; justify-content: center; color: #fff; font-size: 56px;
+}
+#desktop .frame .cap { margin-top: 14px; padding: 0 6px; display: flex; justify-content: space-between; align-items: baseline; font-size: 20px; color: #444; }
+#desktop .frame .cap b { color: #0f5fc8; font-size: 34px; letter-spacing: 4px; }
+#desktop .up { width: 560px; }
+#desktop .up .lab { display: flex; justify-content: space-between; font-size: 26px; color: #333; margin-bottom: 8px; }
+#desktop .xpbar.big { height: 34px; padding: 3px; gap: 3px; border: 3px solid #7f9db9; }
+#desktop .xpbar.big i { width: 19px; }
+
+/* 토스트 (개그 팝업/아이콘 반응) */
+#desktop .toast {
+  position: absolute; left: 50%; bottom: 90px; transform: translateX(-50%);
+  background: #ffcf3f; border: 3px solid #111; padding: 12px 24px;
+  font-family: 'DGM', monospace; font-size: 22px; color: #111;
+  box-shadow: 4px 4px 0 #b8912a; z-index: 9999; pointer-events: none;
 }
 
 /* 밸런스 리로드 버튼. 시트 수정 후 다시 fetch해서 확인하는 테스트용.

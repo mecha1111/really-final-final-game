@@ -35,10 +35,98 @@
     </script>
   </head>
   <body>
-    <!-- 캔버스는 항상 창 전체를 채운다(내부 해상도는 1920x1080 그대로, CSS로만
-         확대/축소). 디버그 패널은 레이아웃에서 자리를 차지하지 않고 이 위에
-         반투명 오버레이로 뜬다 — 켜져도 캔버스가 밀리거나 줄어들지 않는다. -->
-    <canvas id="game-canvas"></canvas>
+    <!--
+      #desktop = 1920x1080 고정 좌표계. ui/canvasFit.js가 여기에 transform:scale을
+      걸어서 통째로 창 크기에 맞춘다(비율 유지 + 레터박스). 캔버스도 이 안에 들어
+      있으므로 HTML과 캔버스가 항상 같은 배율로 함께 움직인다 —
+      transform은 getBoundingClientRect()에 반영되므로 클릭 좌표 역변환도 그대로 맞는다.
+
+      레이어 z순서(위 → 아래). 이 순서가 클릭 라우팅을 결정한다:
+        5 .layer-win   HTML 창(상태.dat/.exe)   pointer-events:auto  ← 항상 위, 드래그 O
+        4 .layer-gag   HTML 개그팝업             pointer-events:auto
+        3 #game-canvas 방해꾼                    pointer-events:auto
+        2 .layer-deco  개그아이콘·작업표시줄      pointer-events:none  ← 클릭 통과(장식)
+        1 .layer-bg    Bliss 배경                pointer-events:none
+    -->
+    <div id="desktop">
+      <div class="layer-bg">
+        <div class="grid"></div>
+        <div class="hill"></div>
+        <div class="hill2"></div>
+        <div class="cloud c1"></div>
+        <div class="cloud c2"></div>
+      </div>
+
+      <!-- 클릭 무반응 장식. pointer-events:none이라 위를 클릭해도 캔버스(방해꾼)로 통과한다. -->
+      <div class="layer-deco">
+        <div class="icons">
+          <div class="icon"><div class="ib">🐬</div><div class="il">절대_바이러스<br />아님_진짜_전<br />_돌고래임.exe</div></div>
+          <div class="icon"><div class="ib">📁</div><div class="il">숙제(안함)</div></div>
+          <div class="icon"><div class="ib">🛡️</div><div class="il">V3보다좋음.exe</div></div>
+          <div class="icon"><div class="ib">💾</div><div class="il">야한거아님.zip</div></div>
+          <div class="icon"><div class="ib">🎮</div><div class="il">공부자료.exe</div></div>
+          <div class="icon"><div class="ib">🗑️</div><div class="il">휴지통</div></div>
+        </div>
+
+        <div class="taskbar">
+          <div class="start">🪟 시작</div>
+          <div class="ti">■ 상태.dat</div>
+          <div class="ti">! 진짜_최종…(5).exe</div>
+          <div class="clock" id="tb-clock">오후 11:59</div>
+        </div>
+      </div>
+
+      <canvas id="game-canvas"></canvas>
+
+      <!-- 개그 팝업이 동적으로 들어가는 자리 (ui/desktop.js가 채운다) -->
+      <div class="layer-gag" id="layer-gag"></div>
+
+      <!-- 게임 상태 창들. ui/statusWindow.js가 내용을 매 프레임 갱신한다. -->
+      <div class="layer-win">
+        <div class="win winA" id="win-status">
+          <div class="tbar">
+            <div class="ico">■</div>
+            <div class="t">상태.dat</div>
+            <div class="wb"><span class="min">_</span><span>□</span><span class="x">×</span></div>
+          </div>
+          <div class="body">
+            <div class="dayflag"><span class="d" id="st-stage">1 구간</span><span class="hard" id="st-tag">START</span></div>
+            <div class="grp">
+              <div class="h">할당량</div>
+              <div class="c">
+                <div class="big"><span id="st-uploaded">0</span><span class="unit"> / <span id="st-quota">200</span> MB</span></div>
+                <div class="xpbar" id="st-quotabar"></div>
+              </div>
+            </div>
+            <div class="grp"><div class="h">남은 시간</div><div class="c"><div class="big time" id="st-time">03:00</div></div></div>
+            <div class="grp">
+              <div class="h">건너뛰기 (S)</div>
+              <div class="c"><div class="skips" id="st-skips"></div></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="win winB" id="win-upload">
+          <div class="tbar">
+            <div class="ico">!</div>
+            <div class="t">진짜_최종_final_수정_진짜최종(5).exe</div>
+            <div class="wb"><span class="min">_</span><span>□</span><span class="x">×</span></div>
+          </div>
+          <div class="menu"><span>파일(F)</span><span>편집(E)</span><span>보기(V)</span><span>도움말(H)</span></div>
+          <div class="body">
+            <div class="frame">
+              <div class="img" id="up-thumb">그림</div>
+              <div class="cap"><span id="up-caption">업로드 중…</span><b id="up-size">60MB</b></div>
+            </div>
+            <div class="up">
+              <div class="lab"><span>업로드</span><span id="up-pct">0%</span></div>
+              <div class="xpbar big" id="up-bar"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <script type="module" src="./js/main.js"></script>
   </body>
 </html>

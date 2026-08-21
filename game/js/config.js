@@ -21,7 +21,7 @@ export const config = {
     baseWidth: 1280,
 
     // HUD/타이틀/난이도 카드/결과 화면이 "설계된" 기준 해상도. 방해꾼(baseWidth)과
-    // 일부러 다른 값이다 — ui/hud.js, ui/screens.js 안의 픽셀 숫자(타이틀
+    // 일부러 다른 값이다 — ui/screens.js 안의 픽셀 숫자(타이틀
     // 40px, 카드 300x200 등)는 전부 1920 폭을 놓고 짰을 때 겹치지 않고 보기
     // 좋았다. 실제 canvas.width가 이거보다 작으면(지금 시트는 960) UI가
     // 상대적으로 너무 커져서 디버그 패널이 카드를 덮는 등 서로 가리게 된다 —
@@ -43,16 +43,11 @@ export const config = {
   // 바깥에서는 지금처럼 config.progression 으로 그대로 읽으면 된다.
   progression: PROGRESSION,
 
+  // HUD는 캔버스에서 HTML 창(ui/statusWindow.js)으로 옮겨갔다.
+  // 레이아웃 숫자는 전부 style.css로 갔고, 여기엔 게임 로직이 읽는 값만 남는다.
   hud: {
-    // 화면 상단 HUD 띠의 높이(px). 키우면 정보는 잘 보이지만 방해꾼이
-    // 돌아다닐 놀이 공간이 줄어든다.
-    height: 96,
-    // 업로드 바의 위치/크기(px). 키우면 진행도가 눈에 잘 띈다.
-    barX: 24,
-    barY: 18,
-    barW: 560,
-    barH: 30,
-    // 업로드 바가 주기 공격을 맞은 순간 빨갛게 번쩍이는 시간(초).
+    // 주기 공격을 맞은 순간 "맞았다" 표시가 켜져 있는 시간(초).
+    // systems/upload.js가 state.hitFlash에 넣고, 상태창이 그 동안 경고를 띄운다.
     hitFlashSec: 0.25,
   },
 
@@ -160,6 +155,24 @@ export const config = {
     floatSec: 0.9,
     // 뜬 글씨가 위로 올라가는 거리(px).
     floatRise: 44,
+    // "+60MB"처럼 화면 중앙에 띄우는 글씨의 세로 위치(캔버스 높이 대비 비율).
+    floatTopRatio: 0.22,
+  },
+
+  // HTML 바탕화면 껍데기(ui/desktop.js) 전용. 전부 1920x1080 좌표 기준.
+  desktop: {
+    // 시작할 때 띄워둘 개그 팝업 수.
+    initialGagPopups: 2,
+    // 동시에 떠 있을 수 있는 개그 팝업 상한. "닫으면 또 뜬다" 개그가
+    // 무한 증식으로 화면을 덮지 않게 막는 안전장치.
+    maxGagPopups: 6,
+    // 새 개그 팝업이 뜨는 위치 범위 [최소, 최대] (px).
+    gagSpawnX: [120, 1520],
+    gagSpawnY: [150, 650],
+    // 토스트가 떠 있는 시간(초).
+    toastSec: 1.2,
+    // 남은 시간이 이 아래로 내려가면 상태창 시계가 빨개진다(초).
+    timeWarnSec: 30,
   },
 
   // bait("시선 강탈") 전용 — 화면을 돌아다니지 않고 모서리에 고정된 채
@@ -228,7 +241,7 @@ export function getUiScaleFactor() {
 }
 
 /**
- * ui/screens.js·ui/hud.js가 레이아웃 계산에 쓰는 "가상의" 캔버스 크기
+ * ui/screens.js가 레이아웃 계산에 쓰는 "가상의" 캔버스 크기
  * (1920 기준, 실제 canvas.width/height와는 다를 수 있다). getUiScaleFactor()로
  * 그려질 것을 전제하므로, 실제 캔버스가 몇이든 이 크기 기준으로 좌표를 짜면
  * 항상 올바른 비율로 나온다. 클릭 판정(systems/input.js)도 같은 걸 써야

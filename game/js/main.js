@@ -9,6 +9,8 @@ import { initInput } from './systems/input.js';
 import { render } from './ui/render.js';
 import { initReloadButton } from './ui/screens.js';
 import { initCanvasFit, fitCanvasToViewport } from './ui/canvasFit.js';
+import { initDesktop, syncDesktopPhase } from './ui/desktop.js';
+import { updateStatusWindows } from './ui/statusWindow.js';
 import { initDebugPanel, bindRules, updateDebugStats } from './debug.js';
 import { Enemy } from './enemies/Enemy.js';
 
@@ -73,6 +75,7 @@ async function main() {
   initCanvasFit(canvas); // 최초 1회 맞추고, 이후 창 크기 변경에 자동으로 반응한다
 
   initInput(canvas);
+  initDesktop(); // HTML 바탕화면(창 드래그·개그 팝업·시계)
   initDebugPanel();
   exposeDebugHandle();
   initReloadButton(async () => {
@@ -82,7 +85,12 @@ async function main() {
 
   startLoop({
     update,
-    render: () => render({ ctx, canvas, state, gameData, playArea: getPlayArea() }),
+    render: () => {
+      render({ ctx, canvas, state, gameData });
+      // HUD는 이제 HTML 창이다 — 캔버스를 그린 뒤 같은 프레임에 값만 흘려 넣는다.
+      syncDesktopPhase(state.phase);
+      updateStatusWindows(state);
+    },
     onFrame: (fps) => updateDebugStats(state, gameData, fps),
   });
 
