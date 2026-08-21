@@ -75,7 +75,7 @@ export function updateStatusWindows(state) {
   setText(document.getElementById('up-thumb'), file ? file.label : '그림');
   setText(
     document.getElementById('up-caption'),
-    state.blocked ? `정지 — ${state.blockedBy.join(', ')}` : state.attackWarning ? '공격 임박!' : '업로드 중…',
+    state.blocked ? `정지 — ${state.blockedBy.join(', ')}` : state.attackWarning ? '공격 임박!' : '업데이트 중…',
   );
   setBar(document.getElementById('up-bar'), file ? file.progress / 100 : 0, 19);
 }

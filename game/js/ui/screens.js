@@ -39,7 +39,7 @@ export function drawSelectScreen(ctx, canvas, stageIndex, preview, pointer) {
   });
   text(
     ctx,
-    '제한시간 안에 할당량만큼 파일을 업로드하세요. 방해꾼은 클릭해서 치우고, 팝업창은 창 안의 버튼을 눌러 닫으세요.',
+    '제한시간 안에 할당량만큼 파일을 업데이트하세요. 방해꾼은 클릭해서 치우고, 팝업창은 창 안의 버튼을 눌러 닫으세요.',
     canvas.width / 2,
     198,
     { size: 16, align: 'center', color: '--color-text-muted' },
@@ -94,7 +94,7 @@ export function drawResultScreen(ctx, canvas, state, pointer) {
   ctx.fillStyle = cssColor('--color-overlay');
   ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-  text(ctx, cleared ? '업로드 완료!' : '시간 초과', canvas.width / 2, 175, {
+  text(ctx, cleared ? '업데이트 완료!' : '시간 초과', canvas.width / 2, 175, {
     size: 52,
     weight: '700',
     align: 'center',
@@ -114,12 +114,12 @@ export function drawResultScreen(ctx, canvas, state, pointer) {
   const s = state.stats;
   const acc = s.clicks > 0 ? Math.round((s.hits / s.clicks) * 100) : 0;
   const lines = [
-    `업로드   ${Math.floor(state.uploaded)} / ${state.rules.quota}MB`,
+    `업데이트   ${Math.floor(state.uploaded)} / ${state.rules.quota}MB`,
     `크레딧   ${Math.floor(state.reward)}`,
     `완료한 파일   ${s.filesDone}개`,
     `제거한 방해꾼   ${s.killed}마리`,
     `클릭 정확도   ${acc}%  (${s.hits}/${s.clicks})`,
-    `업로드 정지 시간   ${s.blockedSec.toFixed(1)}초`,
+    `업데이트 정지 시간   ${s.blockedSec.toFixed(1)}초`,
     `방해로 깎인 양   ${Math.round(s.drainedPct)}%`,
   ];
 
