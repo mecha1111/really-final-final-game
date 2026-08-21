@@ -148,15 +148,23 @@ export function drawCursorGlyph(ctx, x, y) {
  * "판정이 왜 안 맞는지"를 숫자 없이 한 번에 알 수 있다.
  * 가장 최근 클릭만 진하게, 이전 것들은 옅게 그려서 흐름도 보이게 한다.
  */
-export function drawClickMarkers(ctx, clicks) {
+export function drawClickMarkers(ctx, clicks, now) {
   if (!clicks || clicks.length === 0) return;
+
+  // ★ 방금 찍은 것만 보여준다. 마커는 월드 좌표라 창 크기가 바뀌면 같은 월드 자리가
+  //   다른 화면 자리에 다시 그려지는데, 그걸 지금 커서와 견주면 "판정이 밀린다"로
+  //   오해하게 된다(core/state.js 주석 참고). 오래된 건 아예 안 그려서 그 함정을 막는다.
+  const fresh = clicks.filter((c) => now - c.t <= config.enemy.debugClickTtlMs);
+  if (fresh.length === 0) return;
 
   const R = 14;
   ctx.save();
   ctx.lineWidth = 1.5;
-  clicks.forEach((c, i) => {
-    const newest = i === clicks.length - 1;
-    ctx.globalAlpha = newest ? 1 : 0.25;
+  fresh.forEach((c, i) => {
+    const newest = i === fresh.length - 1;
+    // 시간이 지날수록 옅어져서 "언제 찍힌 것인지"가 눈에 보인다.
+    const age = (now - c.t) / config.enemy.debugClickTtlMs;
+    ctx.globalAlpha = (newest ? 1 : 0.3) * (1 - age * 0.8);
     ctx.strokeStyle = cssColor(newest ? '--color-danger' : '--color-hitbox');
     ctx.beginPath();
     ctx.moveTo(c.x - R, c.y);

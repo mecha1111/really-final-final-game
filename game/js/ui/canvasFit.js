@@ -16,6 +16,7 @@
 // 예전처럼 여백을 계산해 translate로 밀어줄 필요도 없다.
 
 import { config, getUiReferenceCanvas } from '../config.js';
+import { state } from '../core/state.js';
 
 // zoom을 못 쓰는 브라우저(구형 파이어폭스 등)에서는 예전 방식(transform)으로 돌아간다.
 // 폰트는 다시 뭉개지지만 게임 자체는 똑같이 동작한다.
@@ -110,5 +111,12 @@ export function fitCanvasToViewport(canvas) {
  */
 export function initCanvasFit(canvas) {
   fitCanvasToViewport(canvas);
-  window.addEventListener('resize', () => fitCanvasToViewport(canvas));
+  window.addEventListener('resize', () => {
+    fitCanvasToViewport(canvas);
+    // H키 디버그 십자선은 월드 좌표라, 창 크기가 바뀌면 같은 월드 자리가 다른 화면
+    // 자리에 다시 그려진다(커지면 오른쪽, 줄이면 왼쪽으로 옮겨간 것처럼 보인다).
+    // 리사이즈 전 마커를 지금 커서와 견주면 "판정이 밀린다"로 오해하기 딱 좋아서
+    // 여기서 통째로 비운다 — 리사이즈 후엔 항상 새로 찍은 것만 보이게 한다.
+    state.debugClicks.length = 0;
+  });
 }

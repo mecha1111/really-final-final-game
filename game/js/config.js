@@ -126,6 +126,11 @@ export const config = {
     // 키우면 전반적으로 누르기 쉬워지고, 줄이면 그림에 정확히 맞춰야 한다.
     artHitboxPadRatio: 3 / 128,
 
+    // H키 디버그 십자선(클릭이 계산된 월드 좌표)이 보이는 시간(ms).
+    // 짧게 두는 게 중요하다 — 마커는 월드 좌표라 창 크기가 바뀌면 다른 화면 자리에
+    // 다시 그려지는데, 오래된 마커를 지금 커서와 견주면 "판정이 밀린다"로 오해한다.
+    debugClickTtlMs: 1500,
+
     // 시트에 행이 있어도 스폰하지 않을 종류. 지금은 그림이 아직 없는 bait뿐이다 —
     // 관련 로직(enemies/bait.js, ui/baitRender.js, config.bait)은 전부 그대로
     // 살아있으니, 그림을 assets/enemies/bait/에 넣고 animator의 bait 세트를 채운 뒤

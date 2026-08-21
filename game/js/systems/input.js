@@ -88,9 +88,11 @@ function onPointerDown(canvas, pt, evt) {
 
   // H키 오버레이가 켜져 있을 때만, 이 클릭이 월드 좌표 어디로 계산됐는지 남긴다.
   // 화면에서 누른 자리와 십자선이 어긋나면 그게 곧 좌표 변환 오차다(ui/renderEnemies.js).
+  // t를 같이 남겨서 잠깐만 보이게 한다 — 오래된 마커는 창 크기가 바뀌면 엉뚱한 자리에
+  // 그려져 오해를 부른다(core/state.js의 debugClicks 주석 참고).
   if (debugState.showHitbox) {
-    state.debugClicks.push({ x: pt.x, y: pt.y });
-    if (state.debugClicks.length > 12) state.debugClicks.shift();
+    state.debugClicks.push({ x: pt.x, y: pt.y, t: performance.now() });
+    if (state.debugClicks.length > 6) state.debugClicks.shift();
   }
 
   // [가드 0] title 단계는 캔버스가 아무 것도 안 그리고(ui/render.js) 클릭도 안 받는다
