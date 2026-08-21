@@ -21,22 +21,23 @@ export function bodyRect(e) {
 }
 
 /**
- * popup류의 X 버튼 히트박스. 스프라이트의 수학적 "모서리"가 아니라 그림에
- * 실제로 그려진 X 아이콘 위치(config의 offset 비율 — 예전 popup.png를 픽셀로 재서
- * 넣은 값, 자세한 사연은 config.js 주석 참고)를 중심으로 잡는다. 그림이 캔버스
- * 전체를 안 채우고 안쪽에 여백을 두고 그려져 있어서, 모서리 기준으로 잡으면
- * 실제 X에서 한참 벗어난다. closeButton형이 아니면 null.
+ * popup류의 "닫기 버튼" 히트박스. 스프라이트의 수학적 모서리가 아니라 그림에 실제로
+ * 그려진 버튼 위치(config의 offset 비율 — png의 잉크 픽셀을 스캔해서 잰 값, 자세한
+ * 사연은 config.js 주석 참고)를 중심으로 잡는다. 그림이 캔버스 전체를 안 채우고
+ * 안쪽에 여백을 두고 그려져 있어서 모서리 기준으로 잡으면 한참 빗나간다.
+ * closeButton형이 아니면 null.
  */
 export function closeButtonRect(e) {
   if (!e.closeButton) return null;
 
-  // closeButtonSize는 기준 해상도 값이라 e.scaleFactor를 곱한다. 오프셋 비율은
+  // closeButtonW/H는 기준 해상도 값이라 e.scaleFactor를 곱한다. 오프셋 비율은
   // 이미 스케일된 e.w/e.h에 곱하는 상대값이라 따로 손댈 필요가 없다.
-  const size = config.enemy.closeButtonSize * e.scaleFactor;
+  const w = config.enemy.closeButtonW * e.scaleFactor;
+  const h = config.enemy.closeButtonH * e.scaleFactor;
   const cx = e.x + e.w * config.enemy.closeButtonOffsetXRatio;
   const cy = e.y + e.h * config.enemy.closeButtonOffsetYRatio;
 
-  return { x: cx - size / 2, y: cy - size / 2, w: size, h: size };
+  return { x: cx - w / 2, y: cy - h / 2, w, h };
 }
 
 export function rectContains(r, px, py) {

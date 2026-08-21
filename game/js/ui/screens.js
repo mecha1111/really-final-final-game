@@ -39,7 +39,7 @@ export function drawSelectScreen(ctx, canvas, stageIndex, preview, pointer) {
   });
   text(
     ctx,
-    '제한시간 안에 할당량만큼 파일을 업로드하세요. 방해꾼은 클릭해서 치우고, 팝업창은 우상단 X 버튼을 눌러 닫으세요.',
+    '제한시간 안에 할당량만큼 파일을 업로드하세요. 방해꾼은 클릭해서 치우고, 팝업창은 창 안의 버튼을 눌러 닫으세요.',
     canvas.width / 2,
     198,
     { size: 16, align: 'center', color: '--color-text-muted' },
