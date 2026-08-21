@@ -1,0 +1,17 @@
+# 로컬 폴백용 (2단계: 구글 시트 fetch 실패 시에만 사용됨).
+# 지금은 비어있어 3단계 하드코딩 기본값으로 넘어간다.
+#
+# 채우려면 아래처럼 [섹션] 마커 뒤에 구글 시트와 동일한 헤더 + 데이터 행을 붙인다.
+# note 컬럼은 파싱 시 무시된다.
+#
+# [difficulty]
+# difficulty,spawn_interval,max_alive,dps_multiplier,lifetime_multiplier,note
+# easy,1.5,4,0.8,1.2,
+#
+# [enemies]
+# id,name_kr,type,size_w,size_h,hit_w,hit_h,speed,move_pattern,hp,dps,stops_upload,lifetime,weight,min_stage,action,special_effect,note
+# basic_blocker,기본 방해꾼,ground,24,24,20,20,120,straight_down,1,10,TRUE,6,1,1,block,none,
+#
+# [stage]
+# key,value,unit,note
+# stage_count,10,stages,

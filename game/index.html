@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>game</title>
+    <link rel="stylesheet" href="./style.css" />
+    <!--
+      Verse8 임베드 호스트에게 실제 문서 크기를 알려주는 스크립트.
+      게임 로직과 무관 — 건드리지 말 것. (플랫폼 요구사항)
+    -->
+    <script>
+      (function () {
+        function reportGameSize() {
+          const height = Math.max(document.body.scrollHeight, document.documentElement.scrollHeight);
+          const width = Math.max(document.body.scrollWidth, document.documentElement.scrollWidth);
+          window.parent.postMessage(
+            {
+              type: 'GAME_SIZE_RESPONSE',
+              height: height,
+              width: width,
+            },
+            '*',
+          );
+        }
+
+        window.addEventListener('load', reportGameSize);
+        window.addEventListener('resize', reportGameSize);
+        window.addEventListener('message', function (event) {
+          if (event.data && event.data.type === 'REQUEST_GAME_SIZE') {
+            reportGameSize();
+          }
+        });
+      })();
+    </script>
+  </head>
+  <body>
+    <canvas id="game-canvas"></canvas>
+    <script type="module" src="./js/main.js"></script>
+  </body>
+</html>
