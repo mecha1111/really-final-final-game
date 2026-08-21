@@ -3,7 +3,7 @@
 
 import { config, getUiScaleFactor, getUiReferenceCanvas, getRenderScale, createRules } from '../config.js';
 import { debugState } from '../debug.js';
-import { drawEnemy, drawCursorGlyph, drawFloats } from './renderEnemies.js';
+import { drawEnemy, drawCursorGlyph, drawFloats, drawClickMarkers } from './renderEnemies.js';
 import { drawSelectScreen, drawResultScreen, drawLoadingOverlay } from './screens.js';
 
 /**
@@ -44,6 +44,11 @@ export function render({ ctx, canvas, state, gameData, now }) {
     for (const c of state.fakeCursors) drawCursorGlyph(ctx, c.x, c.y);
     // 위장 중이면 진짜 커서도 가짜와 똑같이 그린다
     if (state.cursorDisguise > 0) drawCursorGlyph(ctx, state.pointer.x, state.pointer.y);
+
+    // H키를 켰을 때만: 최근 클릭이 "월드 좌표 어디로 계산됐는지"를 십자선으로 찍는다.
+    // 화면에서 실제로 누른 자리와 십자선이 어긋나면 그 어긋난 방향·거리가 곧
+    // 클릭→월드 변환의 오차다. 히트박스 사각형과 같이 보면 "왜 안 맞는지"가 한눈에 보인다.
+    if (debugState.showHitbox) drawClickMarkers(ctx, state.debugClicks);
 
     drawFloats(ctx, state.floats);
   }

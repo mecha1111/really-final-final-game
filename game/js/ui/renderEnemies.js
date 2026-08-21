@@ -141,6 +141,38 @@ export function drawCursorGlyph(ctx, x, y) {
   ctx.restore();
 }
 
+/**
+ * 디버그 전용(H키). systems/input.js가 계산한 "클릭의 월드 좌표"에 십자선을 찍는다.
+ * 화면에서 누른 자리 위에 십자선이 정확히 얹히면 좌표 변환이 맞는 것이고,
+ * 한쪽으로 밀려 있으면 그 방향·거리가 그대로 오차다 — 히트박스 사각형과 겹쳐 보면
+ * "판정이 왜 안 맞는지"를 숫자 없이 한 번에 알 수 있다.
+ * 가장 최근 클릭만 진하게, 이전 것들은 옅게 그려서 흐름도 보이게 한다.
+ */
+export function drawClickMarkers(ctx, clicks) {
+  if (!clicks || clicks.length === 0) return;
+
+  const R = 14;
+  ctx.save();
+  ctx.lineWidth = 1.5;
+  clicks.forEach((c, i) => {
+    const newest = i === clicks.length - 1;
+    ctx.globalAlpha = newest ? 1 : 0.25;
+    ctx.strokeStyle = cssColor(newest ? '--color-danger' : '--color-hitbox');
+    ctx.beginPath();
+    ctx.moveTo(c.x - R, c.y);
+    ctx.lineTo(c.x + R, c.y);
+    ctx.moveTo(c.x, c.y - R);
+    ctx.lineTo(c.x, c.y + R);
+    ctx.stroke();
+    if (newest) {
+      ctx.beginPath();
+      ctx.arc(c.x, c.y, 4, 0, Math.PI * 2);
+      ctx.stroke();
+    }
+  });
+  ctx.restore();
+}
+
 /** "+60MB" / "-10%" 처럼 위로 떠오르며 사라지는 글씨 */
 export function drawFloats(ctx, floats) {
   for (const f of floats) {

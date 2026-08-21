@@ -7,7 +7,7 @@ import { skipFile } from './file.js';
 import { damageUpload } from './upload.js';
 import { pointInRect } from '../ui/draw.js';
 import { getStartButton, getRestartButton } from '../ui/screens.js';
-import { handleDebugKey } from '../debug.js';
+import { handleDebugKey, debugState } from '../debug.js';
 
 // pointerdown에서 "방해꾼을 못 맞혀 아래로 흘려보낸" 대상. 이어서 오는 click을
 // 같은 곳으로 보내기 위해 한 입력 동안만 들고 있는다(forwardClickThrough 주석 참고).
@@ -73,6 +73,13 @@ function onPointerDown(canvas, pt, evt) {
   // 새 입력이 시작됐다 — 지난번에 기억해둔 통과 대상은 여기서 무효가 된다.
   // (방해꾼을 맞힌 경우에도 null로 남아야 그 클릭이 창으로 새어나가지 않는다)
   clickThroughTarget = null;
+
+  // H키 오버레이가 켜져 있을 때만, 이 클릭이 월드 좌표 어디로 계산됐는지 남긴다.
+  // 화면에서 누른 자리와 십자선이 어긋나면 그게 곧 좌표 변환 오차다(ui/renderEnemies.js).
+  if (debugState.showHitbox) {
+    state.debugClicks.push({ x: pt.x, y: pt.y });
+    if (state.debugClicks.length > 12) state.debugClicks.shift();
+  }
 
   // [가드 0] title 단계는 캔버스가 아무 것도 안 그리고(ui/render.js) 클릭도 안 받는다
   // — 타이틀 버튼은 HTML(.layer-title, z-index 6)이 캔버스보다 위라 애초에 이
