@@ -12,6 +12,7 @@ import { initReloadButton } from './ui/screens.js';
 import { initCanvasFit, fitCanvasToViewport } from './ui/canvasFit.js';
 import { initDesktop, syncDesktopPhase } from './ui/desktop.js';
 import { initTitleScreen } from './ui/titleScreen.js';
+import { initCrtTransition, syncCrtTransition } from './ui/crtTransition.js';
 import { updateStatusWindows } from './ui/statusWindow.js';
 import { initDebugPanel, bindRules, updateDebugStats } from './debug.js';
 import { Enemy } from './enemies/Enemy.js';
@@ -94,6 +95,7 @@ async function main() {
   initInput(canvas);
   initDesktop(); // HTML 바탕화면(창 드래그·개그 팝업·시계)
   initTitleScreen(); // 타이틀 화면 버튼(시작/설정/나가기)
+  initCrtTransition(); // 화면 전환 CRT 킥 — config.crt.durationMs를 CSS 변수로 내려보낸다
   initDebugPanel();
   exposeDebugHandle();
   initReloadButton(async () => {
@@ -107,6 +109,7 @@ async function main() {
       render({ ctx, canvas, state, gameData, now });
       // HUD는 이제 HTML 창이다 — 캔버스를 그린 뒤 같은 프레임에 값만 흘려 넣는다.
       syncDesktopPhase(state.phase);
+      syncCrtTransition(state.phase); // phase가 이번 프레임에 바뀌었을 때만 내부에서 1회 재생
       updateStatusWindows(state);
     },
     onFrame: (fps) => updateDebugStats(state, gameData, fps),
