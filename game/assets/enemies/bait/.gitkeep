@@ -1,0 +1,4 @@
+시선강탈(bait) 에셋 자리. 신규 제작 예정이라 비워둔다.
+관련 로직(enemies/bait.js, ui/baitRender.js, config.bait, animator의 bait 항목)은
+그대로 살아있고, 스폰만 config.enemy.disabledIds로 잠시 꺼둔 상태다.
+에셋을 여기 넣고 그 목록에서 'bait'만 빼면 바로 되살아난다.

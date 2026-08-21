@@ -14,7 +14,7 @@ import { config } from '../config.js';
 /**
  * 종류별 프레임 정의. 여기 적힌 배열의 "길이"가 곧 frameCount다 — 렌더 로직에
  * 숫자를 따로 하드코딩하지 않고 전부 이 표에서 읽는다.
- * 폴더가 없는 종류(copier/fake_btn/hidden)는 여기 없다 — enemyAssetKeys/getFrameKey가
+ * 폴더가 없는 종류(copier/hidden)는 여기 없다 — enemyAssetKeys/getFrameKey가
  * 자동으로 "낱개 png(id 그대로)"로 폴백한다.
  */
 export const FRAME_SETS = {
@@ -27,10 +27,19 @@ export const FRAME_SETS = {
   },
   bomb: { loop: ['bomb/1', 'bomb/2'] },
   unplug: { loop: ['unplug/1', 'unplug/2', 'unplug/3'] },
-  popup: { loop: ['popup/1', 'popup/2', 'popup/3'] },
-  // 노랑광고(a)/핑크광고(b) 중 스폰 시 하나를 골라 그 세트로 계속 루프한다.
+  // 팝업 광고창. 노랑(a)/핑크(b) 중 스폰 시 하나를 골라 그 세트로 계속 루프한다.
+  // ★ a와 b는 X 버튼 위치가 서로 다르다(a=상단 팻말, b=우하단) — 클릭 판정도
+  //   variant별로 갈라진다(config.enemy.artHitbox의 'popup:a' / 'popup:b').
+  popup: {
+    sets: { a: ['popup/a_1', 'popup/a_2'], b: ['popup/b_1', 'popup/b_2'] },
+  },
+  // 함정 "확인" 창. 3프레임 루프. 누르면 안 되는 놈이라 죽지 않고 벌칙만 준다.
+  fake_btn: { loop: ['fake_btn/1', 'fake_btn/2', 'fake_btn/3'] },
+  // 시선강탈. 에셋 신규 제작 대기 중이라 프레임이 비어있다 —
+  // 로직(enemies/bait.js, ui/baitRender.js)은 그대로 살아있고 스폰만 꺼둔 상태다
+  // (config.enemy.disabledIds). 그림이 준비되면 여기 세트를 채우고 그 목록에서 빼면 된다.
   bait: {
-    sets: { a: ['bait/a_1', 'bait/a_2'], b: ['bait/b_1', 'bait/b_2'] },
+    sets: { a: [], b: [] },
   },
   // 탱커. 체력 비율로 s1(건강)→s2→s3(위태) 단계를 고르고, 각 단계는 2장 루프.
   // 피격 직후엔 잠깐 hit 한 장을 끼워 보여준다.
@@ -71,8 +80,8 @@ export function pickBasicVariant() {
   return variants[Math.floor(Math.random() * variants.length)];
 }
 
-/** 스폰 시 1회. bait가 노랑광고(a)/핑크광고(b) 중 뭘로 나올지 고른다. */
-export function pickBaitVariant() {
+/** 스폰 시 1회. a/b 두 종류 그림 중 하나를 고른다(popup의 노랑/핑크 광고, 훗날 bait도). */
+export function pickAbVariant() {
   return Math.random() < 0.5 ? 'a' : 'b';
 }
 
@@ -99,16 +108,20 @@ export function getFrameKey(enemy, now) {
     return tiers[Math.min(enemy.tier, tiers.length - 1)];
   }
 
-  if (id === 'bait') {
-    const v = enemy.baitVariant ?? 'a';
-    return pickLoopFrame(FRAME_SETS.bait.sets[v], now);
+  const set = FRAME_SETS[id];
+
+  // a/b 두 벌을 가진 종류(popup의 노랑/핑크 광고). 스폰 때 고른 쪽으로 계속 루프한다.
+  if (set?.sets) {
+    const frames = set.sets[enemy.abVariant ?? 'a'];
+    // 에셋 대기 중인 종류(bait)는 세트가 비어있다 — 그리기 폴백(색 사각형)으로 넘긴다.
+    if (!frames || frames.length === 0) return id;
+    return pickLoopFrame(frames, now);
   }
 
-  const set = FRAME_SETS[id];
   if (set?.loop) return pickLoopFrame(set.loop, now);
   if (set?.single) return set.single;
 
-  // 폴더 없는 종류(copier/fake_btn/hidden) — 낱개 png를 id 그대로 쓴다.
+  // 폴더 없는 종류(copier/hidden) — 낱개 png를 id 그대로 쓴다.
   return id;
 }
 

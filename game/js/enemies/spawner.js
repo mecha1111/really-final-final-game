@@ -52,9 +52,15 @@ export class Spawner {
   }
 }
 
-/** 이번 일차(stage)에 등장할 수 있는 방해꾼만 남긴다. */
+/**
+ * 이번 일차(stage)에 등장할 수 있는 방해꾼만 남긴다.
+ * config.enemy.disabledIds에 올라온 종류는 시트에 있어도 스폰하지 않는다 —
+ * 지금은 에셋이 없는 bait 하나뿐이다(로직은 그대로 살아있고 그림만 대기 중).
+ * 디버그 소환(__game.spawn)은 이 목록을 안 거치므로 테스트는 그대로 된다.
+ */
 export function buildPool(specs, stage) {
-  return specs.filter((s) => (s.min_stage ?? 1) <= stage);
+  const disabled = config.enemy.disabledIds;
+  return specs.filter((s) => (s.min_stage ?? 1) <= stage && !disabled.includes(s.id));
 }
 
 /** weight 칸을 가중치로 써서 하나 고른다. weight가 클수록 자주 나온다. */

@@ -2,7 +2,6 @@
 // 다른 방해꾼의 이동 로직(behaviors.js)과 완전히 분리되어 있고, 그리기는 ui/baitRender.js가 맡는다.
 
 import { config } from '../config.js';
-import { pickBaitVariant } from '../sprite/animator.js';
 
 const rand = (min, max) => min + Math.random() * (max - min);
 const easeOut = (t) => 1 - (1 - t) ** 3;
@@ -15,8 +14,7 @@ const easeOut = (t) => 1 - (1 - t) ** 3;
 export function initBait(enemy, playArea) {
   const corner = Math.floor(rand(0, 4));
   enemy.baitCorner = corner;
-  // 노랑광고(a)/핑크광고(b) 중 하나로 고정 — ui/baitRender.js가 이 세트로 계속 루프한다.
-  enemy.baitVariant = pickBaitVariant();
+  // 어떤 그림(a/b)으로 나올지는 Enemy 생성자가 이미 enemy.abVariant에 정해뒀다.
 
   const s = enemy.scaleFactor;
   const insetX = config.bait.insetX * s;

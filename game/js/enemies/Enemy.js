@@ -2,8 +2,8 @@
 
 import { config, getScaleFactor, parseSpecialEffect } from '../config.js';
 import { PATTERN_KIND, initMovement, moveEnemy, bounceInside } from './behaviors.js';
-import { hitRect, bodyRect, closeButtonRect, rectContains } from './hitbox.js';
-import { pickBasicVariant } from '../sprite/animator.js';
+import { hitRect, bodyRect, closeButtonRect, artRect, rectContains } from './hitbox.js';
+import { pickBasicVariant, pickAbVariant, FRAME_SETS } from '../sprite/animator.js';
 
 export class Enemy {
   /**
@@ -53,6 +53,14 @@ export class Enemy {
     // === 애니 전용 상태(sprite/animator.js가 읽는다) ===
     // basic만 잡몹 얼굴(1/2/3)이 스폰 시 하나로 고정된다.
     this.basicVariant = spec.id === 'basic' ? pickBasicVariant() : null;
+    // a/b 두 벌 그림을 가진 종류(popup의 노랑/핑크 광고)는 스폰 시 한쪽으로 고정된다.
+    // ★ 이 값은 그림만 고르는 게 아니다 — popup은 a와 b의 X 버튼 위치가 서로 달라서
+    //   클릭 판정(enemies/hitbox.js의 artRect)도 이걸 보고 갈라진다.
+    this.abVariant = FRAME_SETS[spec.id]?.sets ? pickAbVariant() : null;
+    // 그림에 실제로 그려진 클릭 대상의 위치표(config.enemy.artHitbox)를 찾는 키.
+    // 같은 종류라도 그림이 갈리면(popup a/b) 키도 갈리고, clone처럼 tier마다 그림
+    // 크기가 다른 놈은 tier가 키에 들어간다. 표에 없으면 null → 시트의 hit_w/hit_h를 쓴다.
+    this.artHitboxKey = spec.id === 'clone' ? `clone:${tier}` : this.abVariant ? `${spec.id}:${this.abVariant}` : spec.id;
     // 죽고 나서도 잠깐 "죽은 프레임"을 보여주며 화면에 남아있는 시간(초).
     // kill()이 basic 클릭사망일 때만 채운다 — 그 외엔 0이라 기존처럼 즉시 치워진다.
     this.corpseTimer = 0;
@@ -155,8 +163,13 @@ export class Enemy {
 
   // --- 판정 사각형들 (계산은 hitbox.js) ---
 
+  /**
+   * 이 방해꾼의 실제 클릭 판정. 그림 기준 실측표에 있으면 그걸 쓰고(artRect),
+   * 없으면 시트의 hit_w/hit_h(hitRect)로 폴백한다 — 그림이 캔버스를 거의 꽉 채우는
+   * 종류(basic/ransom/unplug 등)는 시트 값으로 충분해서 표에 안 올려뒀다.
+   */
   hitRect() {
-    return hitRect(this);
+    return artRect(this) ?? hitRect(this);
   }
 
   bodyRect() {
@@ -168,7 +181,7 @@ export class Enemy {
   }
 
   containsPoint(px, py) {
-    return rectContains(hitRect(this), px, py);
+    return rectContains(this.hitRect(), px, py);
   }
 
   containsBody(px, py) {
