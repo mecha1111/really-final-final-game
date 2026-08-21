@@ -36,19 +36,27 @@
   </head>
   <body>
     <!--
-      #desktop = 1920x1080 고정 좌표계. ui/canvasFit.js가 여기에 transform:scale을
-      걸어서 통째로 창 크기에 맞춘다(비율 유지 + 레터박스). 캔버스도 이 안에 들어
-      있으므로 HTML과 캔버스가 항상 같은 배율로 함께 움직인다 —
-      transform은 getBoundingClientRect()에 반영되므로 클릭 좌표 역변환도 그대로 맞는다.
+      #desktop = 1920x1080 고정 좌표계. ui/canvasFit.js가 여기에 zoom을 걸어서
+      통째로 창 크기에 맞춘다(비율 유지 + 레터박스, 픽셀폰트가 안 뭉개지는 이유는
+      style.css의 #stage/#desktop 주석 참고). 캔버스도 이 안에 들어 있으므로
+      HTML과 캔버스가 항상 같은 배율로 함께 움직인다 — zoom도 transform과 똑같이
+      getBoundingClientRect()에 반영되므로 클릭 좌표 역변환이 그대로 맞는다.
 
       레이어 z순서(위 → 아래). 방해꾼이 창보다 위다 — 정보를 가려도 되고, 창 위에
       떠 있는 방해꾼도 반드시 클릭이 맞아야 한다(systems/input.js가 캔버스에서 방해꾼을
       못 맞히면 클릭을 그대로 아래 레이어로 통과시켜서 창 드래그·팝업 닫기는 그대로 산다):
-        5 #game-canvas 방해꾼                    pointer-events:auto  ← 항상 위, 못 맞히면 아래로 통과
+        6 .layer-title 타이틀 화면(HTML)          pointer-events:none  ← phase==='title'일 때만 보임(캔버스보다 위)
+        5 #game-canvas 방해꾼                    pointer-events:auto  ← 못 맞히면 아래로 통과
         4 .layer-win   HTML 창(상태.dat/.exe)    pointer-events:auto
         3 .layer-gag   HTML 개그팝업             pointer-events:auto
         2 .layer-deco  개그아이콘·작업표시줄      pointer-events:none  ← 클릭 통과(장식)
         1 .layer-bg    Bliss 배경                pointer-events:none
+
+      .layer-title이 캔버스보다 위지만 pointer-events:none 컨테이너라, 로고/버튼이
+      아닌 빈 자리를 누르면 그대로 캔버스까지 뚫고 내려간다 — 다만 title 단계에선
+      캔버스가 아무것도 안 그리고 클릭도 안 받으므로(ui/render.js, systems/input.js)
+      해가 없다. gag/win의 "클릭 통과"와는 반대 방향(위에서 아래로 그냥 새는 것뿐,
+      elementFromPoint 재발사 같은 별도 장치 불필요)이라 더 단순하다.
     -->
     <!--
       #stage = 뷰포트를 꽉 채우는 껍데기. #desktop을 가운데 정렬(레터박스)만 한다.
@@ -130,6 +138,23 @@
               <div class="lab"><span>업로드</span><span id="up-pct">0%</span></div>
               <div class="xpbar big" id="up-bar"></div>
             </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 타이틀 화면(HTML 오버레이). style.css의 .phase-title 규칙으로 phase==='title'일
+           때만 보인다(ui/desktop.js의 syncDesktopPhase가 토글). 배경/로고 애니는 순수 CSS고,
+           버튼 3개(시작/설정/나가기) 훅만 ui/titleScreen.js가 붙인다. -->
+      <div class="layer-title" id="layer-title">
+        <div id="title-stage">
+          <div id="title-bg"></div>
+          <div id="title-logo-wrap">
+            <div id="title-logo" title="진짜_최종_final_수정_진짜최종(5).exe"></div>
+          </div>
+          <div id="title-menu">
+            <div class="btn" id="title-btn-start">게임 시작</div>
+            <div class="btn" id="title-btn-settings">설정</div>
+            <div class="btn" id="title-btn-quit">나가기</div>
           </div>
         </div>
       </div>

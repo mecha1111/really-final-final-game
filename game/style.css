@@ -159,19 +159,30 @@ body {
   );
 }
 
-/* 레이어 z순서(위 → 아래): 방해꾼(캔버스) > HTML 창 > 개그팝업 > 개그아이콘/작업표시줄 > 배경.
+/* 레이어 z순서(위 → 아래): 타이틀 > 방해꾼(캔버스) > HTML 창 > 개그팝업 > 개그아이콘/작업표시줄 > 배경.
    방해꾼이 창을 덮어도 된다(정보 좀 가려도 OK) — 대신 캔버스가 물리적으로 맨 위에 있으면
    창/팝업이 클릭을 못 받으므로, 캔버스는 "방해꾼을 맞았을 때만" 클릭을 먹고 나머지는
-   그 아래로 그대로 넘긴다(systems/input.js의 클릭 통과 로직, elementFromPoint 사용). */
+   그 아래로 그대로 넘긴다(systems/input.js의 클릭 통과 로직, elementFromPoint 사용).
+   .layer-title은 그 위(6)에 얹혀서 title 단계엔 캔버스까지 통째로 덮는다 — 이쪽은
+   반대로 단순하다(캔버스가 title 단계엔 아무것도 안 그리고 클릭도 안 받으므로
+   그냥 위에 얹기만 하면 된다, 통과 장치 불필요). */
 #desktop .layer-bg { position: absolute; inset: 0; z-index: 1; pointer-events: none; }
 #desktop .layer-deco { position: absolute; inset: 0; z-index: 2; pointer-events: none; }
 #desktop .layer-gag { position: absolute; inset: 0; z-index: 3; pointer-events: none; }
 #desktop .layer-win { position: absolute; inset: 0; z-index: 4; pointer-events: none; }
 #desktop #game-canvas { position: absolute; inset: 0; z-index: 5; pointer-events: auto; }
-/* 레이어 자체는 클릭을 통과시키고, 그 안의 "실제 창"만 클릭을 받는다 —
+#desktop .layer-title { position: absolute; inset: 0; z-index: 6; pointer-events: none; display: none; }
+/* 레이어 자체는 클릭을 통과시키고, 그 안의 "실제" 것만 클릭을 받는다 —
    빈 공간을 눌렀을 때(그리고 캔버스가 방해꾼을 못 맞혔을 때) 아래로 통과되게 하려는 것. */
 #desktop .layer-gag > *,
 #desktop .layer-win > * { pointer-events: auto; }
+#desktop .layer-title #title-logo-wrap,
+#desktop .layer-title #title-menu .btn { pointer-events: auto; }
+
+/* title 단계에서만 .layer-title을 보여준다(ui/desktop.js의 syncDesktopPhase가
+   #desktop에 .phase-title을 토글) — 나머지 단계에선 display:none이 기본값이라
+   캔버스/창을 가리지 않는다. */
+#desktop.phase-title .layer-title { display: block; }
 
 /* 캔버스는 UI 좌표계(1920x1080) 그대로 CSS 크기를 잡는다.
    축소/확대는 #desktop의 zoom이 전담한다. */
@@ -196,6 +207,100 @@ body {
 #desktop:not(.phase-playing) .layer-deco {
   display: none;
 }
+
+/* ---------------------------------------------------------------------------
+   ===== 타이틀 화면 (레이어6, HTML) =====
+   원본 초안(title_main.html)은 독립 페이지라 100vw/56.25vw로 직접 16:9 레터박스를
+   계산했다. 여기선 필요 없다 — #desktop 자체가 이미 정확히 1920x1080(=16:9)이고
+   zoom으로 이미 레터박스돼 있으므로, #title-stage는 그냥 부모(#desktop)를 꽉
+   채우기만 하면 원본과 같은 결과가 나온다. vw/vh 단위는 전부 버렸다 — #desktop이
+   zoom으로 줄어들어도 vw/vh는 "진짜" 뷰포트 기준이라 그대로 두면 배율이 어긋난다
+   (예: .btn의 font-size:3.4vw → 1920 기준 65px로 환산해서 고정 px로 박아뒀다).
+   %는 원본 그대로 두었다 — #title-stage가 #desktop과 같은 크기라 원본이 의도한
+   비율이 그대로 맞는다(예: #title-logo의 left:-0.7%).
+   --------------------------------------------------------------------------- */
+#title-stage {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  background: #111;
+}
+#title-bg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  background: url('./assets/title/bg.jpg') center / cover no-repeat;
+}
+
+/* 로고: idle 애니(floaty)는 안쪽 래퍼(#title-logo)가 담당, hover 확대는 바깥
+   (#title-logo-wrap)이 담당 — 겹쳐서 하나여도 서로 안 멈춘다. */
+#title-logo-wrap {
+  position: absolute;
+  inset: 0;
+  transform-origin: 63% 24%;
+  transition: transform 0.2s cubic-bezier(0.34, 1.6, 0.64, 1);
+  cursor: pointer;
+}
+#title-logo {
+  position: absolute;
+  inset: 0;
+  left: -0.7%;
+  width: 100%;
+  height: 100%;
+  background: url('./assets/title/logo.png') center / contain no-repeat;
+  transform-origin: 63% 24%;
+  animation: title-logo-floaty 3.2s ease-in-out infinite;
+}
+@keyframes title-logo-floaty {
+  0% { transform: translateY(0) rotate(0); }
+  50% { transform: translateY(-1.3%) rotate(-0.5deg); }
+  100% { transform: translateY(0) rotate(0); }
+}
+/* hover: idle(floaty)은 유지한 채로 바깥 래퍼만 확대+기울임 — 애니가 멈추지 않는다. */
+#title-logo-wrap:hover { transform: scale(1.07) rotate(-1deg); }
+/* hover 중엔 idle 애니를 더 빠르게(신나는 느낌) — 멈추는 게 아니라 빨라지는 것뿐. */
+#title-logo-wrap:hover #title-logo { animation-duration: 1.4s; }
+
+/* 하단 메뉴: 우하단, 글자 오른쪽정렬. #desktop에서 이미 DGM/pixelated/font-smoothing을
+   물려받으므로 여기서 다시 선언하지 않는다. */
+#title-menu {
+  position: absolute;
+  right: 6%;
+  bottom: 9%;
+  display: flex;
+  flex-direction: column;
+  gap: 46px; /* 원본 2.4vw = 1920 기준 46.08px */
+  align-items: flex-end;
+  text-align: right;
+}
+.layer-title .btn {
+  font-size: 65px; /* 원본 3.4vw = 1920 기준 65.28px */
+  line-height: 1;
+  color: #fff;
+  cursor: pointer;
+  white-space: nowrap;
+  text-shadow:
+    -3px -3px 0 #111, 3px -3px 0 #111, -3px 3px 0 #111, 3px 3px 0 #111,
+    0 -3px 0 #111, 0 3px 0 #111, -3px 0 0 #111, 3px 0 0 #111,
+    5px 5px 0 #111; /* 원본 0.18vw/0.28vw = 1920 기준 3.456px/5.376px, 정수로 반올림 */
+  transition: transform 0.12s, color 0.12s;
+  transform-origin: right center;
+}
+.layer-title .btn:hover { color: #ffe14d; transform: scale(1.1); }
+.layer-title .btn:active { transform: scale(0.96); }
+
+/* 나가기: Verse8 iframe 배포본에선 window.close()가 무효라 종료 프로토콜을 새로
+   만들지 않는다 — 대신 "안 닫히는 창"과 같은 톤으로 살짝 흔들리기만 한다
+   (ui/titleScreen.js가 클릭 시 이 클래스를 잠깐 붙인다). */
+@keyframes title-quit-shake {
+  0%, 100% { transform: translateX(0); }
+  20% { transform: translateX(-6px); }
+  40% { transform: translateX(6px); }
+  60% { transform: translateX(-4px); }
+  80% { transform: translateX(4px); }
+}
+.layer-title .btn.shake { animation: title-quit-shake 0.35s ease-in-out; }
 
 /* ===== 배경(하늘 격자 · 언덕 · 구름) — 시안 그대로 ===== */
 #desktop .grid {

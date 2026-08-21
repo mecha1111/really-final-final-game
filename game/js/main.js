@@ -11,6 +11,7 @@ import { render } from './ui/render.js';
 import { initReloadButton } from './ui/screens.js';
 import { initCanvasFit, fitCanvasToViewport } from './ui/canvasFit.js';
 import { initDesktop, syncDesktopPhase } from './ui/desktop.js';
+import { initTitleScreen } from './ui/titleScreen.js';
 import { updateStatusWindows } from './ui/statusWindow.js';
 import { initDebugPanel, bindRules, updateDebugStats } from './debug.js';
 import { Enemy } from './enemies/Enemy.js';
@@ -92,6 +93,7 @@ async function main() {
 
   initInput(canvas);
   initDesktop(); // HTML 바탕화면(창 드래그·개그 팝업·시계)
+  initTitleScreen(); // 타이틀 화면 버튼(시작/설정/나가기)
   initDebugPanel();
   exposeDebugHandle();
   initReloadButton(async () => {
