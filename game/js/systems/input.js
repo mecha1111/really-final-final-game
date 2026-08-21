@@ -9,6 +9,10 @@ import { pointInRect } from '../ui/draw.js';
 import { getStartButton, getRestartButton } from '../ui/screens.js';
 import { handleDebugKey } from '../debug.js';
 
+// pointerdown에서 "방해꾼을 못 맞혀 아래로 흘려보낸" 대상. 이어서 오는 click을
+// 같은 곳으로 보내기 위해 한 입력 동안만 들고 있는다(forwardClickThrough 주석 참고).
+let clickThroughTarget = null;
+
 /** 화면 좌표(clientX/Y)를 캔버스 논리 좌표로. CSS로 축소돼 있어도 정확하다. */
 function canvasPoint(canvas, evt) {
   const rect = canvas.getBoundingClientRect();
@@ -23,6 +27,11 @@ export function initInput(canvas) {
     evt.preventDefault();
     onPointerDown(canvas, canvasPoint(canvas, evt), evt);
   });
+
+  // pointerdown에서 아래로 흘려보낸 클릭은 click까지 같이 흘려보내야 한다.
+  // 합성 pointerdown은 click을 만들어내지 않기 때문에, 이게 없으면 click으로
+  // 동작하는 것들(개그팝업 X·버튼)이 마우스로는 영영 안 눌린다.
+  canvas.addEventListener('click', (evt) => onCanvasClick(evt));
 
   // move는 window에 붙여 캔버스 밖으로 나가도 커서 위치를 계속 추적한다
   // (copier가 커서를 쫓아가야 하므로 중요).
@@ -55,6 +64,9 @@ export function initInput(canvas) {
  */
 function onPointerDown(canvas, pt, evt) {
   state.pointer = pt;
+  // 새 입력이 시작됐다 — 지난번에 기억해둔 통과 대상은 여기서 무효가 된다.
+  // (방해꾼을 맞힌 경우에도 null로 남아야 그 클릭이 창으로 새어나가지 않는다)
+  clickThroughTarget = null;
 
   // [가드 1] 시작/다음구간 버튼은 ui/render.js가 1920 기준(getUiReferenceCanvas)으로
   // 그리고 ctx.scale(getUiScaleFactor())로 실제 캔버스에 맞춰 줄이거나 키운다.
@@ -79,7 +91,7 @@ function onPointerDown(canvas, pt, evt) {
   // 방해꾼은 바탕화면 전체를 쓴다. 맞혔으면 여기서 끝 — 캔버스가 클릭을 가져간 것이다.
   state.stats.clicks += 1;
   const hitEnemy = hitTestEnemies(pt);
-  if (!hitEnemy) forwardClickThrough(canvas, evt);
+  if (!hitEnemy) clickThroughTarget = forwardClickThrough(canvas, evt);
 }
 
 /** 위에 그려진 놈부터 검사한다. 하나라도 판정을 소비했으면(맞았든 헛클릭이든) true. */
@@ -131,17 +143,39 @@ function hitTestEnemies(pt) {
  * 클릭을 그대로 넘긴다 — 안 그러면 캔버스가 레이어 맨 위를 통째로 덮어써서 창 드래그·
  * 닫기 버튼·개그팝업이 전부 죽는다. 표준 "클릭-통과" 트릭: 캔버스를 잠깐
  * pointer-events:none으로 만들어 elementFromPoint로 진짜 대상을 찾고, 그 대상에
- * 원본 이벤트와 같은 속성(좌표/버튼 등)을 가진 새 PointerEvent를 재발사한다.
+ * 원본 이벤트와 같은 속성(좌표/버튼 등)을 가진 새 이벤트를 재발사한다.
+ *
+ * ★ pointerdown 하나만 넘기면 부족하다. 합성 pointerdown은 브라우저가 click으로
+ *   이어주지 않으므로, click 리스너로 동작하는 것들(개그팝업의 X와 버튼)이 마우스로는
+ *   전혀 안 눌린다. 그래서 여기서 찾은 대상을 clickThroughTarget에 기억해뒀다가
+ *   이어서 오는 canvas의 click도 같은 대상에게 넘긴다(onCanvasClick).
+ *   창 드래그(ui/desktop.js)는 pointerdown으로 시작하고 이후 pointermove/pointerup은
+ *   window에 붙어 있어 그대로 도착하므로, 이 둘만 넘겨주면 기존 동작이 전부 산다.
+ *
+ * @returns {Element|null} 이어지는 click을 넘겨줄 대상
  */
 function forwardClickThrough(canvas, evt) {
-  if (!evt) return;
+  if (!evt) return null;
 
   canvas.style.pointerEvents = 'none';
   const target = document.elementFromPoint(evt.clientX, evt.clientY);
   canvas.style.pointerEvents = '';
 
-  if (!target || target === canvas) return;
+  if (!target || target === canvas) return null;
   target.dispatchEvent(new PointerEvent(evt.type, evt));
+  return target;
+}
+
+/**
+ * 위에서 아래로 흘려보낸 그 클릭의 마무리. pointerdown 때 기억해둔 대상에게만
+ * click을 넘긴다 — 방해꾼을 맞힌 클릭은 clickThroughTarget이 null이라 여기서 걸러진다.
+ */
+function onCanvasClick(evt) {
+  const target = clickThroughTarget;
+  clickThroughTarget = null;
+  if (!target) return;
+
+  target.dispatchEvent(new MouseEvent('click', evt));
 }
 
 function onKeyDown(evt) {
