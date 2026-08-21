@@ -98,20 +98,50 @@ body {
 
 /* ---------------------------------------------------------------------------
    #desktop — 1920x1080 고정 좌표계 하나. ui/canvasFit.js가 여기에만
-   transform:scale을 걸어 창 크기에 맞춘다(비율 유지 + 레터박스).
+   zoom을 걸어 창 크기에 맞춘다(비율 유지 + 레터박스).
    캔버스도 이 안에 있으므로 HTML 장식/창과 캔버스가 항상 같은 배율로 함께 움직인다.
-   transform은 getBoundingClientRect()에 반영되니 클릭 역변환(systems/input.js)도
-   손댈 필요 없이 그대로 맞는다.
+
+   ★ transform:scale이 아니라 zoom인 이유 — 픽셀폰트가 뭉개지는 걸 막으려는 것.
+     transform은 원래 크기로 한 번 래스터라이즈한 비트맵을 나중에 확대/축소해서
+     다시 샘플링한다 → 비정수 배율(예 0.6823)에서 글자 가장자리에 회색 번짐이 생긴다.
+     zoom은 레이아웃 크기 자체를 바꿔서 글리프를 "최종 크기로 직접" 래스터라이즈한다
+     → 같은 배율에서도 획이 단단하게 남는다(8배 확대 비교로 확인).
+
+   좌표계는 둘이 같다: zoom도 transform처럼 getBoundingClientRect()에 반영되므로
+   클릭 역변환(systems/input.js)과 elementFromPoint 통과 로직은 그대로 맞는다
+   (왕복 오차 0.000000px 실측). offsetLeft/offsetTop은 zoom 이전의 로컬 좌표라
+   창 드래그(ui/desktop.js)가 rect에서 배율을 역산하는 방식도 그대로 유효하다.
    --------------------------------------------------------------------------- */
-/* 좌상단(0,0)에 고정한다 — 가운데 정렬은 canvasFit이 transform의 translate로
-   직접 한다. body가 flex로 또 가운데 정렬하면 이중으로 밀려서 화면 밖으로 나간다. */
-#desktop {
+/* 뷰포트를 채우는 껍데기. #desktop의 가운데 정렬(레터박스)만 담당한다.
+   zoom은 레이아웃 크기를 실제로 바꾸므로 flex가 배율을 저절로 반영해 가운데로 놓는다. */
+#stage {
   position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  background: var(--color-bg);
+}
+
+/* zoom 미지원 브라우저 폴백(ui/canvasFit.js가 이 클래스를 붙인다).
+   예전처럼 transform:scale + 직접 계산한 translate로 배율과 가운데 정렬을 한다
+   — 폰트는 다시 뭉개지지만 게임은 정상 동작한다. */
+#stage.no-zoom {
+  display: block;
+}
+#stage.no-zoom #desktop {
+  position: absolute;
   left: 0;
   top: 0;
+  transform-origin: top left;
+}
+
+#desktop {
+  position: relative;
   width: 1920px;
   height: 1080px;
-  transform-origin: top left;
+  flex: none; /* flex 컨테이너가 1920x1080을 줄이지 못하게 — 배율은 zoom만 정한다 */
   overflow: hidden;
   font-family: 'DGM', 'Galmuri11', monospace;
   -webkit-font-smoothing: none;

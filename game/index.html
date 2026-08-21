@@ -50,7 +50,13 @@
         2 .layer-deco  개그아이콘·작업표시줄      pointer-events:none  ← 클릭 통과(장식)
         1 .layer-bg    Bliss 배경                pointer-events:none
     -->
-    <div id="desktop">
+    <!--
+      #stage = 뷰포트를 꽉 채우는 껍데기. #desktop을 가운데 정렬(레터박스)만 한다.
+      zoom은 레이아웃 크기 자체를 바꾸므로 flex 가운데 정렬이 배율을 저절로 반영한다
+      — 예전처럼 translate로 여백을 직접 계산해 밀어줄 필요가 없다.
+    -->
+    <div id="stage">
+      <div id="desktop">
       <div class="layer-bg">
         <div class="grid"></div>
         <div class="hill"></div>
@@ -126,6 +132,7 @@
             </div>
           </div>
         </div>
+      </div>
       </div>
     </div>
 
