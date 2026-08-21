@@ -2,7 +2,7 @@
 
 import { config, getUiScaleFactor, getUiReferenceCanvas } from '../config.js';
 import { state } from '../core/state.js';
-import { startGame, goToSelect, advanceStage } from '../core/stageManager.js';
+import { startGame, advanceStage } from '../core/stageManager.js';
 import { skipFile } from './file.js';
 import { damageUpload } from './upload.js';
 import { pointInRect } from '../ui/draw.js';
@@ -114,7 +114,8 @@ function hitTestEnemies(pt) {
     const enemy = state.enemies[i];
 
     if (enemy.closeButton) {
-      // popup류: 우상단 X 버튼만 죽는다. 몸통은 흔들리기만 하고 클릭을 소비한다.
+      // popup류: 창 안에 그려진 닫기 버튼만 죽인다(위치는 config.enemy.closeButtonOffset*).
+      // 몸통은 흔들리기만 하고 클릭을 소비한다.
       const btn = enemy.closeButtonRect();
       if (btn && pointInRect(pt, btn)) {
         enemy.kill('clicked');

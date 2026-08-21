@@ -54,10 +54,6 @@ export function startGame(stageIndex = 0) {
   state.phase = 'playing';
 }
 
-export function goToSelect() {
-  state.phase = 'select';
-}
-
 /**
  * 결과 화면에서 "계속" 눌렀을 때 다음에 시작할 구간.
  * 클리어 → 다음 구간(n+1) / 실패 → 처음(0)으로 리셋.
