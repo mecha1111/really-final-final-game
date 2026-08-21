@@ -1,25 +1,71 @@
 :root {
   /* 배경 (캔버스 뒤 여백) */
-  --color-bg: #000000;
+  --color-bg: #05060a;
 
-  /* 캔버스 자체 배경색 (지금 단계에서 그려지는 검은 사각형) */
-  --color-canvas-bg: #000000;
+  /* 캔버스 = 업무용 데스크톱 화면 느낌 */
+  --color-canvas-bg: #12161f;
+  /* 방해꾼이 돌아다니는 놀이 영역 배경 + 격자 */
+  --color-play-bg: #171d29;
+  --color-play-grid: #1e2634;
 
-  /* 기본 텍스트 색 (HUD, 점수 등에서 사용 예정) */
+  /* 기본 텍스트 */
   --color-text: #ffffff;
-  --color-text-muted: #999999;
+  --color-text-muted: #8b93a5;
 
-  /* 강조색 (플레이어, 주요 UI) */
+  /* 강조색 (주요 수치) */
   --color-accent: #ffcc00;
 
-  /* 위험/피해 색 (방해꾼, 경고) */
-  --color-danger: #ff4444;
+  /* 위험/피해 색 */
+  --color-danger: #ff4d4d;
 
   /* 성공/양호 색 */
   --color-success: #44ff88;
 
-  /* 디버그 패널 전용 색 */
-  --color-debug-bg: rgba(0, 0, 0, 0.85);
+  /* 주의 색 (업로드 정지 경고 등) */
+  --color-warning: #ff9f1c;
+
+  /* HUD 띠 */
+  --color-hud-bg: #0d111a;
+  --color-hud-border: #2a3344;
+
+  /* 업로드 바: 평상시 / 방금 공격 맞아 번쩍임 / 완전 정지 */
+  --color-bar-bg: #202737;
+  --color-bar-fill: #35c8ff;
+  --color-bar-drain: #ff4d4d;
+  --color-bar-blocked: #6b7385;
+
+  /* 누적 할당량 바 */
+  --color-quota-bg: #202737;
+  --color-quota-fill: #44ff88;
+
+  /* 방해꾼 부가 표시 */
+  --color-hp-pip: #ffffff;
+  --color-hp-pip-empty: #4a5266;
+  --color-life-bar: #6b7385;
+  --color-life-bar-danger: #ff4d4d;
+  --color-hitbox: #35c8ff;
+  --color-enemy-fallback: #7a4dff;
+
+  /* 가짜 커서 + 위장한 진짜 커서 (copier 자폭 시, 둘은 반드시 같은 색) */
+  --color-cursor-fake: #ffffff;
+  --color-cursor-fake-outline: #12161f;
+
+  /* bait 화질 복구 경계선의 지지직 스캔라인 */
+  --color-bait-glitch: #eaffff;
+
+  /* 뜬 글씨 (+60MB / -10%) */
+  --color-float-plus: #44ff88;
+  --color-float-minus: #ff4d4d;
+
+  /* 화면 덮개 + 버튼 (난이도 선택 / 결과 화면) */
+  --color-overlay: rgba(5, 6, 10, 0.88);
+  --color-btn-bg: #1c2433;
+  --color-btn-border: #35c8ff;
+  --color-btn-hover-bg: #26344a;
+
+  /* 디버그 패널 전용 색. 캔버스 위에 뜨는 오버레이라 배경을 반투명하게 둬서
+     뒤 게임 화면이 살짝 비치게 한다(+ backdrop-filter로 글씨는 여전히 잘 읽히게). */
+  --color-debug-bg: rgba(8, 10, 16, 0.6);
   --color-debug-border: #444444;
   --color-debug-text: #00ff00;
 }
@@ -38,23 +84,39 @@ body {
   background: var(--color-bg);
 }
 
+/* body 자체가 캔버스를 가운데 놓는 자리다 — 디버그 패널은 더 이상 레이아웃에
+   자리를 차지하지 않으므로(overlay) 이걸로 충분하고, position:fixed 오버레이의
+   기준(관성적으로 뷰포트)도 이걸로 맞춰둔다. */
 body {
   display: flex;
   align-items: center;
   justify-content: center;
+  position: relative;
 }
 
+/* 실제 표시 크기(width/height)는 ui/canvasFit.js가 창 크기에 맞춰 매번
+   style.width/height에 직접 px로 써넣는다(비율 유지 + 레터박스). 여기 auto는
+   JS가 아직 안 돌았을 아주 짧은 순간을 위한 안전망일 뿐이다.
+   CSS의 width:auto/max-width만으로는 "안 넘치게 줄이기"는 되지만 "창을 꽉
+   채우게 키우기"는 안 되고(replaced element는 내재 크기 이상 자동으로 안
+   커진다), object-fit으로 키우면 getBoundingClientRect()가 실제로 보이는
+   크기가 아니라 박스 전체 크기를 돌려줘서 클릭 좌표 변환(systems/input.js)이
+   레터박스 구간에서 어긋난다 — 그래서 JS가 직접 계산해 넣는다. */
 #game-canvas {
   display: block;
-  background: var(--color-canvas-bg);
-  max-width: 100%;
-  max-height: 100%;
+  background: var(--color-bg);
+  width: auto;
+  height: auto;
+  max-width: 100vw;
+  max-height: 100vh;
+  touch-action: none;
 }
 
-/* 🔄 밸런스 리로드 버튼. 시트 수정 후 다시 fetch해서 확인하는 테스트용. */
+/* 밸런스 리로드 버튼. 시트 수정 후 다시 fetch해서 확인하는 테스트용.
+   HUD를 가리지 않도록 오른쪽 아래 구석에 둔다. */
 #reload-balance-btn {
   position: fixed;
-  top: 12px;
+  bottom: 12px;
   right: 12px;
   z-index: 10;
   width: 40px;
@@ -75,4 +137,80 @@ body {
 #reload-balance-btn:disabled {
   color: var(--color-text-muted);
   cursor: wait;
+}
+
+/* ---------------------------------------------------------------------------
+   디버그 패널 (밸런스 실시간 조절)
+   config.debug.enabled가 false면 debug.js가 아예 만들지 않으므로
+   아래 규칙은 그때 아무 대상도 갖지 않는다.
+   --------------------------------------------------------------------------- */
+/* 레이아웃에서 자리를 차지하지 않고 캔버스 위에 뜬다 — 켜져 있어도 캔버스가
+   밀리거나 줄어들지 않는다. 반투명이라 뒤 게임 화면이 살짝 비친다.
+   D키(debug.js의 handleDebugKey)로 hidden을 토글하면 완전히 사라진다.
+   폭/글씨를 기존의 약 75%로 줄여서(280px→210px, 12px→10px) 작은 창에서
+   난이도 카드를 덮지 않게 한다 — 카드 레이아웃 자체는 ui/render.js의
+   getUiScaleFactor()가 1920 기준 비율을 지켜주므로, 여기 패널만 더 좁혀서
+   두 UI가 겹칠 여지를 줄인다. */
+#debug-panel {
+  position: fixed;
+  top: 12px;
+  left: 12px;
+  z-index: 20;
+  width: 210px;
+  max-height: calc(100vh - 24px);
+  overflow-y: auto;
+  padding: 8px 10px;
+  border: 1px solid var(--color-debug-border);
+  border-radius: 6px;
+  background: var(--color-debug-bg);
+  backdrop-filter: blur(6px);
+  color: var(--color-debug-text);
+  font: 10px/1.4 monospace;
+}
+
+#debug-panel[hidden] {
+  display: none;
+}
+
+#debug-panel h2 {
+  margin: 0 0 6px;
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  color: var(--color-debug-text);
+}
+
+#debug-panel .debug-hint {
+  margin: 0 0 8px;
+  color: var(--color-text-muted);
+}
+
+#debug-panel .debug-row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 2px 5px;
+  margin-bottom: 6px;
+}
+
+#debug-panel .debug-row label {
+  color: var(--color-text-muted);
+}
+
+#debug-panel .debug-row output {
+  color: var(--color-debug-text);
+  text-align: right;
+}
+
+#debug-panel input[type='range'] {
+  grid-column: 1 / -1;
+  width: 100%;
+  margin: 0;
+  accent-color: var(--color-debug-text);
+}
+
+#debug-panel .debug-stats {
+  margin-top: 8px;
+  padding-top: 6px;
+  border-top: 1px solid var(--color-debug-border);
+  white-space: pre;
+  color: var(--color-text-muted);
 }
