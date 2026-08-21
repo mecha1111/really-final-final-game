@@ -1,7 +1,7 @@
 // 이 파일 역할: 캔버스 한 프레임을 조립한다(방해꾼 → 커서 → 뜬 글씨 → 대기/결과 오버레이).
 // HUD·창·개그요소는 이제 캔버스가 아니라 HTML이 그린다(ui/statusWindow.js, ui/desktop.js).
 
-import { getUiScaleFactor, getUiReferenceCanvas, createRules } from '../config.js';
+import { config, getUiScaleFactor, getUiReferenceCanvas, getRenderScale, createRules } from '../config.js';
 import { debugState } from '../debug.js';
 import { drawEnemy, drawCursorGlyph, drawFloats } from './renderEnemies.js';
 import { drawSelectScreen, drawResultScreen, drawLoadingOverlay } from './screens.js';
@@ -11,8 +11,10 @@ import { drawSelectScreen, drawResultScreen, drawLoadingOverlay } from './screen
  * HTML(.layer-bg)이 그리므로, 여기서는 투명하게 지우기만 한다 —
  * 색을 칠하면 뒤 배경을 덮어버린다.
  */
-export function drawBackground(ctx, canvas) {
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
+export function drawBackground(ctx) {
+  // 논리 좌표계 기준으로 지운다 — 백킹스토어는 이보다 클 수 있지만(getRenderScale)
+  // 이 시점엔 ctx에 그 배율이 걸려 있어서 논리 크기만 지우면 화면 전체가 지워진다.
+  ctx.clearRect(0, 0, config.canvas.width, config.canvas.height);
 }
 
 /**
@@ -22,7 +24,14 @@ export function drawBackground(ctx, canvas) {
  *   방해꾼 스프라이트 애니(sprite/animator.js)가 프레임 전환을 계산하는 유일한 시간 기준이다.
  */
 export function render({ ctx, canvas, state, gameData, now }) {
-  drawBackground(ctx, canvas);
+  // 백킹스토어는 device px, 게임 좌표는 논리 px — 이 변환 하나가 둘을 잇는다.
+  // 매 프레임 다시 거는 이유: 창 크기가 바뀌면 canvas.width가 다시 대입되고,
+  // 그 순간 컨텍스트 상태(변환·imageSmoothingEnabled)가 전부 초기화되기 때문이다.
+  const renderScale = getRenderScale(canvas);
+  ctx.setTransform(renderScale, 0, 0, renderScale, 0, 0);
+  ctx.imageSmoothingEnabled = false; // 방해꾼 스프라이트가 확대돼도 뭉개지지 않게
+
+  drawBackground(ctx);
 
   // 방해꾼/가짜커서/뜬 글씨는 물리(실제) 캔버스 좌표 그대로 그린다 — 이미
   // getScaleFactor()(baseWidth=1280)로 스케일된 값들이라 여기서 또 손대면 안 된다.

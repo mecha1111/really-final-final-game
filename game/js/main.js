@@ -17,9 +17,9 @@ import { Enemy } from './enemies/Enemy.js';
 
 const canvas = document.getElementById('game-canvas');
 const ctx = canvas.getContext('2d');
-// 픽셀 아트를 그대로(뭉개지지 않게) — 기본값(true)이면 drawImage가 확대할 때
-// 부드럽게 보간해서 방해꾼 스프라이트 가장자리가 흐릿해진다.
-ctx.imageSmoothingEnabled = false;
+// 캔버스 백킹스토어 크기와 컨텍스트 변환은 ui/canvasFit.js와 ui/render.js가 맡는다
+// (백킹스토어는 화면 해상도에 맞춰 커지고, 그때마다 컨텍스트 상태가 초기화되므로
+//  imageSmoothingEnabled도 render가 매 프레임 다시 건다) — 여기서 건드리지 않는다.
 
 /** DGM(둥근모) 픽셀폰트가 실제로 로드됐는지 콘솔에 한 번 찍는다 — false면 폴백
  * 폰트(Galmuri11/monospace)로 그려지는 중이라 "폰트가 뿌옇다"의 원인이 열화가
@@ -36,10 +36,9 @@ function logFontLoadStatus() {
 /** 시트를 읽고 나서 해상도와 이미지를 맞춘다. 리로드 후에도 다시 호출된다. */
 async function applyLoadedData() {
   applyStageToConfig();
-  canvas.width = config.canvas.width;
-  canvas.height = config.canvas.height;
-  // 내부 해상도(비율)가 바뀌었을 수 있으니(시트의 canvas_w/h가 다시 로드됨)
-  // 표시 크기도 다시 맞춘다 — 리로드 때도 창을 꽉 채운 채로 유지된다.
+  // 논리 해상도(시트의 canvas_w/h)가 바뀌었을 수 있으니 표시 크기와 백킹스토어를
+  // 다시 맞춘다 — 리로드 때도 창을 꽉 채운 채로 유지된다.
+  // (canvas.width 대입은 canvasFit이 화면 해상도 기준으로 직접 한다)
   fitCanvasToViewport(canvas);
 
   await loadEnemyImages(buildAssetKeys(gameData.enemies));
@@ -86,9 +85,8 @@ function exposeDebugHandle() {
 }
 
 async function main() {
-  canvas.width = config.canvas.width;
-  canvas.height = config.canvas.height;
-  initCanvasFit(canvas); // 최초 1회 맞추고, 이후 창 크기 변경에 자동으로 반응한다
+  // 백킹스토어 크기까지 여기서 함께 정해진다 — 최초 1회 맞추고, 이후 창 크기 변경에 자동으로 반응한다
+  initCanvasFit(canvas);
 
   initInput(canvas);
   initDesktop(); // HTML 바탕화면(창 드래그·개그 팝업·시계)

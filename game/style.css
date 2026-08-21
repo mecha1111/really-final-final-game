@@ -173,14 +173,20 @@ body {
 #desktop .layer-gag > *,
 #desktop .layer-win > * { pointer-events: auto; }
 
-/* 캔버스는 내부 해상도(1920x1080) 그대로 CSS 크기를 잡는다.
-   축소/확대는 #desktop의 transform이 전담한다. */
+/* 캔버스는 UI 좌표계(1920x1080) 그대로 CSS 크기를 잡는다.
+   축소/확대는 #desktop의 zoom이 전담한다. */
 #game-canvas {
   display: block;
   width: 1920px;
   height: 1080px;
   background: transparent; /* 뒤 Bliss 배경이 비쳐야 한다 */
   touch-action: none;
+  /* ★ #desktop의 image-rendering:pixelated를 캔버스에서만 되돌린다.
+     pixelated면 캔버스를 화면에 합성할 때 최근접 이웃으로 깎여서, 캔버스에 그린
+     글씨(대기/결과 화면)의 안티에일리어싱이 통째로 날아간다(회색 계조 142 → 4개 실측).
+     방해꾼 스프라이트가 확대될 때의 또렷함은 여기가 아니라 ctx.imageSmoothingEnabled=false
+     (ui/render.js)가 책임지므로, 이걸 auto로 둬도 스프라이트는 그대로다. */
+  image-rendering: auto;
 }
 
 /* 게임이 '대기/결과' 화면일 땐 캔버스 전체 오버레이가 떠야 하므로

@@ -264,6 +264,25 @@ export function getUiScaleFactor() {
 }
 
 /**
+ * 캔버스 백킹스토어(실제 픽셀 수) 1개당 논리 픽셀 몇 개인지.
+ *
+ * 게임 로직·좌표는 전부 "논리 해상도"(config.canvas.width, 시트의 canvas_w)를 쓰고,
+ * 백킹스토어는 화면에 실제로 깔리는 device px에 맞춰 따로 키운다(ui/canvasFit.js).
+ * 둘을 잇는 게 이 배율이다 — ui/render.js가 매 프레임 ctx.setTransform으로 걸어주므로
+ * 그리기 코드는 예전처럼 논리 좌표만 쓰면 된다.
+ *
+ * 이렇게 분리한 이유: 예전엔 백킹스토어가 시트의 960x540으로 고정이라, 화면이 그보다
+ * 크면(예: 1310) 캔버스에 그린 글씨(대기/결과 화면)가 비트맵째 확대돼 뭉개졌다.
+ * 백킹스토어를 실제 표시 크기에 맞추면 글자가 처음부터 최종 해상도로 그려진다.
+ *
+ * 방해꾼 크기는 이 값과 무관하게 그대로다 — 논리 크기가 config.canvas.width에
+ * 비례하고(getScaleFactor) 표시 배율이 그 역수로 움직여 서로 상쇄된다.
+ */
+export function getRenderScale(canvas) {
+  return canvas.width / config.canvas.width;
+}
+
+/**
  * ui/screens.js가 레이아웃 계산에 쓰는 "가상의" 캔버스 크기
  * (1920 기준, 실제 canvas.width/height와는 다를 수 있다). getUiScaleFactor()로
  * 그려질 것을 전제하므로, 실제 캔버스가 몇이든 이 크기 기준으로 좌표를 짜면

@@ -53,6 +53,32 @@ export function fitCanvasToViewport(canvas) {
   const shownW = baseW * scale;
   const shownH = baseH * scale;
 
+  // ★ 캔버스 백킹스토어는 "캔버스의 CSS 박스 크기"(= baseW/baseH)에 맞춘다.
+  //   예전엔 시트의 canvas_w(960)로 고정이라, CSS 박스(1920)보다 작아서 브라우저가
+  //   한 번 확대한 뒤 zoom이 다시 축소하는 왕복이 생겼다 — 그 확대 단계에서 캔버스에
+  //   그린 글씨(대기/결과 화면)가 뭉개졌다. zoom으로는 안 고쳐지는 별개 원인이다
+  //   (zoom은 HTML 글자를 고칠 뿐 캔버스 내용물은 못 건드린다).
+  //
+  //   백킹스토어를 CSS 박스와 같게 맞추면 확대 단계가 사라지고, 남는 건 zoom의
+  //   축소 한 번뿐이라 오히려 슈퍼샘플링처럼 동작한다. 실측(1310x760 기준)에서
+  //   회색 계조가 4 → 142개로 늘었다(= 안티에일리어싱이 제대로 살아난다).
+  //   화면 device px에 맞추는 것(1310)보다도 이쪽이 확실히 낫다(계조 12개).
+  //
+  //   뷰포트와 무관한 값이라 창 크기를 바꿔도 다시 할당되지 않는다 — 리사이즈 때마다
+  //   캔버스가 초기화되는 일이 없다.
+  //   논리 좌표는 그대로 config.canvas.width를 쓰고, 그리기만 getRenderScale()
+  //   배율로 확대한다(ui/render.js) — 게임 로직·히트박스는 아무것도 안 바뀐다.
+  //   dpr은 2에서 자른다(3x/4x 화면에서 백킹스토어가 쓸데없이 커지는 걸 막는다).
+  const dpr = Math.min(window.devicePixelRatio || 1, 2);
+  const targetW = Math.max(1, Math.round(baseW * dpr));
+  const targetH = Math.max(1, Math.round(baseH * dpr));
+  if (canvas.width !== targetW || canvas.height !== targetH) {
+    // 주의: width/height를 대입하면 2D 컨텍스트 상태가 전부 초기화된다
+    // (imageSmoothingEnabled 포함) — ui/render.js가 매 프레임 다시 걸어준다.
+    canvas.width = targetW;
+    canvas.height = targetH;
+  }
+
   if (SUPPORTS_ZOOM) {
     desktop.style.zoom = String(scale);
   } else {

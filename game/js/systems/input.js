@@ -13,12 +13,18 @@ import { handleDebugKey } from '../debug.js';
 // 같은 곳으로 보내기 위해 한 입력 동안만 들고 있는다(forwardClickThrough 주석 참고).
 let clickThroughTarget = null;
 
-/** 화면 좌표(clientX/Y)를 캔버스 논리 좌표로. CSS로 축소돼 있어도 정확하다. */
+/**
+ * 화면 좌표(clientX/Y)를 캔버스 논리 좌표로. CSS로 축소돼 있어도 정확하다.
+ *
+ * ★ canvas.width(백킹스토어)가 아니라 config.canvas.width(논리 해상도)를 쓴다.
+ *   백킹스토어는 화면 해상도에 맞춰 따로 커지므로(ui/canvasFit.js) 그걸 쓰면
+ *   방해꾼 좌표계와 어긋나 클릭이 빗나간다 — 게임이 아는 좌표는 논리 쪽이다.
+ */
 function canvasPoint(canvas, evt) {
   const rect = canvas.getBoundingClientRect();
   return {
-    x: (evt.clientX - rect.left) * (canvas.width / rect.width),
-    y: (evt.clientY - rect.top) * (canvas.height / rect.height),
+    x: (evt.clientX - rect.left) * (config.canvas.width / rect.width),
+    y: (evt.clientY - rect.top) * (config.canvas.height / rect.height),
   };
 }
 
