@@ -610,6 +610,19 @@ body {
   backdrop-filter: blur(6px);
   color: var(--color-debug-text);
   font: 10px/1.4 monospace;
+  /* ★ 패널 "바탕"은 클릭을 통과시킨다 — 이게 없으면 210x523이나 되는 직사각형이
+     좌상단에서 클릭을 통째로 삼켜, 그 뒤에 있는 방해꾼이 눌러도 안 죽는다
+     (실측: 패널 위 방해꾼 클릭 시 hits=0, elementFromPoint가 #debug-panel을 반환).
+     조작이 필요한 슬라이더만 아래에서 pointer-events를 다시 켠다. */
+  pointer-events: none;
+}
+
+/* 실제로 잡고 움직여야 하는 것만 클릭을 받는다. 라벨·수치·통계 텍스트는 바탕과 같이
+   통과시켜서, 패널이 켜져 있어도 뒤 방해꾼을 최대한 누를 수 있게 한다. */
+#debug-panel input,
+#debug-panel button,
+#debug-panel select {
+  pointer-events: auto;
 }
 
 #debug-panel[hidden] {
