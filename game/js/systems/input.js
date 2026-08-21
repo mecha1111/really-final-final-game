@@ -156,9 +156,17 @@ function hitTestEnemies(pt) {
 /**
  * 캔버스가 방해꾼을 못 맞혔을 때, 그 자리에 실제로 있는(캔버스 아래) HTML 엘리먼트로
  * 클릭을 그대로 넘긴다 — 안 그러면 캔버스가 레이어 맨 위를 통째로 덮어써서 창 드래그·
- * 닫기 버튼·개그팝업이 전부 죽는다. 표준 "클릭-통과" 트릭: 캔버스를 잠깐
- * pointer-events:none으로 만들어 elementFromPoint로 진짜 대상을 찾고, 그 대상에
- * 원본 이벤트와 같은 속성(좌표/버튼 등)을 가진 새 이벤트를 재발사한다.
+ * 닫기 버튼·개그팝업이 전부 죽는다. elementsFromPoint(복수형)가 그 자리의 엘리먼트를
+ * 위에서 아래 순서로 다 주므로, 그중 캔버스가 아닌 첫 번째가 곧 "캔버스 밑에 있던 것"이다.
+ *
+ * ★ 예전엔 캔버스를 잠깐 pointer-events:none으로 껐다가 elementFromPoint(단수)로 찾고
+ *   다시 켜는 방식이었다. 그런데 그 사이에 무엇이든 끼어들어 "다시 켜는" 줄에 도달하지
+ *   못하면 캔버스가 영영 클릭을 못 받는 상태로 굳는다 — 그러면 방해꾼은 하나도 안 죽는데
+ *   창 드래그는 멀쩡하고 좌표·히트박스 오버레이도 정상으로 보인다(강제로 그 상태를 만들어
+ *   실측 확인: 방해꾼 클릭 시 clicks=0으로 핸들러 자체가 안 불리고, 창 드래그는 정상).
+ *   원인을 찾기 어려운 데다 한 번 굳으면 새로고침 전까지 게임이 먹통이 되므로,
+ *   "잠깐 껐다 켠다"는 상태 변경 자체를 없앴다. 지금은 캔버스를 건드리지 않으므로
+ *   중간에 무슨 일이 나도 굳을 수가 없다.
  *
  * ★ pointerdown 하나만 넘기면 부족하다. 합성 pointerdown은 브라우저가 click으로
  *   이어주지 않으므로, click 리스너로 동작하는 것들(개그팝업의 X와 버튼)이 마우스로는
@@ -172,11 +180,12 @@ function hitTestEnemies(pt) {
 function forwardClickThrough(canvas, evt) {
   if (!evt) return null;
 
-  canvas.style.pointerEvents = 'none';
-  const target = document.elementFromPoint(evt.clientX, evt.clientY);
-  canvas.style.pointerEvents = '';
+  // 위에서 아래 순서. pointer-events:none인 것들은 애초에 목록에 안 들어오므로,
+  // 캔버스만 건너뛰면 그게 "캔버스가 없었다면 클릭을 받았을" 엘리먼트다.
+  const stack = document.elementsFromPoint(evt.clientX, evt.clientY);
+  const target = stack.find((el) => el !== canvas);
 
-  if (!target || target === canvas) return null;
+  if (!target) return null;
   target.dispatchEvent(new PointerEvent(evt.type, evt));
   return target;
 }
