@@ -14,18 +14,30 @@ import { handleDebugKey, debugState } from '../debug.js';
 let clickThroughTarget = null;
 
 /**
- * 화면 좌표(clientX/Y)를 캔버스 논리 좌표로. CSS로 축소돼 있어도 정확하다.
+ * 화면 좌표(clientX/Y)를 게임 월드 좌표로. CSS로 축소돼 있어도 정확하다.
  *
- * ★ canvas.width(백킹스토어)가 아니라 config.canvas.width(논리 해상도)를 쓴다.
- *   백킹스토어는 화면 해상도에 맞춰 따로 커지므로(ui/canvasFit.js) 그걸 쓰면
- *   방해꾼 좌표계와 어긋나 클릭이 빗나간다 — 게임이 아는 좌표는 논리 쪽이다.
+ * 두 단계로 나눠서 간다:
+ *   1) client → 백킹스토어 px : rect(화면에 실제 보이는 CSS 크기)로 나눈다.
+ *      rect에는 zoom도 dpr도 이미 반영돼 있어서 표시 배율을 따로 챙길 필요가 없다.
+ *   2) 백킹스토어 px → 월드   : ui/render.js가 이번 프레임에 실제로 쓴 배율로 나눈다.
+ *
+ * ★ 2단계에서 config.canvas.width를 직접 읽지 않고 렌더가 적어둔 값을 쓰는 이유:
+ *   그리기와 판정이 각자 config를 읽으면, 어떤 이유로든 서로 다른 config 객체를 보게
+ *   됐을 때(예: 모듈이 두 벌 로드돼 한쪽은 시트 적용 전 폴백값 1920, 다른 쪽은 시트값
+ *   960을 보는 경우) 배율이 갈라진다. 그러면 그리기는 멀쩡한데 클릭만, 그것도 원점에서
+ *   멀수록 크게 빗나간다 — 실제로 "우하단을 눌렀는데 판정은 좌중앙"이라는 신고가 있었고
+ *   960/1920 조합이 정확히 그 비율(0.8 → 0.4)을 만든다.
+ *   캔버스는 DOM 노드 하나뿐이라, 렌더가 거기 적어둔 값을 읽으면 항상 같은 배율이 보장된다.
  */
 function canvasPoint(canvas, evt) {
   const rect = canvas.getBoundingClientRect();
-  return {
-    x: (evt.clientX - rect.left) * (config.canvas.width / rect.width),
-    y: (evt.clientY - rect.top) * (config.canvas.height / rect.height),
-  };
+  // 첫 프레임이 그려지기 전에 클릭이 들어오는 극단적인 경우만 config로 폴백한다.
+  const worldToBacking = canvas.__worldToBacking || canvas.width / config.canvas.width;
+
+  const backingX = (evt.clientX - rect.left) * (canvas.width / rect.width);
+  const backingY = (evt.clientY - rect.top) * (canvas.height / rect.height);
+
+  return { x: backingX / worldToBacking, y: backingY / worldToBacking };
 }
 
 export function initInput(canvas) {

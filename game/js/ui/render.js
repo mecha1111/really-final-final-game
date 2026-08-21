@@ -31,6 +31,14 @@ export function render({ ctx, canvas, state, gameData, now }) {
   ctx.setTransform(renderScale, 0, 0, renderScale, 0, 0);
   ctx.imageSmoothingEnabled = false; // 방해꾼 스프라이트가 확대돼도 뭉개지지 않게
 
+  // ★ 이번 프레임에 실제로 쓴 "월드 1px = 백킹 몇 px" 배율을 캔버스 엘리먼트에 적어둔다.
+  //   클릭을 월드 좌표로 되돌릴 때(systems/input.js) 이 값을 그대로 쓰게 하려는 것 —
+  //   양쪽이 각자 config.canvas.width를 읽으면, 어떤 이유로든 서로 다른 config 객체를
+  //   보게 됐을 때 배율이 갈라져서 클릭이 원점에서 멀수록 크게 빗나간다(그리기는
+  //   멀쩡한데 판정만 밀리는 형태라 원인을 찾기가 매우 어렵다).
+  //   캔버스는 DOM 노드 하나뿐이라 여기 적어두면 누가 읽어도 같은 값이 보장된다.
+  canvas.__worldToBacking = renderScale;
+
   drawBackground(ctx);
 
   // 방해꾼/가짜커서/뜬 글씨는 물리(실제) 캔버스 좌표 그대로 그린다 — 이미
