@@ -45,6 +45,7 @@
       레이어 z순서(위 → 아래). 방해꾼이 창보다 위다 — 정보를 가려도 되고, 창 위에
       떠 있는 방해꾼도 반드시 클릭이 맞아야 한다(systems/input.js가 캔버스에서 방해꾼을
       못 맞히면 클릭을 그대로 아래 레이어로 통과시켜서 창 드래그·팝업 닫기는 그대로 산다):
+       10 .layer-crt   화면 전환 CRT 킥            pointer-events:none  ← phase가 바뀐 프레임에만 1회 재생, 그 외엔 투명
         6 .layer-title 타이틀 화면(HTML)          pointer-events:none  ← phase==='title'일 때만 보임(캔버스보다 위)
         5 #game-canvas 방해꾼                    pointer-events:auto  ← 못 맞히면 아래로 통과
         4 .layer-win   HTML 창(상태.dat/.exe)    pointer-events:auto
@@ -157,6 +158,15 @@
             <div class="btn" id="title-btn-quit">나가기</div>
           </div>
         </div>
+      </div>
+
+      <!-- 화면 전환 CRT 킥(레이어10, 항상 최상단). phase가 바뀌는 순간에만
+           ui/crtTransition.js가 애니를 1회 재시작시킨다 — 평소엔(재생 안 할 땐)
+           투명해서 아무 것도 안 보이고 클릭도 pointer-events:none이라 절대 안 먹는다. -->
+      <div class="layer-crt" id="layer-crt">
+        <div class="crt-scanlines"></div>
+        <div class="crt-flash"></div>
+        <div class="crt-line"></div>
       </div>
       </div>
     </div>

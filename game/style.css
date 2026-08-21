@@ -159,19 +159,24 @@ body {
   );
 }
 
-/* 레이어 z순서(위 → 아래): 타이틀 > 방해꾼(캔버스) > HTML 창 > 개그팝업 > 개그아이콘/작업표시줄 > 배경.
+/* 레이어 z순서(위 → 아래): CRT 킥 > 타이틀 > 방해꾼(캔버스) > HTML 창 > 개그팝업 >
+   개그아이콘/작업표시줄 > 배경.
    방해꾼이 창을 덮어도 된다(정보 좀 가려도 OK) — 대신 캔버스가 물리적으로 맨 위에 있으면
    창/팝업이 클릭을 못 받으므로, 캔버스는 "방해꾼을 맞았을 때만" 클릭을 먹고 나머지는
    그 아래로 그대로 넘긴다(systems/input.js의 클릭 통과 로직, elementFromPoint 사용).
    .layer-title은 그 위(6)에 얹혀서 title 단계엔 캔버스까지 통째로 덮는다 — 이쪽은
    반대로 단순하다(캔버스가 title 단계엔 아무것도 안 그리고 클릭도 안 받으므로
-   그냥 위에 얹기만 하면 된다, 통과 장치 불필요). */
+   그냥 위에 얹기만 하면 된다, 통과 장치 불필요).
+   .layer-crt(10)는 전부보다 위 — 항상 존재하지만 pointer-events:none + 평소엔
+   투명이라 클릭도 못 먹고 화면도 안 가린다(재생 중인 900ms만 예외, 그마저도
+   pointer-events:none이라 클릭은 그 밑 진짜 화면으로 그대로 간다). */
 #desktop .layer-bg { position: absolute; inset: 0; z-index: 1; pointer-events: none; }
 #desktop .layer-deco { position: absolute; inset: 0; z-index: 2; pointer-events: none; }
 #desktop .layer-gag { position: absolute; inset: 0; z-index: 3; pointer-events: none; }
 #desktop .layer-win { position: absolute; inset: 0; z-index: 4; pointer-events: none; }
 #desktop #game-canvas { position: absolute; inset: 0; z-index: 5; pointer-events: auto; }
 #desktop .layer-title { position: absolute; inset: 0; z-index: 6; pointer-events: none; display: none; }
+#desktop .layer-crt { position: absolute; inset: 0; z-index: 10; pointer-events: none; overflow: hidden; }
 /* 레이어 자체는 클릭을 통과시키고, 그 안의 "실제" 것만 클릭을 받는다 —
    빈 공간을 눌렀을 때(그리고 캔버스가 방해꾼을 못 맞혔을 때) 아래로 통과되게 하려는 것. */
 #desktop .layer-gag > *,
@@ -301,6 +306,93 @@ body {
   80% { transform: translateX(4px); }
 }
 .layer-title .btn.shake { animation: title-quit-shake 0.35s ease-in-out; }
+
+/* ---------------------------------------------------------------------------
+   ===== 화면 전환 CRT 킥 (레이어10, "클래식" 스타일 1종) =====
+   ui/crtTransition.js가 phase-change를 감지해서 .layer-crt에 .crt-playing 클래스를
+   리플로우로 재시작시킨다 — 여기 CSS는 "재생되면 어떻게 생겼나"만 담당한다.
+
+   ★ animation은 반드시 .crt-playing이 있을 때만 걸리는 걸로 뒀다(base 셀렉터엔
+   animation 자체가 없다) — 처음엔 "base 셀렉터에 조건 없이 걸어두고 JS가
+   animation:none/''으로 껐다 켰다 하면 되겠지" 하고 짰었는데, 실측(animationstart
+   타임스탬프)으로 실제 버그를 잡았다: 페이지가 뜨자마자(브라우저가 스타일을
+   커밋하는 시점) 애니가 자기 맘대로 1차 자동재생을 시작해버리고, 그 다음에야
+   JS의 init 코드가 실행돼 animation:none을 거는데 이미 한 발 늦어서
+   animationstart가 먼저 찍혀 있었다(loading→title 진입 시점에 트리거가 1개인데
+   animationstart는 2개 관측됨). JS 실행 순서를 앞당겨서 그 경주에서 이기는 것도
+   가능은 하겠지만 타이밍에 기대는 수선이라 불안정하다 — 아예 "클래스가 없으면
+   animation 선언 자체가 없다"로 바꾸면 경주 자체가 성립하지 않는다(animation
+   프로퍼티가 캐스케이드에 없는데 자동재생할 게 없다). ui/crtTransition.js의
+   playCrtKick()은 이제 이 클래스 하나만 remove→리플로우→add 한다.
+
+   #desktop "안쪽"에 있다 — #stage(zoom 래퍼) 밖이 아니라 #desktop 안이라서, 여기서
+   거는 scaleY 트랜스폼이 zoom과 곱연산으로 어긋나지 않는다. zoom은 #desktop 전체를
+   "이미 자리잡은 좌표계"로 바꿔놓을 뿐이고, 그 안의 각 요소가 자기 transform을 쓰는
+   건(title 로고의 hover scale(1.07)이 이미 그렇듯) zoom과 완전히 독립적으로 잘 맞는다.
+
+   애니가 끝나면 animation-fill-mode를 안 걸어뒀으므로 각 요소는 "애니 없을 때의
+   원래 스타일"로 돌아간다 — 그래서 아래 base 규칙에 opacity:0을 박아둔 것이다
+   (재생 안 하는 평소엔 완전히 안 보이는 상태로 확실히 복귀). scale(1)로 끝나고
+   opacity:0으로 가라앉으므로 애니 종료 후에는 어떤 transform도 안 남아 재샘플링
+   (폰트 열화)이 걸릴 여지가 없다 — image-rendering:pixelated도 원래 텍스트/비트맵
+   에만 영향을 주지 gradient/solid-color 배경에는 안 걸리니 이 레이어는 그 문제와
+   애초에 무관하다.
+   --------------------------------------------------------------------------- */
+#desktop .layer-crt > div { position: absolute; inset: 0; }
+
+/* 스캔라인: 반복 gradient가 서서히 옅어지며 사라진다(오버슛 없이 그냥 fade). */
+#desktop .layer-crt .crt-scanlines {
+  background: repeating-linear-gradient(
+    to bottom,
+    rgba(255, 255, 255, 0.5) 0px,
+    rgba(255, 255, 255, 0.5) 1px,
+    transparent 1px,
+    transparent 3px
+  );
+  opacity: 0;
+}
+#desktop .layer-crt.crt-playing .crt-scanlines {
+  animation: crt-scanlines-fade var(--crt-duration, 900ms) linear;
+}
+@keyframes crt-scanlines-fade {
+  0% { opacity: 0.5; }
+  100% { opacity: 0; }
+}
+
+/* 흰 플래시: 화면 전체가 순간 밝아졌다 가라앉는다. */
+#desktop .layer-crt .crt-flash {
+  background: #fff;
+  opacity: 0;
+}
+#desktop .layer-crt.crt-playing .crt-flash {
+  animation: crt-flash-pulse var(--crt-duration, 900ms) ease-out;
+}
+@keyframes crt-flash-pulse {
+  0% { opacity: 0; }
+  22% { opacity: 0.55; }
+  100% { opacity: 0; }
+}
+
+/* 흰 가로선: 중앙에서 얇은 줄로 번쩍 나타났다가(scaleY≈0) 위아래로 펴지며(0→1,
+   1.04→0.99→1 오버슛으로 통통하게) 사라진다. transform-origin이 정중앙이라 위/
+   아래로 똑같이 펴진다. */
+#desktop .layer-crt .crt-line {
+  background: linear-gradient(to bottom, transparent 0%, #fff 45%, #fff 55%, transparent 100%);
+  transform-origin: center center;
+  transform: scaleX(1) scaleY(0.002);
+  opacity: 0;
+}
+#desktop .layer-crt.crt-playing .crt-line {
+  animation: crt-line-unfurl var(--crt-duration, 900ms) ease-out;
+}
+@keyframes crt-line-unfurl {
+  0%   { transform: scaleX(1) scaleY(0.002); opacity: 1; }
+  35%  { transform: scaleX(1) scaleY(1);     opacity: 1; }
+  50%  { transform: scaleX(1) scaleY(1.04);  opacity: 1; }   /* 오버슛 */
+  65%  { transform: scaleX(1) scaleY(0.99);  opacity: 0.9; } /* 살짝 되튐 */
+  80%  { transform: scaleX(1) scaleY(1);     opacity: 0.4; }
+  100% { transform: scaleX(1) scaleY(1);     opacity: 0; }
+}
 
 /* ===== 배경(하늘 격자 · 언덕 · 구름) — 시안 그대로 ===== */
 #desktop .grid {
