@@ -159,20 +159,19 @@ function startClock() {
 export function initDesktop() {
   document.querySelectorAll('#desktop .win').forEach(makeDraggable);
 
-  // 창 버튼: × 닫기 — 상태.dat/업로드 두 메인 창(.win)은 게임 정보를 계속
-  // 띄워두고 있어야 하므로 안 닫힌다. 일부러 클릭 핸들러를 안 붙인다(= 눌러도 아무
-  // 일도 안 일어난다) 대신 비활성 스타일(.disabled, style.css)만 입혀 "안 닫힌다"는
-  // 걸 보여준다. 개그 팝업(.gagpop)의 × 는 이 선택자와 무관한 wireGagPopup()이
-  // 따로 처리하므로 기존대로 닫힌다 — 여기서 안 건드린다.
+  // 창 버튼(× 닫기 / _ 최소화): 상태.dat/업로드 두 메인 창(.win)은 게임 정보를 계속
+  // 띄워두고 있어야 하므로 둘 다 동작하지 않는다 — 창이 사라질 수단을 아예 없앤다.
+  // 일부러 클릭 핸들러를 안 붙이고(= 눌러도 아무 일도 안 일어난다) 비활성 스타일
+  // (.disabled, style.css)만 입혀 "이건 안 눌린다"를 보여준다.
+  // 개그 팝업(.gagpop)의 × 는 이 선택자와 무관한 wireGagPopup()이 따로 처리하므로
+  // 기존대로 닫힌다 — 여기서 안 건드린다.
   document.querySelectorAll('#desktop .win .wb .x').forEach((x) => {
     x.classList.add('disabled');
     x.title = '이 창은 닫을 수 없습니다';
   });
   document.querySelectorAll('#desktop .win .wb .min').forEach((m) => {
-    m.addEventListener('click', (e) => {
-      e.stopPropagation();
-      m.closest('.win').style.display = 'none';
-    });
+    m.classList.add('disabled');
+    m.title = '이 창은 최소화할 수 없습니다';
   });
 
   for (let i = 0; i < config.desktop.initialGagPopups; i++) spawnGagPopup();

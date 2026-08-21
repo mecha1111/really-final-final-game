@@ -503,7 +503,10 @@ body {
 #desktop .wb .x { background: linear-gradient(180deg, #f2724d, #d1330f); }
 /* 상태.dat/업로드 메인 창은 안 닫힌다 — 클릭 핸들러가 아예 없고(js/ui/desktop.js),
    여기서는 "눌러도 소용없다"는 걸 눈으로 보여주기만 한다. */
-#desktop .wb .x.disabled { filter: grayscale(0.6); opacity: 0.55; cursor: not-allowed; }
+/* 메인 창의 × 닫기와 _ 최소화 둘 다 — 창이 사라질 수단을 없앤 상태를 눈으로 보여준다
+   (핸들러 자체가 안 붙어 있어서 눌러도 아무 일도 안 일어난다, js/ui/desktop.js) */
+#desktop .wb .x.disabled,
+#desktop .wb .min.disabled { filter: grayscale(0.6); opacity: 0.55; cursor: not-allowed; }
 #desktop .win::after {
   content: ''; position: absolute; inset: 0; border: 3px solid #1668d4; border-top: none;
   border-radius: 0 0 6px 6px; pointer-events: none;
