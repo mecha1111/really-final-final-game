@@ -96,9 +96,11 @@ export const config = {
     // (시트의 hit_w/hit_h와 무관 — 그건 이제 이 타입에서 안 쓰인다).
     closeButtonSize: 44,
     // X 아이콘의 실제 중심 위치 — 스프라이트 중심(x,y) 대비 비율(size_w/size_h에 곱함).
-    // popup.png는 260x180 캔버스 전체를 안 채우고 안쪽에 여백을 두고 그려져 있어서
-    // (창 자체가 캔버스보다 작다), 우상단 "모서리"가 아니라 실제로 그려진 X 위치를
-    // 픽셀을 재서 넣었다. popup 아트를 다시 그리면 이 값도 다시 재야 한다.
+    // 예전 낱개 popup.png(260x180, 캔버스 전체를 안 채우고 안쪽 여백을 두고 그려져 있던
+    // 그림)의 실제 X 위치를 픽셀로 재서 넣은 값이다. 지금의 assets/enemies/popup/1,2,3.png
+    // (128x128 손그림, X 아이콘을 따로 그리지 않은 플레이스홀더)에는 맞춰 다시 잰 게
+    // 아니라 이 비율을 그대로 재사용 중이다 — 우상단 쪽에 얼추 들어맞긴 하지만, popup
+    // 아트가 최종본으로 바뀌면 그때 실제로 그려질 X 위치에 맞춰 다시 재야 한다.
     closeButtonOffsetXRatio: 0.225,
     closeButtonOffsetYRatio: -0.2917,
     // 몸통(= X 버튼이 아닌 곳)을 잘못 눌렀을 때 흔들리는 시간(초).
@@ -148,6 +150,14 @@ export const config = {
     // "...5초간"은 이제 안 쓴다.
     fakeDurationMin: 5,
     fakeDurationMax: 7,
+
+    // === 가짜 커서 스프라이트(assets/enemies/cursor/cursor.png, 원본 128x128) ===
+    // 벡터로 그리던 걸 실제 손그림 스프라이트로 바꾸면서 생긴 표시 크기/손끝(호트스팟) 값.
+    // 호트스팟 비율은 원본 PNG에서 커서 뾰족한 끝이 있는 대략의 위치(좌상단 쪽)를 재서 넣었다.
+    // 나중 조절 예정 — 지금은 임시값.
+    spriteSize: 64,
+    hotspotXRatio: 0.11,
+    hotspotYRatio: 0.13,
   },
 
   fx: {
@@ -196,6 +206,19 @@ export const config = {
     // 이 플래그 하나로 디버그 패널이 완전히 켜지고 꺼진다.
     // 지금은 밸런스 테스트용 프로토라 true. 배포 빌드에서는 false로 둔다.
     enabled: true,
+  },
+
+  // 방해꾼 스프라이트 애니메이션(sprite/animator.js) 전용 타이밍.
+  // 프레임 정의(어떤 png가 몇 장인지)는 animator.js의 FRAME_SETS에 있고, 여기는
+  // "얼마나 빠르게/오래"만 담는다 — 값은 전부 나중 조절 예정인 임시값(placeholder)이다.
+  anim: {
+    // 루프 애니(basic/bomb/unplug/popup/bait/ransom) 한 프레임의 길이(ms).
+    frameDurationMs: 150,
+    // basic이 클릭에 맞아 죽었을 때 {n}_dead 한 장을 보여주고 실제로 배열에서
+    // 치우기까지 기다리는 시간(초). 0으로 두면 예전처럼 즉시 사라진다.
+    basicDeathLingerSec: 0.35,
+    // 살아남는 피격(예: ransom 단계 전환) 직후 hit 프레임을 끼워 보여주는 시간(초).
+    ransomHitFlashSec: 0.15,
   },
 };
 

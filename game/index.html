@@ -41,10 +41,12 @@
       있으므로 HTML과 캔버스가 항상 같은 배율로 함께 움직인다 —
       transform은 getBoundingClientRect()에 반영되므로 클릭 좌표 역변환도 그대로 맞는다.
 
-      레이어 z순서(위 → 아래). 이 순서가 클릭 라우팅을 결정한다:
-        5 .layer-win   HTML 창(상태.dat/.exe)   pointer-events:auto  ← 항상 위, 드래그 O
-        4 .layer-gag   HTML 개그팝업             pointer-events:auto
-        3 #game-canvas 방해꾼                    pointer-events:auto
+      레이어 z순서(위 → 아래). 방해꾼이 창보다 위다 — 정보를 가려도 되고, 창 위에
+      떠 있는 방해꾼도 반드시 클릭이 맞아야 한다(systems/input.js가 캔버스에서 방해꾼을
+      못 맞히면 클릭을 그대로 아래 레이어로 통과시켜서 창 드래그·팝업 닫기는 그대로 산다):
+        5 #game-canvas 방해꾼                    pointer-events:auto  ← 항상 위, 못 맞히면 아래로 통과
+        4 .layer-win   HTML 창(상태.dat/.exe)    pointer-events:auto
+        3 .layer-gag   HTML 개그팝업             pointer-events:auto
         2 .layer-deco  개그아이콘·작업표시줄      pointer-events:none  ← 클릭 통과(장식)
         1 .layer-bg    Bliss 배경                pointer-events:none
     -->

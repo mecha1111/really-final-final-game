@@ -3,6 +3,7 @@
 import { config, getScaleFactor, parseSpecialEffect } from '../config.js';
 import { PATTERN_KIND, initMovement, moveEnemy, bounceInside } from './behaviors.js';
 import { hitRect, bodyRect, closeButtonRect, rectContains } from './hitbox.js';
+import { pickBasicVariant } from '../sprite/animator.js';
 
 export class Enemy {
   /**
@@ -48,6 +49,15 @@ export class Enemy {
     this.deathReason = null;
     this.hitFlash = 0;
     this.shakeTimer = 0;
+
+    // === 애니 전용 상태(sprite/animator.js가 읽는다) ===
+    // basic만 잡몹 얼굴(1/2/3)이 스폰 시 하나로 고정된다.
+    this.basicVariant = spec.id === 'basic' ? pickBasicVariant() : null;
+    // 죽고 나서도 잠깐 "죽은 프레임"을 보여주며 화면에 남아있는 시간(초).
+    // kill()이 basic 클릭사망일 때만 채운다 — 그 외엔 0이라 기존처럼 즉시 치워진다.
+    this.corpseTimer = 0;
+    // 살아남는 피격(ransom 단계 전환 등) 직후 hit 프레임을 잠깐 보여주는 남은 시간(초).
+    this.hitFrameTimer = 0;
 
     // special_effect가 "가짜커서"를 낸 놈(copier)은 클릭 대상이 아니라 진짜
     // 커서를 쫓아가 안착하면 터지는 이벤트형이다. move_pattern/dps는 무시한다.
@@ -113,9 +123,18 @@ export class Enemy {
   }
 
   update(dt, world) {
+    if (!this.alive) {
+      // 죽은 뒤 잠깐 "죽은 프레임"을 보여주는 동안(corpseTimer)만 여기 남는다 —
+      // 그 사이엔 움직이거나 공격하지 않고 그냥 시간만 깎는다. 실제로 배열에서
+      // 치우는 건 core/stageManager.js의 processDeaths가 corpseTimer<=0일 때 한다.
+      this.corpseTimer = Math.max(0, this.corpseTimer - dt);
+      return;
+    }
+
     this.age += dt;
     this.hitFlash = Math.max(0, this.hitFlash - dt);
     this.shakeTimer = Math.max(0, this.shakeTimer - dt);
+    this.hitFrameTimer = Math.max(0, this.hitFrameTimer - dt);
     this.pendingAttack = 0;
 
     if (this.atk) {
@@ -171,6 +190,9 @@ export class Enemy {
       this.kill('clicked');
       return true;
     }
+    // 안 죽고 살아남았다(예: ransom 단계 전환) — hit 프레임을 잠깐 끼워 보여준다.
+    // 이 프레임을 실제로 쓰는 종류(ransom)가 아니면 sprite/animator.js가 그냥 무시한다.
+    this.hitFrameTimer = config.anim.ransomHitFlashSec;
     return false;
   }
 
@@ -178,6 +200,8 @@ export class Enemy {
     if (!this.alive) return;
     this.alive = false;
     this.deathReason = reason;
+    // basic 클릭사망만 dead 프레임을 잠깐 보여주고 치운다 — 그 외 타입은 기존처럼 즉시 치워진다.
+    this.corpseTimer = reason === 'clicked' && this.id === 'basic' ? config.anim.basicDeathLingerSec : 0;
   }
 
   /** 남은 수명 비율 0~1. 이벤트형은 이 시간 안에 커서에 못 닿으면 그냥 사라진다. */

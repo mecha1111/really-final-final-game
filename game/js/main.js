@@ -2,6 +2,7 @@
 
 import { config, gameData, loadGameData, reloadGameData, applyStageToConfig, createRules } from './config.js';
 import { loadEnemyImages } from './assets.js';
+import { buildAssetKeys } from './sprite/animator.js';
 import { state } from './core/state.js';
 import { startLoop } from './core/gameLoop.js';
 import { update, getPlayArea, startGame } from './core/stageManager.js';
@@ -16,6 +17,21 @@ import { Enemy } from './enemies/Enemy.js';
 
 const canvas = document.getElementById('game-canvas');
 const ctx = canvas.getContext('2d');
+// 픽셀 아트를 그대로(뭉개지지 않게) — 기본값(true)이면 drawImage가 확대할 때
+// 부드럽게 보간해서 방해꾼 스프라이트 가장자리가 흐릿해진다.
+ctx.imageSmoothingEnabled = false;
+
+/** DGM(둥근모) 픽셀폰트가 실제로 로드됐는지 콘솔에 한 번 찍는다 — false면 폴백
+ * 폰트(Galmuri11/monospace)로 그려지는 중이라 "폰트가 뿌옇다"의 원인이 열화가
+ * 아니라 로드 실패일 수 있다(document.fonts.check는 로드 완료 후에만 정확하다). */
+function logFontLoadStatus() {
+  document.fonts.ready
+    .then(() => {
+      const loaded = document.fonts.check("16px 'DGM'");
+      console.log(`[font] DGM 로드 ${loaded ? '성공' : '실패(폴백 폰트로 표시 중)'}`);
+    })
+    .catch(() => {});
+}
 
 /** 시트를 읽고 나서 해상도와 이미지를 맞춘다. 리로드 후에도 다시 호출된다. */
 async function applyLoadedData() {
@@ -26,7 +42,7 @@ async function applyLoadedData() {
   // 표시 크기도 다시 맞춘다 — 리로드 때도 창을 꽉 채운 채로 유지된다.
   fitCanvasToViewport(canvas);
 
-  await loadEnemyImages(gameData.enemies.map((e) => e.id));
+  await loadEnemyImages(buildAssetKeys(gameData.enemies));
 
   // 새 숫자로 깨끗하게 다시 고르도록 난이도 선택으로 돌아간다
   state.phase = 'select';
@@ -85,8 +101,8 @@ async function main() {
 
   startLoop({
     update,
-    render: () => {
-      render({ ctx, canvas, state, gameData });
+    render: (now) => {
+      render({ ctx, canvas, state, gameData, now });
       // HUD는 이제 HTML 창이다 — 캔버스를 그린 뒤 같은 프레임에 값만 흘려 넣는다.
       syncDesktopPhase(state.phase);
       updateStatusWindows(state);
@@ -94,6 +110,7 @@ async function main() {
     onFrame: (fps) => updateDebugStats(state, gameData, fps),
   });
 
+  logFontLoadStatus();
   await loadGameData();
   await applyLoadedData();
 }

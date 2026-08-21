@@ -159,13 +159,14 @@ function startClock() {
 export function initDesktop() {
   document.querySelectorAll('#desktop .win').forEach(makeDraggable);
 
-  // 창 버튼: × 닫기 / _ 최소화 — 둘 다 그냥 숨긴다(게임 진행과 무관한 개그)
+  // 창 버튼: × 닫기 — 상태.dat/업로드 두 메인 창(.win)은 게임 정보를 계속
+  // 띄워두고 있어야 하므로 안 닫힌다. 일부러 클릭 핸들러를 안 붙인다(= 눌러도 아무
+  // 일도 안 일어난다) 대신 비활성 스타일(.disabled, style.css)만 입혀 "안 닫힌다"는
+  // 걸 보여준다. 개그 팝업(.gagpop)의 × 는 이 선택자와 무관한 wireGagPopup()이
+  // 따로 처리하므로 기존대로 닫힌다 — 여기서 안 건드린다.
   document.querySelectorAll('#desktop .win .wb .x').forEach((x) => {
-    x.addEventListener('click', (e) => {
-      e.stopPropagation();
-      x.closest('.win').style.display = 'none';
-      toast('창을 닫았어요');
-    });
+    x.classList.add('disabled');
+    x.title = '이 창은 닫을 수 없습니다';
   });
   document.querySelectorAll('#desktop .win .wb .min').forEach((m) => {
     m.addEventListener('click', (e) => {

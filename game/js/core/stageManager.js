@@ -106,33 +106,47 @@ export function update(dt) {
   checkWinLose(rules);
 }
 
-/** 죽은 방해꾼 뒤처리 — 수명만료 벌칙, 분열, copier 안착 폭발 */
+/**
+ * 죽은 방해꾼 뒤처리 — 수명만료 벌칙, 분열, copier 안착 폭발.
+ * basic 클릭사망은 죽는 순간 바로 안 치우고 Enemy.corpseTimer만큼 dead 프레임을
+ * 보여주며 잠깐 더 남아있는다(sprite/animator.js) — 그래서 이 함수는 죽은 프레임마다
+ * 다시 불릴 수 있고, 효과(통계/분열 등)는 죽은 첫 프레임에 딱 한 번만 적용해야 한다
+ * (enemy._deathEffectsApplied로 막는다). 실제로 배열에서 빼는 건 corpseTimer가
+ * 다 닳았을 때뿐이다.
+ */
 function processDeaths(rules, playArea) {
   if (state.enemies.every((e) => e.alive)) return;
 
-  const survivors = [];
+  const keep = [];
   const born = [];
 
   for (const enemy of state.enemies) {
     if (enemy.alive) {
-      survivors.push(enemy);
+      keep.push(enemy);
       continue;
     }
 
-    if (enemy.deathReason === 'expired') {
-      applyExpiryEffect(enemy);
-    } else if (enemy.deathReason === 'triggered') {
-      // copier가 커서 위에 안착했다 — 잡아서 죽인 게 아니므로 killed로 안 센다
-      triggerSelfDestruct(enemy);
-    } else {
-      state.stats.killed += 1;
-      if (enemy.deathReason === 'clicked') {
-        born.push(...splitEnemy(enemy, rules, playArea));
+    if (!enemy._deathEffectsApplied) {
+      enemy._deathEffectsApplied = true;
+
+      if (enemy.deathReason === 'expired') {
+        applyExpiryEffect(enemy);
+      } else if (enemy.deathReason === 'triggered') {
+        // copier가 커서 위에 안착했다 — 잡아서 죽인 게 아니므로 killed로 안 센다
+        triggerSelfDestruct(enemy);
+      } else {
+        state.stats.killed += 1;
+        if (enemy.deathReason === 'clicked') {
+          born.push(...splitEnemy(enemy, rules, playArea));
+        }
       }
     }
+
+    // corpseTimer가 남아있는 동안(죽음 연출 중)은 배열에 그대로 둔다.
+    if (enemy.corpseTimer > 0) keep.push(enemy);
   }
 
-  state.enemies = survivors.concat(born);
+  state.enemies = keep.concat(born);
 }
 
 function checkWinLose(rules) {

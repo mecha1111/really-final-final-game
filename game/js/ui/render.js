@@ -17,15 +17,17 @@ export function drawBackground(ctx, canvas) {
 
 /**
  * 한 프레임 전체를 그린다.
- * @param {object} deps { ctx, canvas, state, gameData, playArea }
+ * @param {object} deps { ctx, canvas, state, gameData, now }
+ *   now: 이번 프레임의 렌더루프 시계(ms, requestAnimationFrame timestamp) —
+ *   방해꾼 스프라이트 애니(sprite/animator.js)가 프레임 전환을 계산하는 유일한 시간 기준이다.
  */
-export function render({ ctx, canvas, state, gameData }) {
+export function render({ ctx, canvas, state, gameData, now }) {
   drawBackground(ctx, canvas);
 
   // 방해꾼/가짜커서/뜬 글씨는 물리(실제) 캔버스 좌표 그대로 그린다 — 이미
   // getScaleFactor()(baseWidth=1280)로 스케일된 값들이라 여기서 또 손대면 안 된다.
   if (state.phase !== 'select' && state.phase !== 'loading') {
-    for (const enemy of state.enemies) drawEnemy(ctx, enemy, debugState.showHitbox);
+    for (const enemy of state.enemies) drawEnemy(ctx, enemy, debugState.showHitbox, now);
 
     for (const c of state.fakeCursors) drawCursorGlyph(ctx, c.x, c.y);
     // 위장 중이면 진짜 커서도 가짜와 똑같이 그린다

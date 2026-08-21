@@ -4,6 +4,7 @@
 import { config } from '../config.js';
 import { enemyImages } from '../assets.js';
 import { cssColor } from './draw.js';
+import { getFrameKey } from '../sprite/animator.js';
 
 // id별 저화질(뭉갠) 오프스크린 캔버스를 한 번만 만들어 재사용한다 — 매 프레임
 // 새로 만들면 낭비고, 방해꾼 크기가 프레임 중에 안 바뀌므로 캐시해도 안전하다.
@@ -26,8 +27,11 @@ function getLowResCanvas(img, w, h) {
 }
 
 /** bait 한 마리를 그린다. e.baitRevealRatio(0~1)만큼 위에서부터 원본이 드러난다. */
-export function drawBaitEnemy(ctx, e) {
-  const img = enemyImages[e.id];
+export function drawBaitEnemy(ctx, e, now) {
+  // 노랑광고(a)/핑크광고(b) 세트로 계속 루프하는 프레임(sprite/animator.js).
+  // 저화질 캐시는 img(=Image 객체)를 키로 쓰므로 프레임이 바뀌어도(같은 세트 안 2장)
+  // 각자 따로 캐시돼 안전하다.
+  const img = enemyImages[getFrameKey(e, now)];
   const x = e.x - e.w / 2;
   const y = e.y - e.h / 2;
 

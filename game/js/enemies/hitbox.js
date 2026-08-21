@@ -22,10 +22,10 @@ export function bodyRect(e) {
 
 /**
  * popup류의 X 버튼 히트박스. 스프라이트의 수학적 "모서리"가 아니라 그림에
- * 실제로 그려진 X 아이콘 위치(config의 offset 비율 — 픽셀을 재서 넣은 값)를
- * 중심으로 잡는다. popup.png가 캔버스 전체를 안 채우고 안쪽에 여백을 두고
- * 그려져 있어서, 모서리 기준으로 잡으면 실제 X에서 한참 벗어난다.
- * closeButton형이 아니면 null.
+ * 실제로 그려진 X 아이콘 위치(config의 offset 비율 — 예전 popup.png를 픽셀로 재서
+ * 넣은 값, 자세한 사연은 config.js 주석 참고)를 중심으로 잡는다. 그림이 캔버스
+ * 전체를 안 채우고 안쪽에 여백을 두고 그려져 있어서, 모서리 기준으로 잡으면
+ * 실제 X에서 한참 벗어난다. closeButton형이 아니면 null.
  */
 export function closeButtonRect(e) {
   if (!e.closeButton) return null;

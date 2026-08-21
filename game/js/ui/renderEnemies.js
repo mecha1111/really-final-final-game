@@ -4,16 +4,18 @@ import { config } from '../config.js';
 import { enemyImages } from '../assets.js';
 import { cssColor, roundRect, text } from './draw.js';
 import { drawBaitEnemy } from './baitRender.js';
+import { getFrameKey } from '../sprite/animator.js';
 
-export function drawEnemy(ctx, e, showHitbox) {
+export function drawEnemy(ctx, e, showHitbox, now) {
   if (e.isBait) {
     // bait는 예비동작/흔들림 등 다른 연출과 안 섞이는 완전 별개 연출이다
     // (모서리 고정 + 저화질→고화질 복구). 히트박스도 없어서 그릴 게 없다.
-    drawBaitEnemy(ctx, e);
+    drawBaitEnemy(ctx, e, now);
     return;
   }
 
-  const img = enemyImages[e.id];
+  // 지금 보여줄 프레임(순환 애니/체력 단계/분열 tier 등)은 전부 sprite/animator.js가 정한다.
+  const img = enemyImages[getFrameKey(e, now)];
 
   // 세 가지 순간 연출이 겹칠 수 있다: 클릭 맞음(flash) / 곧 공격(telegraph) / 오클릭(shake)
   const flashRatio = e.hitFlash / config.enemy.hitFlashSec;
@@ -48,7 +50,9 @@ export function drawEnemy(ctx, e, showHitbox) {
   }
   ctx.restore();
 
-  drawEnemyGauges(ctx, e);
+  // 죽어서 잠깐 corpseTimer만큼 남아있는 동안(basic dead 프레임)은 게이지를 안 그린다 —
+  // 이미 죽은 놈의 수명 바/hp 점이 잠깐 더 보이면 헷갈린다.
+  if (e.alive) drawEnemyGauges(ctx, e);
 
   if (showHitbox) {
     // popup류는 X 버튼이 실제 판정이므로 그걸 보여준다
@@ -100,8 +104,23 @@ function drawEnemyGauges(ctx, e) {
   }
 }
 
-/** 가짜 커서와 위장한 진짜 커서는 반드시 같은 모양이어야 한다(구분 불가가 핵심). */
+/**
+ * 가짜 커서와 위장한 진짜 커서는 반드시 같은 모양이어야 한다(구분 불가가 핵심) —
+ * 그래서 이 함수 하나만 부르면 어느 쪽이든 항상 같은 그림이 나온다.
+ * assets/enemies/cursor/cursor.png(손그림 낙서체 커서)를 쓰고, 못 읽었을 때만
+ * 예전 벡터 그림으로 대신한다(이미지 하나 없다고 안 보이면 더 이상하다).
+ */
 export function drawCursorGlyph(ctx, x, y) {
+  const cc = config.cursor;
+  const img = enemyImages['cursor/cursor'];
+
+  if (img) {
+    const w = cc.spriteSize;
+    const h = (img.height / img.width) * w;
+    ctx.drawImage(img, x - w * cc.hotspotXRatio, y - h * cc.hotspotYRatio, w, h);
+    return;
+  }
+
   ctx.save();
   ctx.translate(x, y);
   ctx.scale(1.4, 1.4);

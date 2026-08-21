@@ -21,7 +21,7 @@ function canvasPoint(canvas, evt) {
 export function initInput(canvas) {
   canvas.addEventListener('pointerdown', (evt) => {
     evt.preventDefault();
-    onPointerDown(canvas, canvasPoint(canvas, evt));
+    onPointerDown(canvas, canvasPoint(canvas, evt), evt);
   });
 
   // move는 window에 붙여 캔버스 밖으로 나가도 커서 위치를 계속 추적한다
@@ -37,23 +37,23 @@ export function initInput(canvas) {
 }
 
 /**
- * 클릭 라우팅. 우선순위는 딱 한 줄로 요약된다: **UI가 방해꾼보다 항상 먼저다.**
+ * 클릭 라우팅. 우선순위는 딱 한 줄로 요약된다: **방해꾼이 항상 창보다 먼저다.**
  *
- * 지금은 두 층에서 이 원칙이 지켜진다:
+ * 캔버스가 레이어 중 맨 위(z-index, style.css)에 있어서 모든 클릭이 일단 캔버스로
+ * 들어온다. 여기서 방해꾼을 맞히면 그걸로 끝 — 창 위에 떠 있는 방해꾼도 반드시
+ * 클릭이 먹힌다(요구사항). 못 맞히면(방해꾼이 없는 자리를 눌렀으면) forwardClickThrough로
+ * 캔버스 아래(HTML 창 → 개그팝업 → 장식 → 배경) 있는 실제 엘리먼트로 클릭을 그대로
+ * 넘겨서 창 드래그·닫기 버튼·개그팝업이 예전처럼 동작하게 한다.
  *
- *  (1) HTML 층 — 브라우저가 알아서 해준다. HTML 창(.layer-win)·개그팝업(.layer-gag)은
- *      캔버스보다 위(z-index)라 그 위를 누르면 이벤트가 창에서 끝나고 캔버스의
- *      pointerdown은 아예 안 뜬다 = 뒤 방해꾼이 안 맞는다(의도: 창 우선).
- *      반대로 개그아이콘·작업표시줄(.layer-deco)은 pointer-events:none이라
- *      클릭이 그대로 통과해 방해꾼에게 간다(의도: 장식은 클릭 안 훔침).
- *
- *  (2) 캔버스 층 — 아래 가드. select/cleared/failed 단계에서는 화면 전체가
+ *  (1) 캔버스 층 — 위 가드. select/cleared/failed 단계에서는 화면 전체가
  *      캔버스 오버레이(UI)라, 방해꾼이 배열에 남아 그려지고 있어도 클릭 대상이
  *      아니다. 이 return을 지우면 "버튼 눌렀는데 뒤 방해꾼도 맞는" 버그가 된다.
  *
- * (자동 테스트가 이 규칙을 지킨다 — pwtest run.mjs의 "경계 클릭 라우팅" 항목)
+ *  (2) HTML 층 — 캔버스가 못 맞혔을 때만 내려간다. 개그아이콘·작업표시줄(.layer-deco)은
+ *      pointer-events:none이라 애초에 캔버스 자체가 클릭을 계속 받으므로(=방해꾼에게 감),
+ *      이 통과 로직과는 무관하다(의도: 장식은 클릭 안 훔침).
  */
-function onPointerDown(canvas, pt) {
+function onPointerDown(canvas, pt, evt) {
   state.pointer = pt;
 
   // [가드 1] 시작/다음구간 버튼은 ui/render.js가 1920 기준(getUiReferenceCanvas)으로
@@ -76,15 +76,13 @@ function onPointerDown(canvas, pt) {
 
   if (state.phase !== 'playing') return;
 
-  // 예전엔 여기서 "HUD 띠 위 클릭"을 걸렀지만, HUD가 캔버스에서 HTML 창으로
-  // 옮겨가면서 캔버스에는 더 이상 UI가 없다 — 이제 창 위 클릭은 브라우저가
-  // 캔버스까지 내려보내지도 않으므로(위 주석 (1)) 별도 가드가 필요 없다.
-  // 방해꾼은 바탕화면 전체를 쓴다.
+  // 방해꾼은 바탕화면 전체를 쓴다. 맞혔으면 여기서 끝 — 캔버스가 클릭을 가져간 것이다.
   state.stats.clicks += 1;
-  hitTestEnemies(pt);
+  const hitEnemy = hitTestEnemies(pt);
+  if (!hitEnemy) forwardClickThrough(canvas, evt);
 }
 
-/** 위에 그려진 놈부터 검사한다. 하나만 맞는다. */
+/** 위에 그려진 놈부터 검사한다. 하나라도 판정을 소비했으면(맞았든 헛클릭이든) true. */
 function hitTestEnemies(pt) {
   for (let i = state.enemies.length - 1; i >= 0; i--) {
     const enemy = state.enemies[i];
@@ -95,11 +93,11 @@ function hitTestEnemies(pt) {
       if (btn && pointInRect(pt, btn)) {
         enemy.kill('clicked');
         state.stats.hits += 1;
-        return;
+        return true;
       }
       if (enemy.containsBody(pt.x, pt.y)) {
         enemy.triggerShake();
-        return;
+        return true;
       }
       continue; // 이 놈은 안 맞았다 — 뒤에 깔린 놈을 계속 검사
     }
@@ -109,7 +107,7 @@ function hitTestEnemies(pt) {
     if (enemy.clickable) {
       enemy.takeHit();
       state.stats.hits += 1;
-      return;
+      return true;
     }
 
     if (enemy.isTrap) {
@@ -117,12 +115,33 @@ function hitTestEnemies(pt) {
       state.stats.trapClicks += 1;
       damageUpload(enemy.effect.wrongClickPct, enemy.x, enemy.y);
       enemy.hitFlash = config.enemy.hitFlashSec;
-      return;
+      return true;
     }
 
-    // action=none이면서 함정도 아닌 놈(bait, copier)은 눌러도 아무 일 없다
-    return;
+    // action=none이면서 함정도 아닌 놈(bait, copier)은 눌러도 아무 일 없다 —
+    // 그래도 방해꾼 자리를 누른 거라 클릭은 소비한다(창까지 통과시키지 않는다).
+    return true;
   }
+
+  return false; // 어떤 방해꾼도 이 자리에 없었다
+}
+
+/**
+ * 캔버스가 방해꾼을 못 맞혔을 때, 그 자리에 실제로 있는(캔버스 아래) HTML 엘리먼트로
+ * 클릭을 그대로 넘긴다 — 안 그러면 캔버스가 레이어 맨 위를 통째로 덮어써서 창 드래그·
+ * 닫기 버튼·개그팝업이 전부 죽는다. 표준 "클릭-통과" 트릭: 캔버스를 잠깐
+ * pointer-events:none으로 만들어 elementFromPoint로 진짜 대상을 찾고, 그 대상에
+ * 원본 이벤트와 같은 속성(좌표/버튼 등)을 가진 새 PointerEvent를 재발사한다.
+ */
+function forwardClickThrough(canvas, evt) {
+  if (!evt) return;
+
+  canvas.style.pointerEvents = 'none';
+  const target = document.elementFromPoint(evt.clientX, evt.clientY);
+  canvas.style.pointerEvents = '';
+
+  if (!target || target === canvas) return;
+  target.dispatchEvent(new PointerEvent(evt.type, evt));
 }
 
 function onKeyDown(evt) {

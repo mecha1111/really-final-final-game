@@ -129,14 +129,17 @@ body {
   );
 }
 
-/* 레이어 z순서. 이 순서가 곧 클릭 라우팅이다(위에 있는 게 클릭을 먼저 가져간다). */
+/* 레이어 z순서(위 → 아래): 방해꾼(캔버스) > HTML 창 > 개그팝업 > 개그아이콘/작업표시줄 > 배경.
+   방해꾼이 창을 덮어도 된다(정보 좀 가려도 OK) — 대신 캔버스가 물리적으로 맨 위에 있으면
+   창/팝업이 클릭을 못 받으므로, 캔버스는 "방해꾼을 맞았을 때만" 클릭을 먹고 나머지는
+   그 아래로 그대로 넘긴다(systems/input.js의 클릭 통과 로직, elementFromPoint 사용). */
 #desktop .layer-bg { position: absolute; inset: 0; z-index: 1; pointer-events: none; }
 #desktop .layer-deco { position: absolute; inset: 0; z-index: 2; pointer-events: none; }
-#desktop #game-canvas { position: absolute; inset: 0; z-index: 3; pointer-events: auto; }
-#desktop .layer-gag { position: absolute; inset: 0; z-index: 4; pointer-events: none; }
-#desktop .layer-win { position: absolute; inset: 0; z-index: 5; pointer-events: none; }
+#desktop .layer-gag { position: absolute; inset: 0; z-index: 3; pointer-events: none; }
+#desktop .layer-win { position: absolute; inset: 0; z-index: 4; pointer-events: none; }
+#desktop #game-canvas { position: absolute; inset: 0; z-index: 5; pointer-events: auto; }
 /* 레이어 자체는 클릭을 통과시키고, 그 안의 "실제 창"만 클릭을 받는다 —
-   빈 공간을 눌렀을 때 뒤 캔버스(방해꾼)로 통과되게 하려는 것. */
+   빈 공간을 눌렀을 때(그리고 캔버스가 방해꾼을 못 맞혔을 때) 아래로 통과되게 하려는 것. */
 #desktop .layer-gag > *,
 #desktop .layer-win > * { pointer-events: auto; }
 
@@ -265,6 +268,9 @@ body {
   background: linear-gradient(180deg, #4a9bf5, #1668d4); border-radius: 3px; cursor: pointer;
 }
 #desktop .wb .x { background: linear-gradient(180deg, #f2724d, #d1330f); }
+/* 상태.dat/업로드 메인 창은 안 닫힌다 — 클릭 핸들러가 아예 없고(js/ui/desktop.js),
+   여기서는 "눌러도 소용없다"는 걸 눈으로 보여주기만 한다. */
+#desktop .wb .x.disabled { filter: grayscale(0.6); opacity: 0.55; cursor: not-allowed; }
 #desktop .win::after {
   content: ''; position: absolute; inset: 0; border: 3px solid #1668d4; border-top: none;
   border-radius: 0 0 6px 6px; pointer-events: none;
