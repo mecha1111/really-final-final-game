@@ -43,8 +43,10 @@ async function applyLoadedData() {
 
   await loadEnemyImages(buildAssetKeys(gameData.enemies));
 
-  // 새 숫자로 깨끗하게 다시 고르도록 난이도 선택으로 돌아간다
-  state.phase = 'select';
+  // 최초 로드가 끝나면 타이틀로 착지한다(loading → title). 리로드 버튼으로 다시
+  // 불러올 때도 이 함수가 다시 불리는데, 그때도 title로 보내는 게 자연스럽다 —
+  // 이미 게임이 진행 중이면(playing) 리로드는 debug 전용 기능이라 잦지 않다.
+  state.phase = 'title';
 
   // 대기 화면에서도 디버그 슬라이더가 그럴듯한 숫자를 보여주도록 미리 채워둔다.
   // 지금 대기 중인 구간(state.stageIndex)의 값을 쓴다.

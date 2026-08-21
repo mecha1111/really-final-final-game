@@ -74,6 +74,14 @@ function onPointerDown(canvas, pt, evt) {
   // (방해꾼을 맞힌 경우에도 null로 남아야 그 클릭이 창으로 새어나가지 않는다)
   clickThroughTarget = null;
 
+  // [가드 0] title 단계는 캔버스가 아무 것도 안 그리고(ui/render.js) 클릭도 안 받는다
+  // — 타이틀 버튼은 HTML(.layer-title, z-index 6)이 캔버스보다 위라 애초에 이
+  // 핸들러까지 안 온다(브라우저가 버튼에서 이벤트를 끝낸다). 이 return이 없어도
+  // 아래 [가드 1]엔 안 걸리고 그다음 `phase !== 'playing'` return에서 결국 막히긴
+  // 하지만, "title엔 캔버스가 할 일이 없다"를 명시적으로 남겨서 나중에
+  // select/cleared/failed 분기가 늘어나도 title이 실수로 거기 묶여 들어가는 걸 막는다.
+  if (state.phase === 'title') return;
+
   // [가드 1] 시작/다음구간 버튼은 ui/render.js가 1920 기준(getUiReferenceCanvas)으로
   // 그리고 ctx.scale(getUiScaleFactor())로 실제 캔버스에 맞춰 줄이거나 키운다.
   // 클릭 판정도 같은 기준 공간으로 좌표를 옮겨야 그리기와 어긋나지 않는다.

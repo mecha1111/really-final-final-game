@@ -14,8 +14,11 @@ export function emptyStats() {
 }
 
 export const state = {
-  // 'loading' | 'select' | 'playing' | 'cleared' | 'failed'
+  // 'loading' | 'title' | 'select' | 'playing' | 'cleared' | 'failed'
   // ('select'는 이제 난이도 선택이 아니라 "시작/다음 구간" 대기 화면이다)
+  // 'title'은 HTML 오버레이(.layer-title, ui/titleScreen.js)가 전담한다 — 캔버스는
+  // 아무것도 안 그리고 클릭도 안 받는다(ui/render.js·systems/input.js의 title 가드).
+  // main.js가 최초 로드 완료 시 여기로 착지시킨다(loading → title).
   phase: 'loading',
   rules: null, // 이번 판에 적용 중인 숫자 묶음 (config.createRules 결과)
 

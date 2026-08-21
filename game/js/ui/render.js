@@ -35,7 +35,10 @@ export function render({ ctx, canvas, state, gameData, now }) {
 
   // 방해꾼/가짜커서/뜬 글씨는 물리(실제) 캔버스 좌표 그대로 그린다 — 이미
   // getScaleFactor()(baseWidth=1280)로 스케일된 값들이라 여기서 또 손대면 안 된다.
-  if (state.phase !== 'select' && state.phase !== 'loading') {
+  // title도 여기서 제외한다 — 타이틀은 HTML 오버레이(.layer-title, z-index 6)가
+  // 캔버스보다 위에서 전담하므로 캔버스는 아무것도 안 그린다. state.enemies가
+  // (디버그 콘솔 등으로) 비어있지 않더라도 그릴 필요가 없다.
+  if (state.phase !== 'select' && state.phase !== 'loading' && state.phase !== 'title') {
     for (const enemy of state.enemies) drawEnemy(ctx, enemy, debugState.showHitbox, now);
 
     for (const c of state.fakeCursors) drawCursorGlyph(ctx, c.x, c.y);
