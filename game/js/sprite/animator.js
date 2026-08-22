@@ -33,8 +33,10 @@ export const FRAME_SETS = {
   popup: {
     sets: { a: ['popup/a_1', 'popup/a_2'], b: ['popup/b_1', 'popup/b_2'] },
   },
-  // 함정 "확인" 창. 3프레임 루프. 누르면 안 되는 놈이라 죽지 않고 벌칙만 준다.
-  fake_btn: { loop: ['fake_btn/1', 'fake_btn/2', 'fake_btn/3'] },
+  // 함정 "확인" 창. 2프레임 루프(확인 버튼 초록칠이 번갈아 짙어져 깜빡이는
+  // 느낌 — 2026-08-22 그림 교체, 예전엔 3프레임이었다). 누르면 안 되는
+  // 놈이라 죽지 않고 벌칙만 준다.
+  fake_btn: { loop: ['fake_btn/fake_btn_1', 'fake_btn/fake_btn_2'] },
   // 시선강탈. 2프레임 애니(a/b)가 아니라 종류별 512x512 정지 그림 4장 —
   // 스폰 시 enemies/bait.js가 하나를 골라 enemy.baitKind에 고정하고, 그 뒤로는
   // (다른 종류처럼 루프하지 않고) 항상 같은 그림 한 장을 계속 그린다. 실제 연출
