@@ -170,6 +170,13 @@ const SFX_GAIN = {
 };
 
 let ctx = null; // AudioContext. null이면 이 브라우저에서 사운드를 못 쓴다는 뜻(아래 initSound)
+
+/** systems/bgm.js가 같은 AudioContext를 재사용하려고 부른다 — 컨텍스트를 두 개
+ * 만들면 자동재생 잠금 해제(resume)를 따로 걸어야 하고 브라우저 자원도 배로 든다.
+ * initSound()가 아직 안 불렸거나 실패했으면 null — bgm.js가 그 경우 스스로 포기한다. */
+export function getAudioContext() {
+  return ctx;
+}
 let masterGain = null;
 /** 파일 키(예: 'sfx_kill_soft_2') -> AudioBuffer. 로드/디코드에 실패한 건 아예 안 들어온다. */
 const buffers = {};

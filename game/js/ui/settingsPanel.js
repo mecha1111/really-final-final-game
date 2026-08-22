@@ -1,6 +1,7 @@
-// 이 파일 역할: ESC로 여닫는 설정 팝업(.layer-settings) — 사운드 슬라이더(state.settings에
-// 값만 저장, 사운드 미구현), CRT 효과 on/off·강도(config.crt와 실시간 연결), 전체화면
-// 토글, 조작법 안내, 하단 계속하기/메인으로/기본값복원.
+// 이 파일 역할: ESC로 여닫는 설정 팝업(.layer-settings) — 사운드 슬라이더(값은
+// state.settings에 저장하고, systems/sound.js·systems/bgm.js의 볼륨 노드에 실시간
+// 반영), CRT 효과 on/off·강도(config.crt와 실시간 연결), 전체화면 토글, 조작법
+// 안내, 하단 계속하기/메인으로/기본값복원.
 //
 // ui/titleScreen.js·ui/bsodScreen.js와 같은 패턴이다 — index.html에 이미 있는
 // 정적 마크업에 핸들러만 붙인다(debug.js처럼 DOM을 직접 만들지 않는다. 이건 dev
@@ -18,6 +19,7 @@
 import { config } from '../config.js';
 import { state } from '../core/state.js';
 import { playSfx, refreshSfxVolume, SFX } from '../systems/sound.js';
+import { refreshBgmVolume } from '../systems/bgm.js';
 import { applyCrtSteadyVars } from './crtTransition.js';
 
 // ESC로 "열 수" 있는 phase. 이미 열려 있으면 phase와 무관하게 항상 닫을 수 있다
@@ -103,9 +105,12 @@ export function closeSettings() {
 
 /** 사운드 슬라이더 하나를 state.settings[key]에 연결한다.
  *
- * 값을 저장한 뒤 refreshSfxVolume()으로 실제 볼륨 노드에 바로 흘려보낸다 — 지금
- * 재생 중인 소리까지 그 자리에서 같이 바뀐다(systems/sound.js의 masterGain).
- * soundBgm도 같은 함수로 배선해두지만 지금은 BGM이 없어서 값만 쌓인다. */
+ * 값을 저장한 뒤 refreshSfxVolume()·refreshBgmVolume()을 둘 다 불러 실제 볼륨
+ * 노드에 바로 흘려보낸다 — 지금 재생 중인 소리·곡까지 그 자리에서 같이 바뀐다.
+ * 마스터 슬라이더는 SFX·BGM 둘 다에 영향을 주므로 항상 둘 다 불러야 한다.
+ * 효과음/배경음 각각의 슬라이더는 반대쪽 함수를 불러도 해가 없다 — 두 함수 다
+ * "값이 실제로 바뀌었을 때만" 반영하므로(systems/sound.js·systems/bgm.js
+ * 참고), 무관한 슬라이더가 움직여도 그냥 조용히 아무 일도 안 한다. */
 function wireSoundSlider(key, inputId, outId) {
   const input = document.getElementById(inputId);
   const out = document.getElementById(outId);
@@ -114,6 +119,7 @@ function wireSoundSlider(key, inputId, outId) {
     state.settings[key] = v;
     if (out) out.textContent = String(v);
     refreshSfxVolume();
+    refreshBgmVolume();
   });
 }
 
@@ -138,6 +144,7 @@ export function initSettingsPanel() {
     playSfx(SFX.UI_CLICK, { ui: true });
     Object.assign(state.settings, DEFAULTS.sound);
     refreshSfxVolume(); // 슬라이더를 안 거치고 값이 바뀌는 경로라 여기서 직접 알려준다
+    refreshBgmVolume();
     config.crt.enabled = DEFAULTS.crtEnabled;
     config.crt.intensity = DEFAULTS.crtIntensity;
     applyCrtSteadyVars();

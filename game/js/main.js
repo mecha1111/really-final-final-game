@@ -9,6 +9,7 @@ import { update, getPlayArea, startGame } from './core/stageManager.js';
 import { consumeHitStop, updateParticles, clearJuice } from './systems/juice.js';
 import { initInput } from './systems/input.js';
 import { initSound } from './systems/sound.js';
+import { initBgm, updateBgm } from './systems/bgm.js';
 import { render } from './ui/render.js';
 import { initReloadButton } from './ui/screens.js';
 import { initCanvasFit, fitCanvasToViewport } from './ui/canvasFit.js';
@@ -101,6 +102,7 @@ async function main() {
 
   initInput(canvas);
   initSound(); // 효과음 — AudioContext를 세우고 mp3 프리로드를 시작한다(await 안 함)
+  initBgm(); // 배경음악 — sound.js가 만든 AudioContext를 재사용(반드시 initSound() 다음)
   initDesktop(); // HTML 바탕화면(창 드래그·개그 팝업·시계)
   initTitleScreen(); // 타이틀 화면 버튼(시작/설정/나가기)
   initBsodScreen(); // 실패 화면(BSOD) 버튼(재도전/로비/나가기)
@@ -134,6 +136,7 @@ async function main() {
       // HUD는 이제 HTML 창이다 — 캔버스를 그린 뒤 같은 프레임에 값만 흘려 넣는다.
       syncDesktopPhase(state.phase);
       syncCrtTransition(state.phase, now); // phase가 이번 프레임에 바뀌었을 때만 내부에서 1회 재생
+      updateBgm(state.phase, now); // 화면(phase)에 맞는 곡으로 자동 크로스페이드
       updateStatusWindows(state);
       updateUploadPicture(state);
       updateBsodScreen();

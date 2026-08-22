@@ -49,10 +49,11 @@ export const state = {
   // true인 동안 main.js의 루프가 update(dt)/updateParticles(dt)를 통째로 건너뛴다
   // (일시정지) — phase는 안 건드린다. 열려 있던 phase 그대로 돌아온다.
   settingsOpen: false,
-  // 사운드는 아직 구현이 없다 — 슬라이더 값만 여기 보관해뒀다가 나중에 실제
-  // 볼륨 붙일 때 이 셋을 그대로 읽으면 된다. localStorage는 안 쓴다(Verse8
-  // iframe/artifact 환경에서 못 쓰거나 세션마다 초기화될 수 있어 기대를
-  // 못 지킨다 — 어차피 사운드가 없으니 세션을 넘어 기억할 값도 없다).
+  // 마스터/효과음/배경음 슬라이더 값(0~100). systems/sound.js·systems/bgm.js가
+  // 매 프레임이 아니라 슬라이더가 바뀌는 순간에만 이 값을 읽어 각자의 볼륨 노드에
+  // 반영한다(refreshSfxVolume/refreshBgmVolume). localStorage는 안 쓴다(Verse8
+  // iframe/artifact 환경에서 못 쓰거나 세션마다 초기화될 수 있어 기대를 못
+  // 지킨다) — 새로고침하면 셋 다 기본값(100)으로 돌아간다.
   settings: {
     soundMaster: 100,
     soundSfx: 100,
