@@ -49,6 +49,7 @@
         8 .layer-urgent   긴박 경고(위험할 때)     pointer-events:none  ← state.urgent일 때만, 평소 투명(.layer-vignette 바로 위)
         8 .layer-vignette 피해 비네트 펄스         pointer-events:none  ← triggerHitFeedback 켤 때만, 평소 투명
         7 .layer-overload 방해꾼 과밀 지지직       pointer-events:none  ← 살아있는 수가 임계 넘을 때만, 평소 투명
+        6 .layer-cleared  구간 클리어 화면(HTML)    pointer-events:auto  ← phase==='cleared'일 때만 보임(배경 클릭=연출 건너뛰기)
         6 .layer-title    타이틀 화면(HTML)        pointer-events:none  ← phase==='title'일 때만 보임(캔버스보다 위)
         5 #game-canvas    방해꾼                  pointer-events:auto  ← 못 맞히면 아래로 통과
         4 .layer-win      HTML 창(상태.dat/.exe)  pointer-events:auto
@@ -245,6 +246,54 @@
         <!-- 아주 연한 주사선만(비네트·곡률·블룸 없음) — 상시 CRT(.layer-crt-steady)와
              별개다. 이 화면은 "가독성 우선"이라 진하기를 크게 낮췄다. -->
         <div class="bsod-scanlines"></div>
+      </div>
+
+      <!-- 2026-08-25 신설: 구간 클리어 화면(레이어6, .layer-title/.layer-bsod와 같은
+           자리 — 셋 다 phase가 서로 배타적이라 z-index를 나눠 써도 된다). 예전엔
+           'cleared' phase를 캔버스(ui/screens.js의 drawResultScreen)가 직접 그렸는데,
+           이 화면부터는 title/BSOD와 같은 결(HTML 오버레이 + 진짜 <button>)로 새로
+           만든다 — 캔버스 좌표 판정보다 안전하고, 폴라로이드 여러 장을 다루기엔
+           DOM+CSS 전환이 훨씬 다루기 쉽다.
+           .layer-title/.layer-bsod와 다른 점 하나: 이 레이어는 자기 자신이
+           pointer-events:auto다(다른 둘은 none + 버튼만 auto) — "클릭 어디든
+           눌러서 연출 건너뛰기" 요구사항 때문에 배경 전체가 클릭 대상이어야 한다.
+           수치·그림·진행은 전부 ui/clearScreen.js의 updateClearScreen()이 매
+           프레임(cleared일 때만) 채운다. -->
+      <div class="layer-cleared" id="layer-cleared">
+        <div class="cleared-bg">
+          <div class="hill"></div>
+          <div class="hill2"></div>
+          <div class="cloud c1"></div>
+          <div class="cloud c2"></div>
+        </div>
+
+        <!-- 장면 1: 폴더+폴라로이드 연출. 사진이 없는 구간(파일을 하나도 못 끝낸
+             채 콤보만으로 할당량을 채운 극단적인 경우)엔 폴더만 잠깐 보이고 바로
+             장면 2로 넘어간다(ui/clearScreen.js). -->
+        <div class="cleared-scene-photos" id="cleared-scene-photos">
+          <div class="cleared-folder" id="cleared-folder">
+            <div class="folder-tab"></div>
+            <div class="folder-back"></div>
+            <div class="cleared-photo" id="cleared-photo">
+              <div class="cleared-photo-img" id="cleared-photo-img"></div>
+              <div class="cleared-photo-label" id="cleared-photo-label"></div>
+              <div class="cleared-photo-flash" id="cleared-photo-flash"></div>
+            </div>
+            <div class="folder-front"></div>
+          </div>
+        </div>
+
+        <!-- 장면 2: "정리 완료!" + 스탯 + 다음 구간 버튼. 기본은 숨김
+             (.layer-cleared.done일 때만 보인다, style.css). -->
+        <div class="cleared-scene-summary" id="cleared-scene-summary">
+          <div class="cleared-summary-title" id="cleared-summary-title">1 구간 정리 완료!</div>
+          <div class="cleared-summary-stats" id="cleared-summary-stats">
+            완료 파일 0 · 제거 0 · 정확도 0% · 최대 콤보 0
+          </div>
+          <button type="button" class="cleared-next-btn" id="cleared-next-btn">다음 구간 ▶</button>
+        </div>
+
+        <div class="cleared-skip-hint">클릭 또는 아무 키나 눌러 건너뛰기</div>
       </div>
 
       <!-- 콤보 카운터는 이제 HTML이 아니라 캔버스에서 그린다(ui/renderEnemies.js의

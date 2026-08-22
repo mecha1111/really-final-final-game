@@ -16,6 +16,7 @@ import { initCanvasFit, fitCanvasToViewport } from './ui/canvasFit.js';
 import { initDesktop, syncDesktopPhase } from './ui/desktop.js';
 import { initTitleScreen } from './ui/titleScreen.js';
 import { initBsodScreen, updateBsodScreen } from './ui/bsodScreen.js';
+import { initClearScreen, updateClearScreen } from './ui/clearScreen.js';
 import { initCrtTransition, syncCrtTransition } from './ui/crtTransition.js';
 import { initSettingsPanel } from './ui/settingsPanel.js';
 import { initCursor } from './ui/cursor.js';
@@ -106,6 +107,7 @@ async function main() {
   initDesktop(); // HTML 바탕화면(창 드래그·개그 팝업·시계)
   initTitleScreen(); // 타이틀 화면 버튼(시작/설정/나가기)
   initBsodScreen(); // 실패 화면(BSOD) 버튼(재도전/로비/나가기)
+  initClearScreen(); // 구간 클리어 화면(폴더 정리 연출) 버튼/스킵
   initUploadPicture(); // 완료 연출(반짝+팝+라벨) CSS 변수 세팅
   initCrtTransition(); // 화면 전환 CRT 킥 — config.crt.durationMs를 CSS 변수로 내려보낸다
   initSettingsPanel(); // ESC 설정 팝업(사운드값 저장/CRT 실시간 토글/전체화면)
@@ -140,6 +142,7 @@ async function main() {
       updateStatusWindows(state);
       updateUploadPicture(state);
       updateBsodScreen();
+      updateClearScreen(now);
     },
     onFrame: (fps) => updateDebugStats(state, gameData, fps),
   });

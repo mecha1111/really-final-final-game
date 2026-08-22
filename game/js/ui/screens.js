@@ -1,4 +1,6 @@
-// 이 파일 역할: 게임 화면이 아닌 화면들 — 난이도 선택, 결과, 로딩 오버레이, 그리고 리로드 버튼(DOM).
+// 이 파일 역할: 게임 화면이 아닌 화면들 — 대기(select, 사실상 도달 안 함), 로딩
+// 오버레이, 그리고 리로드 버튼(DOM). 결과 화면(클리어·실패)은 더 이상 여기 없다 —
+// 실패는 ui/bsodScreen.js, 클리어는 ui/clearScreen.js가 각자 HTML 오버레이로 그린다.
 
 import { cssColor, roundRect, text, pointInRect } from './draw.js';
 
@@ -79,71 +81,6 @@ export function drawSelectScreen(ctx, canvas, stageIndex, preview, pointer) {
     align: 'center',
     baseline: 'middle',
     color: hover ? '--color-accent' : '--color-text',
-  });
-}
-
-export function getRestartButton(canvas) {
-  const w = 260;
-  const h = 60;
-  return { x: canvas.width / 2 - w / 2, y: canvas.height - 150, w, h };
-}
-
-export function drawResultScreen(ctx, canvas, state, pointer) {
-  const cleared = state.phase === 'cleared';
-
-  ctx.fillStyle = cssColor('--color-overlay');
-  ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-  text(ctx, cleared ? '업데이트 완료!' : '시간 초과', canvas.width / 2, 175, {
-    size: 52,
-    weight: '700',
-    align: 'center',
-    color: cleared ? '--color-success' : '--color-danger',
-  });
-
-  // 어느 구간이었고 다음에 뭐가 되는지. 표시는 사람이 읽기 쉽게 n+1("1구간"부터).
-  const shownStage = state.stageIndex + 1;
-  text(
-    ctx,
-    cleared ? `${shownStage} 구간 돌파 → ${shownStage + 1} 구간` : `${shownStage} 구간 실패 → 1 구간부터 다시`,
-    canvas.width / 2,
-    218,
-    { size: 20, weight: '700', align: 'center', color: cleared ? '--color-accent' : '--color-text-muted' },
-  );
-
-  const s = state.stats;
-  const acc = s.clicks > 0 ? Math.round((s.hits / s.clicks) * 100) : 0;
-  const lines = [
-    `업데이트   ${Math.floor(state.uploaded)} / ${state.rules.quota}MB`,
-    `크레딧   ${Math.floor(state.reward)}`,
-    `완료한 파일   ${s.filesDone}개`,
-    `제거한 방해꾼   ${s.killed}마리`,
-    `클릭 정확도   ${acc}%  (${s.hits}/${s.clicks})`,
-    `업데이트 정지 시간   ${s.blockedSec.toFixed(1)}초`,
-    `방해로 깎인 양   ${Math.round(s.drainedPct)}%`,
-  ];
-
-  lines.forEach((line, i) => {
-    text(ctx, line, canvas.width / 2, 275 + i * 32, {
-      size: 18,
-      align: 'center',
-      color: i === 0 ? '--color-text' : '--color-text-muted',
-    });
-  });
-
-  const btn = getRestartButton(canvas);
-  const hover = pointInRect(pointer, btn);
-  ctx.fillStyle = cssColor(hover ? '--color-btn-hover-bg' : '--color-btn-bg');
-  roundRect(ctx, btn.x, btn.y, btn.w, btn.h, 10);
-  ctx.fill();
-  ctx.strokeStyle = cssColor('--color-btn-border');
-  ctx.lineWidth = 2;
-  ctx.stroke();
-  text(ctx, cleared ? '다음 구간 (R)' : '다시 하기 (R)', btn.x + btn.w / 2, btn.y + btn.h / 2, {
-    size: 20,
-    weight: '700',
-    align: 'center',
-    baseline: 'middle',
   });
 }
 

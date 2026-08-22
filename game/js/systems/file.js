@@ -73,6 +73,14 @@ export function completeFile() {
   state.uploaded += file.sizeMb;
   state.reward += file.sizeMb;
   state.stats.filesDone += 1;
+  // 구간 클리어 화면(ui/clearScreen.js)이 나중에 폴라로이드로 보여줄 목록 —
+  // 완성 순서 그대로 쌓아둔다. 그림이 아직 로딩 중이었으면(pictureImg=null,
+  // 드물지만 아주 짧은 파일에서 가능) 그 파일은 목록에서 빠진다 — 없는 그림을
+  // 폴라로이드로 보여줄 수는 없으니, 클리어 화면 쪽에서 또 null 체크를 안
+  // 해도 되게 여기서 미리 거른다.
+  if (file.pictureImg) {
+    state.completedPictures.push({ src: file.pictureSrc, label: file.label });
+  }
 
   const at = playAreaCenterTop();
   addFloat(`+${file.sizeMb}MB`, at.x, at.y, true);

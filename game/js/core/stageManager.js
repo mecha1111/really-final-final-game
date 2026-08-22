@@ -46,6 +46,7 @@ export function startGame(stageIndex = 0) {
   state.uploaded = 0;
   state.reward = 0;
   state.nextFilePenaltyMb = 0;
+  state.completedPictures = []; // 지난 구간에 완성한 그림 목록을 새 구간으로 안 넘긴다
   state.enemies = [];
   state.fakeCursors = [];
   state.blocked = false;

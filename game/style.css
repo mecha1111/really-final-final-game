@@ -198,6 +198,9 @@ body {
 #desktop #game-canvas { position: absolute; inset: 0; z-index: 5; pointer-events: auto; }
 #desktop .layer-title { position: absolute; inset: 0; z-index: 6; pointer-events: none; display: none; }
 #desktop .layer-bsod { position: absolute; inset: 0; z-index: 6; pointer-events: none; display: none; }
+/* .layer-title/.layer-bsod와 달리 자기 자신이 pointer-events:auto다 — 배경
+   전체가 "연출 건너뛰기" 클릭 대상이어야 하기 때문(ui/clearScreen.js). */
+#desktop .layer-cleared { position: absolute; inset: 0; z-index: 6; pointer-events: auto; display: none; }
 #desktop .layer-overload { position: absolute; inset: 0; z-index: 7; pointer-events: none; overflow: hidden; }
 #desktop .layer-vignette { position: absolute; inset: 0; z-index: 8; pointer-events: none; }
 #desktop .layer-urgent { position: absolute; inset: 0; z-index: 8; pointer-events: none; opacity: 0; }
@@ -216,6 +219,8 @@ body {
 #desktop.phase-title .layer-title { display: block; }
 /* failed 단계(BSOD)도 같은 방식 — ui/desktop.js가 .phase-failed를 토글한다. */
 #desktop.phase-failed .layer-bsod { display: block; }
+/* cleared 단계(구간 클리어)도 같은 방식 — ui/desktop.js가 .phase-cleared를 토글한다. */
+#desktop.phase-cleared .layer-cleared { display: block; }
 /* 상시 CRT 질감도 같은 방식 — playing 중에만 보인다(대기·타이틀·BSOD엔 안 얹는다). */
 #desktop.phase-playing .layer-crt-steady { display: block; }
 
@@ -419,6 +424,166 @@ body {
   position: absolute; inset: 0; z-index: 0; pointer-events: none;
   background: repeating-linear-gradient(to bottom, rgba(0, 0, 0, 0.08) 0px, rgba(0, 0, 0, 0.08) 1px, transparent 1px, transparent 3px);
 }
+
+/* ---------------------------------------------------------------------------
+   ===== 구간 클리어 화면 = 폴더 정리 연출 (레이어6) =====
+   .layer-title/.layer-bsod와 같은 자리(z-index 6, phase 배타적)지만 하는 일은
+   훨씬 동적이다 — ui/clearScreen.js가 now(ms) 하나로 시간을 재며 이 안의 클래스를
+   매 프레임 갈아 끼운다. 배경은 BSOD의 XP 블루스크린과 대비되게 #desktop 기본
+   Bliss(하늘→잔디) 톤을 그대로 재사용 — "정리하고 있다"는 밝고 편안한 톤.
+   --------------------------------------------------------------------------- */
+#desktop .layer-cleared {
+  display: none; /* .phase-cleared일 때만 위쪽 규칙이 block으로 바꾼다 */
+  overflow: hidden;
+  font-family: 'DGM', 'Galmuri11', monospace;
+  -webkit-font-smoothing: none;
+  cursor: pointer; /* 배경 전체가 "건너뛰기" 클릭 대상이라는 걸 커서로도 알린다 */
+  /* #desktop의 Bliss 그라디언트(위 #desktop 규칙)를 그대로 복제 — 이 레이어가
+     z6에서 그 아래(캔버스·창 등)를 완전히 덮어야 하므로 배경이 비치면 안 된다. */
+  background: linear-gradient(180deg, #3f7fc8 0%, #5c9bd8 20%, #8fbfe8 38%, #bfe0f2 50%, #5aa832 50%, #4f9c2a 74%, #3f8420 100%);
+}
+/* 배경 장식 — layer-bg의 .hill/.hill2/.cloud를 그대로 재사용한다(같은 클래스,
+   같은 CSS 규칙이 그대로 먹는다 — 새로 안 만든다는 원칙 그대로). */
+#desktop .layer-cleared .cleared-bg { position: absolute; inset: 0; pointer-events: none; }
+
+/* --- 장면 1: 폴더 + 폴라로이드 --- */
+#desktop .cleared-scene-photos { position: absolute; inset: 0; }
+#desktop .layer-cleared.done .cleared-scene-photos { display: none; }
+
+#desktop .cleared-folder {
+  position: absolute; left: 50%; bottom: 130px; transform: translateX(-50%) translateY(60px) scale(0.7);
+  width: 480px; height: 300px;
+  opacity: 0;
+  transition: opacity 0.35s ease-out, transform 0.4s cubic-bezier(0.34, 1.6, 0.64, 1);
+}
+/* 폴더 등장("통 튀며") — ui/clearScreen.js가 진입 즉시 이 클래스를 건다. */
+#desktop .cleared-folder.in { opacity: 1; transform: translateX(-50%) translateY(0) scale(1); }
+
+#desktop .folder-back {
+  position: absolute; inset: 30px 0 0 0;
+  background: #e8b563; border: 5px solid #6b4118; border-radius: 10px;
+  box-shadow: 7px 7px 0 rgba(0, 0, 0, 0.22);
+}
+#desktop .folder-tab {
+  position: absolute; left: 26px; top: 0; width: 170px; height: 34px;
+  background: #e8b563; border: 5px solid #6b4118; border-bottom: none; border-radius: 10px 10px 0 0;
+}
+/* 폴더 앞면 — 항상 사진(.cleared-photo)보다 위(z-index)에 있다. 사진이
+   .on-top(등장 중)일 때만 그 위로 올라가고, 나머지 순간엔 이 앞면에 가려져
+   "폴더 속"에 있는 것처럼 보인다 — 그게 곧 "쏙 들어가는" 트릭의 전부다. */
+#desktop .folder-front {
+  position: absolute; left: -12px; right: -12px; bottom: -12px; height: 64%;
+  background: #f2c884; border: 5px solid #6b4118; border-radius: 10px;
+  box-shadow: 5px 5px 0 rgba(0, 0, 0, 0.18);
+  z-index: 10;
+}
+
+/* 폴라로이드 한 장 — DOM 노드 하나를 재사용한다(사진마다 새로 안 만든다).
+   기본 상태(꺼짐)는 폴더 뒤(z-index 2, 앞면 10보다 아래)에 작고 흐리고
+   투명하게 숨어 있다 — 다음 사진을 준비하는 동안의 모습이자, tuck 애니의
+   도착점이기도 하다. */
+#desktop .cleared-photo {
+  position: absolute; left: 50%; top: 40%; z-index: 2;
+  width: 400px; height: 400px;
+  transform: translate(-50%, -50%) scale(0.25);
+  opacity: 0;
+  background: #fff;
+  border: 10px solid #fff;
+  border-bottom-width: 56px; /* 폴라로이드 특유의 아래쪽 여백(라벨 자리) */
+  box-shadow: 0 10px 26px rgba(0, 0, 0, 0.35);
+  filter: blur(20px);
+  transition:
+    opacity 0.2s ease-out,
+    transform 0.35s cubic-bezier(0.34, 1.6, 0.64, 1),
+    filter var(--develop-sec, 1s) ease-out;
+}
+/* 등장 중 — 셔터가 터진 순간부터 tuck 시작 전까지 계속 켜져 있다(develop+hold를
+   전부 포함). 폴더 앞면(z10)보다 위로 올라와 크고 선명하게 보인다. */
+#desktop .cleared-photo.on-top {
+  z-index: 20;
+  transform: translate(-50%, -50%) scale(1);
+  opacity: 1;
+  filter: blur(0);
+}
+/* tuck — on-top을 떼는 것과 동시에 건다. z-index가 즉시 2로 떨어지므로(z-index는
+   transition 대상이 아니라 순간 전환된다) transform/opacity가 서서히 진행되는
+   동안 이미 폴더 앞면 뒤에 있다 — 그래서 "줄어들며 폴더 속으로 빨려들어가는"
+   모양이 저절로 완성된다, 별도 z-index 애니메이션 트릭이 필요 없다. */
+#desktop .cleared-photo.tuck {
+  transition-duration: var(--tuck-sec, 0.4s);
+  transform: translate(-50%, 46%) scale(0.15);
+  opacity: 0;
+  filter: blur(2px);
+}
+#desktop .cleared-photo-img {
+  position: absolute; inset: 0;
+  background-size: cover; background-position: center;
+  image-rendering: pixelated;
+}
+#desktop .cleared-photo-label {
+  position: absolute; left: 0; right: 0; bottom: -46px; height: 40px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 20px; color: #333; text-align: center; white-space: nowrap;
+}
+/* 셔터 플래시 — 사진 카드 위를 흰색으로 순간 덮었다 사라진다. ui/clearScreen.js가
+   사진을 새로 시작할 때마다 remove→reflow→add로 재시작한다(다른 곳의 hitSeq류
+   트리거와 같은 패턴). */
+#desktop .cleared-photo-flash {
+  position: absolute; inset: -10px -10px 46px -10px; /* 폴라로이드 흰 테두리까지 덮는다 */
+  background: #fff; opacity: 0; pointer-events: none;
+}
+#desktop .cleared-photo-flash.play { animation: clearedFlash var(--flash-sec, 0.15s) ease-out; }
+@keyframes clearedFlash {
+  0% { opacity: 0.95; }
+  100% { opacity: 0; }
+}
+
+/* --- 장면 2: "정리 완료!" + 스탯 + 다음 구간 --- */
+#desktop .cleared-scene-summary {
+  position: absolute; inset: 0;
+  display: none;
+  flex-direction: column; align-items: center; justify-content: center; gap: 22px;
+  opacity: 0;
+  transition: opacity 0.4s ease-out;
+}
+#desktop .layer-cleared.done .cleared-scene-summary { display: flex; }
+/* display:none→flex 전환 직후 opacity를 1로 올려야 페이드인이 보인다 —
+   ui/clearScreen.js가 .done을 건 다음 프레임에 .in을 추가한다(reflow 한 프레임
+   차이를 둬서 트랜지션이 실제로 재생되게 한다, CSS transition의 흔한 함정). */
+#desktop .layer-cleared.done .cleared-scene-summary.in { opacity: 1; }
+#desktop .cleared-summary-title {
+  font-size: 52px; font-weight: 700; color: #fff;
+  text-shadow:
+    -3px -3px 0 #111, 3px -3px 0 #111, -3px 3px 0 #111, 3px 3px 0 #111,
+    0 -3px 0 #111, 0 3px 0 #111, -3px 0 0 #111, 3px 0 0 #111;
+}
+#desktop .cleared-summary-stats { font-size: 24px; color: #1a2333; font-weight: 700; }
+#desktop .cleared-next-btn {
+  pointer-events: auto;
+  margin-top: 10px;
+  font-family: inherit;
+  font-size: 26px;
+  padding: 16px 44px;
+  background: #fff;
+  color: #1a7a3c;
+  border: 3px solid #111;
+  box-shadow: 4px 4px 0 rgba(0, 0, 0, 0.3);
+  cursor: pointer;
+  transition: transform 0.1s, background 0.1s;
+  -webkit-font-smoothing: none;
+}
+#desktop .cleared-next-btn:hover { background: #eafff1; }
+#desktop .cleared-next-btn:active { transform: scale(0.96); }
+
+/* 건너뛰기 안내 — 화면 하단에 은은하게. 요약 화면(.done)에선 이미 버튼이
+   있으니 안 보여도 된다. */
+#desktop .cleared-skip-hint {
+  position: absolute; left: 50%; bottom: 28px; transform: translateX(-50%);
+  font-size: 15px; color: rgba(255, 255, 255, 0.75);
+  text-shadow: 0 2px 0 rgba(0, 0, 0, 0.4);
+  pointer-events: none;
+}
+#desktop .layer-cleared.done .cleared-skip-hint { display: none; }
 
 /* ---------------------------------------------------------------------------
    ===== 상시 CRT 모니터 질감 (레이어9, playing 내내 계속) =====

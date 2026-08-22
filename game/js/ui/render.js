@@ -4,7 +4,7 @@
 import { config, getUiScaleFactor, getUiReferenceCanvas, getRenderScale, createRules } from '../config.js';
 import { debugState } from '../debug.js';
 import { drawEnemy, drawCursorGlyph, drawFloats, drawCombo, drawClickMarkers, drawKillParticles } from './renderEnemies.js';
-import { drawSelectScreen, drawResultScreen, drawLoadingOverlay } from './screens.js';
+import { drawSelectScreen, drawLoadingOverlay } from './screens.js';
 import { getCrtShakeOffset } from './crtTransition.js';
 import { getShakeOffset } from '../systems/screenShake.js';
 import { updateOverload, getOverloadJitter } from '../systems/overload.js';
@@ -112,12 +112,10 @@ export function render({ ctx, canvas, state, gameData, now }) {
   // 줄어들거나 커진다. 클릭 판정(systems/input.js)도 같은 기준 공간
   // (getUiReferenceCanvas)을 써야 그리기와 어긋나지 않는다.
   //
-  // ★ 여기는 흔들림(shake)을 안 넣는다 — 시작/다시하기 버튼의 클릭 판정
-  // (systems/input.js의 select/cleared/failed 분기)이 이 흔들림을 모르는 별도
-  // 계산이라, 버튼만 흔들어 그리면 "버튼은 저기 보이는데 눌리는 자리는 여기"가
-  // 된다. 방해꾼 쪽은 그 순간(phase 전환 직후) 살아있는 놈이 사실상 없어서
-  // 흔들어도 안전하지만, 버튼은 전환 직후에도 바로 누를 수 있는 진짜 클릭
-  // 대상이라 위험을 감수할 이유가 없다.
+  // ★ 여기는 흔들림(shake)을 안 넣는다 — 시작 버튼의 클릭 판정(systems/input.js의
+  // select 분기, 사실상 도달 안 하는 단계지만 남겨둔 코드)이 이 흔들림을 모르는
+  // 별도 계산이라, 버튼만 흔들어 그리면 "버튼은 저기 보이는데 눌리는 자리는
+  // 여기"가 된다. failed·cleared는 더 이상 여기서 안 그린다(위 주석).
   const uiScale = getUiScaleFactor();
   const refCanvas = getUiReferenceCanvas();
   const refPointer = { x: state.pointer.x / uiScale, y: state.pointer.y / uiScale };
@@ -130,11 +128,8 @@ export function render({ ctx, canvas, state, gameData, now }) {
     // 같은 createRules를 써야 표시와 실제가 갈라지지 않는다(공식 이중구현 금지).
     drawSelectScreen(ctx, refCanvas, state.stageIndex, createRules(state.stageIndex), refPointer);
   }
-  // failed는 이제 캔버스가 아니라 HTML 오버레이(.layer-bsod, ui/bsodScreen.js)가
-  // 전담한다 — title과 같은 방식. cleared(클리어 축하 화면)는 그대로 캔버스에 남는다.
-  if (state.phase === 'cleared') {
-    drawResultScreen(ctx, refCanvas, state, refPointer);
-  }
+  // failed·cleared는 이제 캔버스가 아니라 HTML 오버레이(.layer-bsod/.layer-cleared,
+  // ui/bsodScreen.js·ui/clearScreen.js)가 전담한다 — title과 같은 방식.
   if (gameData.loading) drawLoadingOverlay(ctx, refCanvas);
 
   ctx.restore();

@@ -36,6 +36,10 @@ export const state = {
   reward: 0, // 크레딧
   file: null, // 지금 올리는 중인 파일
   nextFilePenaltyMb: 0, // hidden이 남긴 "다음 파일 -15MB" 빚
+  // 이번 구간에서 완성한 파일의 그림들 — {src, label}. systems/file.js의
+  // completeFile()이 완성 순간마다 밀어 넣는다. ui/clearScreen.js가 구간 클리어
+  // 화면에서 이 순서 그대로 폴라로이드로 보여준다(완성한 순서 = 등장 순서).
+  completedPictures: [],
 
   enemies: [],
   fakeCursors: [],

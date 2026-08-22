@@ -114,6 +114,25 @@ export const config = {
     nearGoalRatio: 0.95,
   },
 
+  // 2026-08-25 신설: 구간 클리어 화면(ui/clearScreen.js) — 그 구간에서 완성한
+  // 그림을 폴라로이드로 하나씩 보여주고 폴더에 정리하는 연출. 전부 rAF now(ms)
+  // 하나로만 시간을 잰다(setInterval 없음, 이 프로젝트 전역 원칙).
+  clearScreen: {
+    folderEnterSec: 0.4, // 폴더가 통 튀며 등장
+    flashSec: 0.15, // 셔터 플래시가 번쩍이는 시간
+    developSec: 1.0, // 흐림→선명 "현상" 시간(사진 3~6장 기준)
+    holdSec: 1.3, // 선명해진 뒤 그대로 감상하는 시간(사진 3~6장 기준)
+    tuckSec: 0.4, // 폴더 앞면 뒤로 빨려들어가며 사라지는 시간
+    // 사진이 많으면(fastModeThreshold장 이상) develop/hold을 반으로 줄인다 —
+    // 안 그러면 8장만 돼도 연출이 20초를 넘겨 지루해진다. "대표 몇 장만 크게"
+    // 방식 대신 전체를 균일하게 빠르게 훑는 쪽을 택했다 — 특정 몇 장만 골라
+    // 보여주면 "왜 얘만 크게 나오지"라는 의문이 들 수 있고, 균일 감속이 구현도
+    // 훨씬 단순하다(대표작 선정 로직이 없어도 된다).
+    fastModeThreshold: 7,
+    developSecFast: 0.5,
+    holdSecFast: 0.6,
+  },
+
   enemy: {
     // 클릭이 맞았을 때 번쩍이는 시간(초). 키우면 타격감이 길게 남는다.
     hitFlashSec: 0.12,
