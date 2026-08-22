@@ -120,7 +120,11 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  overflow: hidden;
+  /* ★ zoom을 1로 고정한 뒤(canvasFit.js의 SCALE_TO_FIT=false)로는 화면이 1920x1080보다
+     작으면 #desktop이 뷰포트를 넘친다. hidden이면 넘친 부분이 "잘려서 안 보임"이 되는데,
+     그건 사용자가 그 부분에 있는 방해꾼을 아예 못 보고 못 누른다는 뜻이라 더 나쁘다.
+     auto로 두면 스크롤해서라도 전부 보고 누를 수 있다. */
+  overflow: auto;
   background: var(--color-bg);
 }
 
