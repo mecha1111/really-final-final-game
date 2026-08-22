@@ -3,6 +3,7 @@
 import { config, getFileTiers } from '../config.js';
 import { state } from '../core/state.js';
 import { addFloat } from './floats.js';
+import { pickFilePicture } from './filePicture.js';
 
 /**
  * "+60MB" 같은 뜬 글씨를 띄울 자리. 화면 가로 중앙, 세로는 위쪽 1/4쯤.
@@ -29,12 +30,30 @@ export function grantFile() {
     state.nextFilePenaltyMb = 0;
   }
 
-  state.file = {
+  const prevPictureSrc = state.file?.pictureSrc ?? null;
+
+  const file = {
     label: tier.label,
+    tierKey: tier.key,
     sizeMb,
     timeSec: tier.timeSec,
     progress: 0,
+    // 그림은 아래에서 비동기로 채운다 — 로드가 끝나기 전엔 null이라
+    // ui/uploadPicture.js가 빈 채로(체커보드 플레이스홀더만) 둔다. 진행바는
+    // 그림 로딩을 안 기다린다.
+    pictureSrc: null,
+    pictureImg: null,
   };
+  state.file = file;
+
+  pickFilePicture(tier.key, prevPictureSrc).then(({ src, img }) => {
+    // 로드되는 동안 파일이 또 넘어갔으면(스킵 연타 등) state.file은 이미 다른
+    // 객체다 — 그때는 이 낡은 결과를 버린다(참조 비교라 tier가 우연히 같아도
+    // 안전하다).
+    if (state.file !== file) return;
+    file.pictureSrc = src;
+    file.pictureImg = img;
+  });
 }
 
 export function completeFile() {

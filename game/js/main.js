@@ -15,6 +15,7 @@ import { initDesktop, syncDesktopPhase } from './ui/desktop.js';
 import { initTitleScreen } from './ui/titleScreen.js';
 import { initCrtTransition, syncCrtTransition } from './ui/crtTransition.js';
 import { updateStatusWindows } from './ui/statusWindow.js';
+import { updateUploadPicture } from './ui/uploadPicture.js';
 import { initDebugPanel, bindRules, updateDebugStats } from './debug.js';
 import { Enemy } from './enemies/Enemy.js';
 
@@ -120,6 +121,7 @@ async function main() {
       syncDesktopPhase(state.phase);
       syncCrtTransition(state.phase, now); // phase가 이번 프레임에 바뀌었을 때만 내부에서 1회 재생
       updateStatusWindows(state);
+      updateUploadPicture(state);
     },
     onFrame: (fps) => updateDebugStats(state, gameData, fps),
   });

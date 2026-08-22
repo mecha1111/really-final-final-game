@@ -651,10 +651,14 @@ body {
 }
 #desktop .winB .body { padding: 20px; display: flex; flex-direction: column; align-items: center; gap: 18px; }
 #desktop .frame { position: relative; background: #fff; border: 3px solid #111; padding: 10px; box-shadow: 4px 4px 0 #999; }
+/* "업데이트 중" 그림 자리. 지금은 <canvas>(ui/uploadPicture.js가 그린다) —
+   체커보드는 그 아래 깔린 배경이라, 그림이 아직 로딩 전이거나(진짜_최종…exe가
+   막 넘어간 직후) 세로로 긴 그림이라 레터박스가 생길 때 그 여백으로 비친다
+   ("사진 편집기의 투명 배경" 관용구, 그대로 "그림 없음" 표시로 쓴다). */
 #desktop .frame .img {
+  display: block; /* canvas 기본값(inline-block)의 바닥 여백 틈을 없앤다 */
   width: 540px; height: 540px;
   background: repeating-conic-gradient(#5a5a5a 0 25%, #4c4c4c 0 50%) 0 / 54px 54px;
-  display: flex; align-items: center; justify-content: center; color: #fff; font-size: 56px;
 }
 #desktop .frame .cap { margin-top: 14px; padding: 0 6px; display: flex; justify-content: space-between; align-items: baseline; font-size: 20px; color: #444; }
 #desktop .frame .cap b { color: #0f5fc8; font-size: 34px; letter-spacing: 4px; }

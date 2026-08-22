@@ -111,7 +111,8 @@ export function updateStatusWindows(state) {
   const file = state.file;
   setText(document.getElementById('up-size'), file ? `${file.sizeMb}MB` : '—');
   setText(document.getElementById('up-pct'), `${Math.floor(file ? file.progress : 0)}%`);
-  setText(document.getElementById('up-thumb'), file ? file.label : '그림');
+  // 그림 자체(#up-thumb)는 이제 캔버스라 텍스트를 안 쓴다 — ui/uploadPicture.js가
+  // 매 프레임 진행률에 맞춰 모자이크→원본으로 직접 그린다.
   setText(
     document.getElementById('up-caption'),
     state.blocked ? `정지 — ${state.blockedBy.join(', ')}` : state.attackWarning ? '공격 임박!' : '업데이트 중…',

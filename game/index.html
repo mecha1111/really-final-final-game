@@ -153,7 +153,12 @@
           <div class="menu"><span>파일(F)</span><span>편집(E)</span><span>보기(V)</span><span>도움말(H)</span></div>
           <div class="body">
             <div class="frame">
-              <div class="img" id="up-thumb">그림</div>
+              <!-- "업데이트 중"인 그림. ui/uploadPicture.js가 매 프레임 진행률에 맞춰
+                   모자이크→원본으로 그린다(캔버스 2D). width/height 속성은 JS가
+                   config.filePicture.canvasPx로 맞춰 넣는다 — 그림이 로딩 전이거나
+                   없을 때(빈 캔버스)는 아래 .frame .img의 체커보드 배경이 그대로
+                   비쳐 "그림 없음" 플레이스홀더로 보인다. -->
+              <canvas class="img" id="up-thumb"></canvas>
               <div class="cap"><span id="up-caption">업데이트 중…</span><b id="up-size">60MB</b></div>
               <!-- A타입(정지) 피드백 라벨. state.blocked일 때만 보인다(ui/statusWindow.js).
                    피해(damageUpload) 피드백과는 다른 것 — 이건 "안 깎이는데 안 올라간다". -->
