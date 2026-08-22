@@ -47,6 +47,10 @@ export function startGame(stageIndex = 0) {
   state.attackWarning = false;
   state.hitFlash = 0;
   state.cursorDisguise = 0;
+  // 완료 연출 홀드 중에 재도전/스킵 등으로 판이 바로 다시 시작되면, 남은 홀드가
+  // 새 판까지 새어 들어가 updateUpload()가 새 판 첫 몇 프레임을 "완료 연출
+  // 유지 중"으로 착각해 건너뛸 수 있다 — 여기서 확실히 끊는다.
+  state.fileCompleteHoldMs = 0;
   state.stats = emptyStats();
   clearFloats();
   clearJuice(); // 지난 판의 터진 조각·히트스톱이 새 판 첫 프레임에 남지 않게

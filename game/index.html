@@ -159,6 +159,13 @@
                    없을 때(빈 캔버스)는 아래 .frame .img의 체커보드 배경이 그대로
                    비쳐 "그림 없음" 플레이스홀더로 보인다. -->
               <canvas class="img" id="up-thumb"></canvas>
+              <!-- 파일 100% 완성 순간의 "해냈다" 연출(반짝+팝+라벨). systems/file.js의
+                   completeFile()이 state.fileCompleteSeq를 올리면 ui/uploadPicture.js가
+                   .frame에 .file-complete를 remove→reflow→add로 재시작시킨다 — 팝(그림
+                   확대)은 .img 자체에, 번쩍임·라벨은 이 두 요소에 style.css의
+                   @keyframes로 건다. -->
+              <div class="file-complete-flash" id="file-complete-flash"></div>
+              <div class="file-complete-label" id="file-complete-label">완료!</div>
               <div class="cap"><span id="up-caption">업데이트 중…</span><b id="up-size">60MB</b></div>
               <!-- A타입(정지) 피드백 라벨. state.blocked일 때만 보인다(ui/statusWindow.js).
                    피해(damageUpload) 피드백과는 다른 것 — 이건 "안 깎이는데 안 올라간다". -->

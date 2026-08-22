@@ -3,7 +3,7 @@
 import { config } from '../config.js';
 import { state } from '../core/state.js';
 import { addFloat } from './floats.js';
-import { completeFile } from './file.js';
+import { completeFile, grantFile } from './file.js';
 
 const clamp = (v, min, max) => Math.max(min, Math.min(max, v));
 
@@ -53,6 +53,26 @@ export function damageUpload(pct, x, y) {
  *  - B타입은 atk_interval마다 한 방씩 (enemy.pendingAttack)
  */
 export function updateUpload(dt, rules) {
+  // 완료 연출("해냈다" 반짝+팝+라벨) 유지 중 — 방금 끝난 파일은 이미 보상까지
+  // 다 지급됐으니(systems/file.js의 completeFile) 더 이상 공격/정지 효과를
+  // 받을 이유가 없다. blocked/attackWarning은 이 프레임엔 안 다시 정하고
+  // 명시적으로 꺼둔다 — progress는 !blocked일 때만 오르므로 100%를 찍은 그
+  // 프레임엔 이미 blocked였을 수 없어 안전하다. 홀드가 다 되면 다음 파일로
+  // 넘어간다(grantFile) — completeFile()이 여기 대신 이걸 직접 안 부르는 이유는
+  // systems/file.js의 completeFile() 주석 참고.
+  if (state.fileCompleteHoldMs > 0) {
+    state.fileCompleteHoldMs = Math.max(0, state.fileCompleteHoldMs - dt * 1000);
+    state.blocked = false;
+    state.attackWarning = false;
+    state.hitFlash = Math.max(0, state.hitFlash - dt);
+    state.vignetteMs = Math.max(0, state.vignetteMs - dt * 1000);
+    state.dmgFloatMs = Math.max(0, state.dmgFloatMs - dt * 1000);
+    if (state.dmgFloatMs <= 0) state.dmgFloatText = null;
+    state.fileBarGhostMs = Math.max(0, state.fileBarGhostMs - dt * 1000);
+    if (state.fileCompleteHoldMs <= 0) grantFile();
+    return;
+  }
+
   const blockers = [];
   let anyTelegraph = false;
 

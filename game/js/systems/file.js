@@ -75,7 +75,13 @@ export function completeFile() {
   const at = playAreaCenterTop();
   addFloat(`+${file.sizeMb}MB`, at.x, at.y, true);
 
-  grantFile();
+  // ★ grantFile()을 여기서 바로 안 부른다 — 화질복구가 막 원본에 도달한 그림을
+  // config.fileComplete.holdMs만큼 붙잡아 "완료!" 연출(반짝+팝+라벨, ui/uploadPicture.js)로
+  // 주목시킨 뒤에야 다음 파일로 넘어간다. holdMs가 다 되면 systems/upload.js의
+  // updateUpload()가 grantFile()을 부른다 — 예전엔 100%를 찍는 그 프레임에
+  // 곧장 다음 파일 그림으로 바뀌어버려서 방금 복구된 원본을 볼 틈이 없었다.
+  state.fileCompleteHoldMs = config.fileComplete.holdMs;
+  state.fileCompleteSeq += 1;
 }
 
 /** S키. 지금 파일을 버리고 새로 받는다(진행도는 0부터). 하루 skip_limit 회. */

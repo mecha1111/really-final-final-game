@@ -58,6 +58,14 @@ export const state = {
   fileBarGhostRatio: 0, // 방금 깎이기 직전 진행률(0~1) — 빨간 손실분으로 잠깐 남는다
   fileBarGhostMs: 0,
 
+  // 파일 100% 완성 순간의 "해냈다" 연출(systems/file.js의 completeFile,
+  // ui/uploadPicture.js가 소비). holdMs가 0보다 큰 동안은 다음 파일로 안
+  // 넘어가고 방금 완성된 그림을 그대로 붙잡아 보여준다.
+  fileCompleteHoldMs: 0,
+  // triggerHitFeedback의 hitSeq와 같은 패턴 — "새로 완성됐다"는 신호. 값 자체가
+  // 아니라 "바뀌었는지"만 보고 CSS 애니를 재시작(remove→reflow→add)한다.
+  fileCompleteSeq: 0,
+
   // H키 히트박스 오버레이가 켜져 있을 때만 쌓이는 "최근 클릭 자리"({x, y, t}, 월드 좌표).
   // systems/input.js가 클릭을 월드 좌표로 바꾼 그 값을 그대로 넣고, ui/renderEnemies.js가
   // 십자선으로 그린다 — 화면에서 실제로 누른 지점과 게임이 계산한 지점이 어긋나는지

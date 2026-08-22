@@ -834,6 +834,64 @@ body {
   50% { opacity: 0.55; }
 }
 
+/* ---------------------------------------------------------------------------
+   ===== 파일 100% 완성 "해냈다" 연출 =====
+   systems/file.js의 completeFile()이 state.fileCompleteSeq를 올리면
+   ui/uploadPicture.js가 .frame에 .file-complete를 remove→reflow→add로
+   재시작시킨다(다른 hitSeq류와 같은 패턴). 지속시간·강도는 전부
+   config.fileComplete에서 나오고, initUploadPicture()가 --file-complete-*
+   CSS 변수로 한 번만 흘려보낸다.
+   ★ .img는 <canvas>이지만 #game-canvas(방해꾼)의 "조상"이 아니라 완전히 다른
+   DOM 가지(.layer-win 안)에 있는 형제뻘 엘리먼트라, 여기 거는 transform 애니는
+   canvas 조상 transform 버그(ui/crtTransition.js 상단 주석)와 원천적으로
+   무관하다.
+   --------------------------------------------------------------------------- */
+#desktop .frame.file-complete .img {
+  animation: fileCompletePop var(--file-complete-pop-ms, 500ms) ease-out;
+}
+@keyframes fileCompletePop {
+  0% { transform: scale(1); }
+  35% { transform: scale(var(--file-complete-pop-scale, 1.08)); }
+  100% { transform: scale(1); }
+}
+
+/* 흰 번쩍임 — .img와 정확히 같은 자리를 덮는다. inset:10px는 .frame의 padding과
+   같은 값이라(위 .frame 규칙) .img의 content-box(정사각 540x540, .frame의
+   유일한 콘텐츠라 .frame 폭도 그에 맞춰 shrink-to-fit된다)를 그대로 따라간다 —
+   540을 여기 또 안 박아서 config.filePicture.canvasPx가 바뀌어도 안 어긋난다.
+   .cap(캡션)은 .img 아래 별도 흐름이라 여기 안 걸린다. */
+#desktop .file-complete-flash {
+  position: absolute; inset: 10px;
+  background: #fff; opacity: 0; pointer-events: none;
+}
+#desktop .frame.file-complete .file-complete-flash {
+  animation: fileCompleteFlash var(--file-complete-flash-ms, 260ms) ease-out;
+}
+@keyframes fileCompleteFlash {
+  0% { opacity: 0.85; }
+  100% { opacity: 0; }
+}
+
+/* "완료!" 라벨 — 그림 중앙에 팝하며 떴다 사라진다. */
+#desktop .file-complete-label {
+  position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%) scale(0.6);
+  font-size: 44px; font-weight: 700; color: #44ff88;
+  text-shadow:
+    -3px -3px 0 #111, 3px -3px 0 #111, -3px 3px 0 #111, 3px 3px 0 #111,
+    0 -3px 0 #111, 0 3px 0 #111, -3px 0 0 #111, 3px 0 0 #111;
+  opacity: 0; pointer-events: none; white-space: nowrap;
+}
+#desktop .frame.file-complete .file-complete-label {
+  animation: fileCompleteLabel var(--file-complete-label-ms, 900ms) ease-out;
+}
+@keyframes fileCompleteLabel {
+  0% { opacity: 0; transform: translate(-50%, -50%) scale(0.6); }
+  20% { opacity: 1; transform: translate(-50%, -50%) scale(1.15); }
+  35% { transform: translate(-50%, -50%) scale(1); }
+  75% { opacity: 1; }
+  100% { opacity: 0; transform: translate(-50%, -50%) scale(1); }
+}
+
 /* 업로드 바 + 손실 잔상 + 피해 수치를 겹쳐 쌓는 자리. */
 #desktop .xpbar-stack { position: relative; }
 /* 잔상(ghost) — 진짜 바(#up-bar) 위에 겹친다(z-index 아래가 아니라 위!). 진짜

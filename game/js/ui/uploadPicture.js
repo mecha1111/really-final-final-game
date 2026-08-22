@@ -20,6 +20,26 @@ let mosaicCtx = null;
 // 진행률이 프레임마다 미세하게 바뀌어도 계단(steps)이 안 바뀌면 그리기를 건너뛴다.
 let lastKey = null;
 
+// "완료!" 연출을 마지막으로 재생시킨 seq. hitSeq와 같은 패턴 — 값 자체가 아니라
+// "바뀌었는지"만 본다.
+let lastCompleteSeq = 0;
+
+/** 최초 1회. config.fileComplete 값을 --file-complete-* CSS 변수로 흘려보낸다 —
+ * style.css의 @keyframes가 이 변수를 읽는다(durationMs를 CSS 변수로 보내는
+ * ui/crtTransition.js의 initCrtTransition()과 같은 패턴). 라벨 텍스트도 여기서
+ * DOM에 반영해 config 한 곳만 보면 되게 한다. */
+export function initUploadPicture() {
+  const root = document.documentElement.style;
+  const cfg = config.fileComplete;
+  root.setProperty('--file-complete-flash-ms', `${cfg.flashMs}ms`);
+  root.setProperty('--file-complete-pop-ms', `${cfg.popMs}ms`);
+  root.setProperty('--file-complete-pop-scale', cfg.popScale);
+  root.setProperty('--file-complete-label-ms', `${cfg.labelMs}ms`);
+
+  const label = document.getElementById('file-complete-label');
+  if (label) label.textContent = cfg.labelText;
+}
+
 function ensureCanvas() {
   if (canvas) return canvas;
   canvas = document.getElementById('up-thumb');
@@ -61,6 +81,22 @@ function blockPxFor(progress) {
  * 플레이스홀더가 그대로 비치게 한다. */
 export function updateUploadPicture(state) {
   if (!ensureCanvas()) return;
+
+  // 파일 100% 완성 "해냈다" 연출 — systems/file.js의 completeFile()이 세운
+  // fileCompleteSeq가 바뀌면(=방금 새로 완성됐으면) .frame의 .file-complete를
+  // remove→reflow→add로 재시작시킨다(다른 hitSeq류 트리거와 같은 패턴,
+  // ui/statusWindow.js의 hitSeq 소비부 참고 — 그냥 클래스만 add하면 이미
+  // 재생 중인 애니가 재시작을 안 해서 파일을 연달아 빨리 끝내면 두 번째부턴
+  // 연출이 안 보인다).
+  if (state.fileCompleteSeq !== lastCompleteSeq) {
+    lastCompleteSeq = state.fileCompleteSeq;
+    const frame = document.querySelector('#win-upload .frame');
+    if (frame) {
+      frame.classList.remove('file-complete');
+      void frame.offsetWidth;
+      frame.classList.add('file-complete');
+    }
+  }
 
   const file = state.file;
   if (!file || !file.pictureImg) {
