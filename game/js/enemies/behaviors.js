@@ -68,7 +68,10 @@ export function initMovement(enemy, rules, playArea) {
 
     case 'bait':
       // bait: 물리 이동이 아니라 전용 상태기계(enemies/bait.js)로 움직인다.
-      initBait(enemy, playArea);
+      // rules를 넘기는 이유: bait의 실제 수명은 시트 값이 아니라 효과 재생시간으로
+      // 다시 정하는데(effects.js가 아니라 bait.js가 직접), 그래도 난이도의 수명
+      // 배율(rules.lifetimeMultiplier)은 그대로 존중해야 디버그 슬라이더가 먹는다.
+      initBait(enemy, rules, playArea);
       break;
 
     case 'chase':

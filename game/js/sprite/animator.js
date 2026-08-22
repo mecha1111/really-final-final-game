@@ -35,11 +35,13 @@ export const FRAME_SETS = {
   },
   // 함정 "확인" 창. 3프레임 루프. 누르면 안 되는 놈이라 죽지 않고 벌칙만 준다.
   fake_btn: { loop: ['fake_btn/1', 'fake_btn/2', 'fake_btn/3'] },
-  // 시선강탈. 에셋 신규 제작 대기 중이라 프레임이 비어있다 —
-  // 로직(enemies/bait.js, ui/baitRender.js)은 그대로 살아있고 스폰만 꺼둔 상태다
-  // (config.enemy.disabledIds). 그림이 준비되면 여기 세트를 채우고 그 목록에서 빼면 된다.
+  // 시선강탈. 2프레임 애니(a/b)가 아니라 종류별 512x512 정지 그림 4장 —
+  // 스폰 시 enemies/bait.js가 하나를 골라 enemy.baitKind에 고정하고, 그 뒤로는
+  // (다른 종류처럼 루프하지 않고) 항상 같은 그림 한 장을 계속 그린다. 실제 연출
+  // (등장/소멸)은 ui/baitRender.js가 이 정지 그림 위에 얹는다.
+  // 파일 위치: assets/enemies/bait/bait_<kind>.png
   bait: {
-    sets: { a: [], b: [] },
+    kinds: ['nobubble', 'bubble', 'julgeopda', 'gyaru'],
   },
   // 탱커. 체력 비율로 s1(건강)→s2→s3(위태) 단계를 고르고, 각 단계는 2장 루프.
   // 피격 직후엔 잠깐 hit 한 장을 끼워 보여준다.
@@ -108,6 +110,12 @@ export function getFrameKey(enemy, now) {
     return tiers[Math.min(enemy.tier, tiers.length - 1)];
   }
 
+  if (id === 'bait') {
+    // 스폰 시 enemies/bait.js가 고른 종류로 고정 — 루프 없이 정지 그림 한 장.
+    const kind = enemy.baitKind ?? FRAME_SETS.bait.kinds[0];
+    return `bait/bait_${kind}`;
+  }
+
   const set = FRAME_SETS[id];
 
   // a/b 두 벌을 가진 종류(popup의 노랑/핑크 광고). 스폰 때 고른 쪽으로 계속 루프한다.
@@ -143,6 +151,7 @@ export function enemyAssetKeys(spec) {
   }
   if (set.sets) Object.values(set.sets).forEach((arr) => arr.forEach((k) => keys.add(k)));
   if (set.stage) Object.values(set.stage).forEach((arr) => arr.forEach((k) => keys.add(k)));
+  if (set.kinds) set.kinds.forEach((k) => keys.add(`bait/bait_${k}`));
 
   return [...keys];
 }

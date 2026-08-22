@@ -55,7 +55,7 @@ export class Spawner {
 /**
  * 이번 일차(stage)에 등장할 수 있는 방해꾼만 남긴다.
  * config.enemy.disabledIds에 올라온 종류는 시트에 있어도 스폰하지 않는다 —
- * 지금은 에셋이 없는 bait 하나뿐이다(로직은 그대로 살아있고 그림만 대기 중).
+ * 지금은 비어있다(bait는 그림 4종이 도착해 2026-08-22부로 되살렸다).
  * 디버그 소환(__game.spawn)은 이 목록을 안 거치므로 테스트는 그대로 된다.
  */
 export function buildPool(specs, stage) {
