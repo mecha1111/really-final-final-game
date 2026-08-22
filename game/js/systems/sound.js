@@ -251,6 +251,17 @@ function sfxVolume() {
   return clamp01(s.soundMaster / 100) * clamp01(s.soundSfx / 100);
 }
 
+// refreshSfxVolume()이 마지막으로 실제 반영한 볼륨. playSfx()가 "혹시 몰라"
+// 재생 직전마다 이 함수를 부르는데(아래 playSfx 주석 참고), 그때마다 값이
+// 똑같은데도 매번 setTargetAtTime을 새로 걸면 masterGain.gain 파라미터의
+// 자동화 타임라인에 이벤트가 판이 길어질수록 끝없이 쌓인다 — 오디오 렌더
+// 스레드가 매 렌더 퀀텀마다 그 누적된 이벤트들을 다시 훑어야 해서, 오래
+// 플레이할수록 처리 부담이 늘어 재생이 점점 밀리는 것처럼 느껴질 수 있다
+// ("누적 밀림" 증상과 정확히 들어맞는다 — 실측: 연타 시 소리가 한 번씩
+// 늦게 나는 감각). 값이 실제로 안 바뀌었으면 아예 아무 것도 안 걸어서
+// 이 누적 자체를 없앤다.
+let lastAppliedVolume = -1;
+
 /**
  * masterGain에 지금 설정값을 다시 흘려보낸다. 설정창에서 슬라이더를 움직일 때마다
  * ui/settingsPanel.js가 부른다 — 재생 중인 소리까지 즉시 같이 바뀐다.
@@ -259,15 +270,24 @@ function sfxVolume() {
  * 슬라이더를 드래그하면 값이 프레임마다 들어오는데, 매번 gain을 딱딱 끊어 바꾸면
  * 지직거리는 잡음(zipper noise)이 난다. 반대로 0은 점근적으로 다가가기만 해서
  * 영영 정확히 0이 안 되므로, "무음"만은 예약을 지우고 직접 0을 박는다.
+ *
+ * ★ 값이 바뀔 때마다 cancelScheduledValues부터 부른다 — 슬라이더를 빠르게
+ *   드래그하면 이 함수가 프레임마다 다른 값으로 연달아 불리는데, 이전 곡선을
+ *   안 지우고 새 곡선을 또 걸면 여러 setTargetAtTime 곡선이 동시에 쌓인다.
+ *   먼저 지우면 항상 "지금부터 목표까지" 곡선 하나만 유지된다.
  */
 export function refreshSfxVolume() {
   if (!masterGain || !ctx) return;
   const v = sfxVolume();
+  if (v === lastAppliedVolume) return; // 값 그대로면 자동화 이벤트를 또 안 쌓는다
+  lastAppliedVolume = v;
+
+  const now = ctx.currentTime;
+  masterGain.gain.cancelScheduledValues(now);
   if (v <= 0) {
-    masterGain.gain.cancelScheduledValues(ctx.currentTime);
     masterGain.gain.value = 0;
   } else {
-    masterGain.gain.setTargetAtTime(v, ctx.currentTime, 0.01);
+    masterGain.gain.setTargetAtTime(v, now, 0.01);
   }
 }
 
@@ -279,6 +299,33 @@ export function refreshSfxVolume() {
  */
 function unlockAudio() {
   if (ctx && ctx.state === 'suspended') ctx.resume().catch(() => {});
+  primeAudio(); // 콜드 스타트 지연 대비 — 첫 입력에서 딱 한 번만 예열한다(내부에서 스스로 막는다)
+}
+
+// primeAudio()가 이미 예열을 걸었는지 — 게임 내내 딱 한 번만 하면 된다.
+let warmedUp = false;
+
+/**
+ * 무음 1샘플 버퍼를 즉시 재생시켜 오디오 렌더 파이프라인을 미리 깨운다("콜드 스타트
+ * 워밍업"). AudioContext가 막 만들어졌거나 resume() 직후엔 브라우저가 실제 오디오
+ * 스레드를 아직 안 돌리고 있을 수 있어, 그 상태에서 첫 "진짜" 효과음을 재생하면
+ * 초기화 오버헤드가 그 소리의 체감 지연으로 그대로 드러난다. 아무도 안 듣는 무음
+ * 버퍼로 그 초기화 비용을 먼저 치러두면, 실제로 처치음이 나야 하는 순간엔 파이프라인이
+ * 이미 돌고 있어 지연이 없다. 실패해도(오래된 브라우저 등) 그냥 넘어간다 — 있으면
+ * 좋은 최적화지 없다고 게임이 멈출 이유는 아니다.
+ */
+function primeAudio() {
+  if (warmedUp || !ctx) return;
+  warmedUp = true;
+  try {
+    const buffer = ctx.createBuffer(1, 1, ctx.sampleRate);
+    const src = ctx.createBufferSource();
+    src.buffer = buffer;
+    src.connect(ctx.destination);
+    src.start(0);
+  } catch {
+    warmedUp = false; // 실패했으면 다음 입력에서 다시 시도할 기회를 남겨둔다
+  }
 }
 
 /**
@@ -343,7 +390,12 @@ export function initSound() {
   }
 
   try {
-    ctx = new AudioCtor();
+    // latencyHint:'interactive' — 브라우저에게 "이건 배경음악이 아니라 클릭에
+    // 즉시 반응해야 하는 소리"라고 알려준다. 기본값(미지정)도 대개 'interactive'로
+    // 해석되지만 그건 브라우저 구현에 맡겨진 값이라 명시해두는 편이 안전하다 —
+    // 명시하면 브라우저가 출력 버퍼를 더 작게 잡아 하드웨어 왕복 지연 자체를
+    // 줄인다(playback 위주인 'playback'/'balanced'보다 지연이 짧다).
+    ctx = new AudioCtor({ latencyHint: 'interactive' });
   } catch {
     console.warn('[sfx] AudioContext를 만들지 못했습니다 — 효과음 없이 진행합니다.');
     return;
@@ -385,6 +437,14 @@ export function initSound() {
       activeMinorCount: () => activeMinor.length,
       isImportant: (name) => IMPORTANT_SFX.has(name),
       isPriorityMinor: (name) => PRIORITY_MINOR_SFX.has(name),
+      // 지연 진단용 — 콘솔에서 __sfx.latency()로 바로 확인할 수 있게.
+      latency: () => ({
+        baseLatency: ctx.baseLatency, // 하드웨어 왕복 지연(초) — latencyHint가 낮출 수 있는 값
+        outputLatency: ctx.outputLatency, // 실측 출력 지연(초, 지원 브라우저만)
+        sampleRate: ctx.sampleRate,
+        warmedUp,
+      }),
+      lastAppliedVolume: () => lastAppliedVolume,
     };
   }
 }
