@@ -13,14 +13,22 @@ import { pickBasicVariant, pickAbVariant, FRAME_SETS } from '../sprite/animator.
 // 여기서 그 id를 빼면 된다(비면 이 Set째로 지워도 된다).
 const NEVER_BLOCKS = new Set(['bomb']);
 
-// 클릭으로 잡았을 때 낼 소리. 여기 없는 종류는 전부 기본값(KILL_SOFT)이다 —
-// 단단한 걸 깨부순 느낌이 필요한 놈만 예외로 적는다(ransom은 hp가 3이라 마지막
-// 한 방이 "드디어 깨졌다"가 되어야 한다). bomb/unplug처럼 클릭으로도 죽는 나머지는
-// 기본값으로 충분하고, 종류가 늘어도 여기 한 줄만 보면 된다.
+// 클릭으로 잡았을 때 낼 소리. 여기 없는 종류는 전부 기본값(KILL_SOFT, 잡몹)이다 —
+// 특수능력이 있는 놈은 처치 순간 그 정체성이 드러나는 고유 소리로 갈아 끼운다.
+//   · ransom: hp3 다단계 — 마지막 한 방이 "드디어 깨졌다"(중간 타격은 takeHit의 균열음)
+//   · clone: 복제 취소/삭제 · popup: X로 창 닫힘 · unplug: 전원 복구
+//   · hidden: 발각 · bomb: 폭탄 제거
 // ★ 여기 안 오는 종류들: fake_btn(함정이라 clickable이 아니다 — 밟으면 아래
 //   FAKEBTN_PENALTY가 따로 난다), copier(클릭이 아니라 커서에 안착해 자폭한다 —
-//   enemies/effects.js의 triggerSelfDestruct), bait(히트박스 자체가 없다).
-const KILL_SFX = { ransom: SFX.KILL_HARD };
+//   enemies/effects.js의 triggerSelfDestruct, COPIER_SELFDESTRUCT가 이미 고유), bait(히트박스 자체가 없다).
+const KILL_SFX = {
+  ransom: SFX.KILL_HARD,
+  clone: SFX.KILL_CLONE,
+  popup: SFX.KILL_POPUP,
+  unplug: SFX.KILL_UNPLUG,
+  hidden: SFX.KILL_HIDDEN,
+  bomb: SFX.KILL_BOMB,
+};
 
 export class Enemy {
   /**
