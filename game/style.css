@@ -1141,10 +1141,16 @@ body {
 }
 #desktop .xpbar-stack .xpbar.big:not(.ghost) { position: relative; z-index: 0; }
 
-/* 피해 수치("-20%") 텍스트 — 바 오른쪽 위에서 살짝 떠오르며 사라진다. */
+/* 피해 수치("-20%") 텍스트 — 바 오른쪽 위에서 살짝 떠오르며 사라진다.
+   외곽선을 8방향 text-shadow로 두껍게(.file-complete-label/.layer-title .btn과
+   같은 어휘) — 밝은 XP 배경 위에서도 잘 읽히게(시인성 요구사항). DGM은
+   #desktop에서 이미 물려받는다. */
 #desktop .dmg-float {
   position: absolute; right: 4px; bottom: 100%; margin-bottom: 4px;
-  font-size: 20px; color: #ff4d4d; text-shadow: 1px 1px 0 #000, -1px -1px 0 #000;
+  font-size: 24px; font-weight: 700; color: #ff4d4d;
+  text-shadow:
+    -2px -2px 0 #111, 2px -2px 0 #111, -2px 2px 0 #111, 2px 2px 0 #111,
+    0 -2px 0 #111, 0 2px 0 #111, -2px 0 0 #111, 2px 0 0 #111;
   opacity: 0; pointer-events: none;
 }
 #desktop .dmg-float.show { animation: dmgFloatRise 0.9s ease-out forwards; }

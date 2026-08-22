@@ -2,7 +2,7 @@
 
 import { config } from '../config.js';
 import { enemyImages } from '../assets.js';
-import { cssColor, roundRect, text } from './draw.js';
+import { cssColor, roundRect, text, outlinedText } from './draw.js';
 import { drawBaitEnemy } from './baitRender.js';
 import { getFrameKey } from '../sprite/animator.js';
 
@@ -299,17 +299,17 @@ function drawClickEnv(ctx, c) {
   ctx.restore();
 }
 
-/** "+60MB" / "-10%" 처럼 위로 떠오르며 사라지는 글씨 */
+/** "+60MB" / "-10%" 처럼 위로 떠오르며 사라지는 글씨.
+ * ★ DGM(픽셀폰트) + 외곽선(outlinedText) — 밝은 XP 배경이나 화질복구된 그림
+ * 위에서도 잘 읽히게(요구사항: 폰트 통일 + 시인성). 색 의미(손실 빨강/획득
+ * 초록)는 그대로 --color-float-plus/minus를 그대로 넘겨 유지한다. */
 export function drawFloats(ctx, floats) {
   for (const f of floats) {
     const t = f.age / config.fx.floatSec;
     ctx.save();
     ctx.globalAlpha = Math.max(0, 1 - t);
-    text(ctx, f.text, f.x, f.y - config.fx.floatRise * t, {
-      size: 20,
-      weight: '700',
-      align: 'center',
-      baseline: 'middle',
+    outlinedText(ctx, f.text, f.x, f.y - config.fx.floatRise * t, {
+      size: 22,
       color: f.positive ? '--color-float-plus' : '--color-float-minus',
     });
     ctx.restore();
