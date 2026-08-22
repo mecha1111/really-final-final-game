@@ -170,5 +170,9 @@ export function updateDebugStats(state, gameData, fps) {
     `정확도     ${acc}% (${s.hits}/${s.clicks})`,
     `파일       ${s.filesDone}개 완료`,
     `제거       ${s.killed}마리`,
+    // 콤보가 실제로 구간당 몇 MB를 보태는지 — config.combo.killMb를 조절할 때
+    // 눈으로 볼 근거다(설계 목표: 구간당 +40~60MB).
+    `콤보       ${state.combo} (최고 ${s.comboBest})`,
+    `콤보MB     ${s.killMb.toFixed(1)} / 누적 ${state.uploaded.toFixed(1)}MB`,
   ].join('\n');
 }

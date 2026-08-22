@@ -5,6 +5,7 @@ import { state } from '../core/state.js';
 import { startGame, advanceStage } from '../core/stageManager.js';
 import { skipFile } from './file.js';
 import { damageUpload } from './upload.js';
+import { registerKill, registerMiss } from './combo.js';
 import { pointInRect } from '../ui/draw.js';
 import { getStartButton, getRestartButton } from '../ui/screens.js';
 import { handleDebugKey, debugState } from '../debug.js';
@@ -146,11 +147,29 @@ function onPointerDown(canvas, pt, evt) {
 
   // 방해꾼은 바탕화면 전체를 쓴다. 맞혔으면 여기서 끝 — 캔버스가 클릭을 가져간 것이다.
   state.stats.clicks += 1;
-  const hitEnemy = hitTestEnemies(pt);
-  if (!hitEnemy) clickThroughTarget = forwardClickThrough(canvas, evt);
+  const verdict = hitTestEnemies(pt);
+
+  // ★ 콤보 판정은 여기 한 곳에서만 한다. hitTestEnemies가 "무슨 일이 있었나"를
+  //   말로 돌려주고(kill/hit/bait/miss…), 그걸 콤보 규칙으로 옮기는 건 이 자리다 —
+  //   판정 루프 안에 combo 호출을 흩뿌리면 나중에 방해꾼 종류가 늘 때마다 "이건
+  //   콤보가 끊기나?"를 그 자리에서 다시 판단하게 되고, 규칙이 조용히 갈라진다.
+  //   어떤 결과가 왜 끊고 왜 안 끊는지는 systems/combo.js의 registerMiss 주석에 모아뒀다.
+  if (verdict === 'kill') registerKill(pt.x, pt.y);
+  else if (verdict === 'miss') registerMiss();
+
+  if (verdict === 'miss') clickThroughTarget = forwardClickThrough(canvas, evt);
 }
 
-/** 위에 그려진 놈부터 검사한다. 하나라도 판정을 소비했으면(맞았든 헛클릭이든) true. */
+/**
+ * 위에 그려진 놈부터 검사해서 "이 클릭에 무슨 일이 있었나"를 돌려준다.
+ * 'miss'만이 아무 방해꾼도 없었다는 뜻이고(= 캔버스 아래로 클릭을 흘려보낸다),
+ * 나머지는 전부 방해꾼이 판정을 소비한 경우다.
+ *
+ * @returns {'kill'|'hit'|'shake'|'trap'|'ignore'|'miss'}
+ *   kill   잡았다(콤보 +1)          hit    유효타지만 아직 안 죽음(ransom 등)
+ *   shake  popup 몸통을 눌렀다      trap   함정(fake_btn)을 밟았다
+ *   ignore 눌러도 아무 일 없는 놈(copier)   miss   허공(bait 포함 — 아래 주석)
+ */
 function hitTestEnemies(pt) {
   for (let i = state.enemies.length - 1; i >= 0; i--) {
     const enemy = state.enemies[i];
@@ -168,11 +187,11 @@ function hitTestEnemies(pt) {
       if (btn && pointInRect(pt, btn)) {
         enemy.kill('clicked');
         state.stats.hits += 1;
-        return true;
+        return 'kill';
       }
       if (enemy.containsBody(pt.x, pt.y)) {
         enemy.triggerShake();
-        return true;
+        return 'shake';
       }
       continue; // 이 놈은 안 맞았다 — 뒤에 깔린 놈을 계속 검사
     }
@@ -180,9 +199,11 @@ function hitTestEnemies(pt) {
     if (!enemy.containsPoint(pt.x, pt.y)) continue;
 
     if (enemy.clickable) {
-      enemy.takeHit();
+      // takeHit()은 이 클릭으로 실제로 죽었을 때만 true다(ransom처럼 hp가 여러
+      // 개면 아직 안 죽는다) — 콤보는 "처치"에만 오르므로 그 값을 그대로 쓴다.
+      const killed = enemy.takeHit();
       state.stats.hits += 1;
-      return true;
+      return killed ? 'kill' : 'hit';
     }
 
     if (enemy.isTrap) {
@@ -190,15 +211,22 @@ function hitTestEnemies(pt) {
       state.stats.trapClicks += 1;
       damageUpload(enemy.effect.wrongClickPct, enemy.x, enemy.y);
       enemy.hitFlash = config.enemy.hitFlashSec;
-      return true;
+      return 'trap';
     }
 
-    // action=none이면서 함정도 아닌 놈(bait, copier)은 눌러도 아무 일 없다 —
+    // action=none이면서 함정도 아닌 놈(지금은 copier)은 눌러도 아무 일 없다 —
     // 그래도 방해꾼 자리를 누른 거라 클릭은 소비한다(창까지 통과시키지 않는다).
-    return true;
+    //
+    // ★ bait는 여기까지 안 온다. 시트에서 hit_w/hit_h가 0이라 hasHitbox=false고
+    //   (enemies/Enemy.js), 그러면 hitRect()가 null이라 위 containsPoint에서
+    //   항상 걸러진다 — 즉 bait를 눌렀다고 생각한 클릭은 게임 입장에선 말 그대로
+    //   빈 자리를 누른 것이라 아래 'miss'로 떨어진다. 요구사항인 "bait에 속으면
+    //   콤보가 끊긴다"는 그래서 별도 분기 없이 이미 성립한다(systems/combo.js의
+    //   registerMiss 주석에 같은 내용을 적어뒀다).
+    return 'ignore';
   }
 
-  return false; // 어떤 방해꾼도 이 자리에 없었다
+  return 'miss'; // 어떤 방해꾼도 이 자리에 없었다 = 허공 클릭(bait 포함, 위 주석)
 }
 
 /**

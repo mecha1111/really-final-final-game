@@ -10,6 +10,11 @@ export function emptyStats() {
     filesDone: 0,
     blockedSec: 0,
     drainedPct: 0,
+    // 이번 판에 찍은 최고 콤보와, 콤보로 벌어들인 누적 용량(MB).
+    // 밸런스를 맞출 때 "콤보가 실제로 구간당 몇 MB를 보태고 있나"를 눈으로
+    // 확인하려고 둔다(debug.js가 찍는다) — config.combo.killMb를 조절하는 근거.
+    comboBest: 0,
+    killMb: 0,
   };
 }
 
@@ -57,6 +62,24 @@ export const state = {
   hitSeq: 0,
   fileBarGhostRatio: 0, // 방금 깎이기 직전 진행률(0~1) — 빨간 손실분으로 잠깐 남는다
   fileBarGhostMs: 0,
+
+  // === 콤보 (systems/combo.js, config.combo) ===
+  // 클릭으로 잡을 때마다 +1, 허공/bait 클릭에 끊겨 0. 피격으로는 안 끊긴다
+  // (이미 진행도가 깎이는데 콤보까지 뺏으면 이중처벌 — systems/combo.js 주석 참고).
+  combo: 0,
+  // 콤보가 오른 순간을 알리는 신호. hitSeq와 같은 idiom이다 — 값 자체가 아니라
+  // "바뀌었는지"만 보고 ui/statusWindow.js가 숫자 팝 애니를 재시작한다
+  // (combo 값으로는 못 한다: 5→6→7처럼 매번 다르지만 5에서 끊겼다 다시 5가 되면
+  //  값이 같아서 "새로 올랐다"를 구분 못 하는 경우가 생긴다).
+  comboPopSeq: 0,
+  // 배율 구간에 새로 진입한 순간의 신호 + 그때 띄울 문구("x1.5!").
+  comboTierSeq: 0,
+  comboTierText: null,
+  comboTierMs: 0,
+  // 끊긴 직후 "끊김" 연출이 남은 시간(ms). 0보다 크면 카운터가 아직 화면에
+  // 남아 끊김을 보여주고, 0이 되면 사라진다.
+  comboBreakMs: 0,
+  comboBreakSeq: 0,
 
   // 파일 100% 완성 순간의 "해냈다" 연출(systems/file.js의 completeFile,
   // ui/uploadPicture.js가 소비). holdMs가 0보다 큰 동안은 다음 파일로 안

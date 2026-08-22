@@ -9,6 +9,7 @@ import { clearShake } from '../systems/screenShake.js';
 import { updateUpload } from '../systems/upload.js';
 import { grantFile } from '../systems/file.js';
 import { updateFloats, clearFloats } from '../systems/floats.js';
+import { updateCombo, clearCombo } from '../systems/combo.js';
 import { recordPointer, resetTrail } from '../systems/pointerTrail.js';
 import { bindRules } from '../debug.js';
 
@@ -52,6 +53,7 @@ export function startGame(stageIndex = 0) {
   // 유지 중"으로 착각해 건너뛸 수 있다 — 여기서 확실히 끊는다.
   state.fileCompleteHoldMs = 0;
   state.stats = emptyStats();
+  clearCombo(); // 지난 판의 콤보와 그 연출이 새 판 첫 프레임에 남지 않게
   clearFloats();
   clearJuice(); // 지난 판의 터진 조각·히트스톱이 새 판 첫 프레임에 남지 않게
   clearShake(); // 흔들리다 판이 바뀌면 그 잔여 흔들림이 새 판으로 새어 들어간다
@@ -107,6 +109,7 @@ export function update(dt) {
   processDeaths(rules, playArea);
   updateUpload(dt, rules);
   updateFakeCursors(dt, playArea);
+  updateCombo(dt); // 콤보 연출 타이머만 — 콤보 값은 클릭으로만 바뀐다
   updateFloats(dt);
 
   checkWinLose(rules);

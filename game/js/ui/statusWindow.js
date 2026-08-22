@@ -2,6 +2,7 @@
 // 캔버스에 그리던 HUD를 대체한다 — 캔버스는 이제 방해꾼만 그린다.
 
 import { config } from '../config.js';
+import { comboMultiplier } from '../systems/combo.js';
 
 // 매 프레임 DOM을 만지면 낭비라, 값이 바뀐 것만 갱신하려고 직전 값을 기억해둔다.
 const last = {};
@@ -94,6 +95,52 @@ function setGhostBar(el, ghostRatio, ghostMs, realFilled, total) {
   for (let i = 0; i < need; i++) el.appendChild(document.createElement('i'));
 }
 
+/**
+ * 콤보 카운터(오른쪽 위). 값은 systems/combo.js가 정하고 여기는 보여주기만 한다.
+ *
+ * 세 가지를 판단한다:
+ *  1) 보일까 — 콤보가 config.combo.showFrom 이상이거나, 방금 끊겨서 "끊김" 연출이
+ *     남아있는 동안(comboBreakMs)만 보인다. 끊긴 직후를 잠깐 보여주는 이유는
+ *     "왜 사라졌지"가 아니라 "끊겼구나"로 읽히게 하기 위해서다.
+ *  2) 숫자 팝 — comboPopSeq가 바뀐 프레임에만 CSS 애니를 재시작한다.
+ *  3) 배율 강조 — comboTierSeq가 바뀐 프레임에만.
+ * 2·3은 hit-flash와 같은 remove→reflow→add 트릭을 쓴다(이 파일 아래쪽 주석 참고).
+ */
+function updateComboBox(state) {
+  const box = document.getElementById('combo-box');
+  if (!box) return;
+
+  const breaking = state.comboBreakMs > 0;
+  const visible = state.combo >= config.combo.showFrom || breaking;
+  box.classList.toggle('on', visible);
+  box.classList.toggle('broke', breaking);
+
+  // 끊김 연출 중엔 0으로 주저앉은 모습을 보여준다(그게 끊겼다는 신호다).
+  setText(document.getElementById('combo-count'), `x${breaking ? 0 : state.combo}`);
+  setText(document.getElementById('combo-mult'), `획득 x${comboMultiplier(state.combo)}`);
+
+  if (last.comboPopSeq !== state.comboPopSeq) {
+    last.comboPopSeq = state.comboPopSeq;
+    const countEl = document.getElementById('combo-count');
+    if (countEl) {
+      countEl.classList.remove('pop');
+      void countEl.offsetWidth;
+      countEl.classList.add('pop');
+    }
+  }
+
+  if (last.comboTierSeq !== state.comboTierSeq) {
+    last.comboTierSeq = state.comboTierSeq;
+    const tierEl = document.getElementById('combo-tier');
+    if (tierEl) {
+      tierEl.textContent = state.comboTierText ?? '';
+      tierEl.classList.remove('show');
+      void tierEl.offsetWidth;
+      tierEl.classList.add('show');
+    }
+  }
+}
+
 function mmss(sec) {
   const s = Math.max(0, Math.ceil(sec));
   return `${String(Math.floor(s / 60)).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}`;
@@ -166,6 +213,8 @@ export function updateStatusWindows(state) {
       dmgEl.classList.add('show');
     }
   }
+
+  updateComboBox(state);
 
   // 화면 가장자리 비네트 — 값 자체가 매 프레임 감쇠하는 연속값이라 재시작
   // 트릭이 필요 없다(CSS 애니가 아니라 opacity를 직접 CSS 변수로 미는 방식).
