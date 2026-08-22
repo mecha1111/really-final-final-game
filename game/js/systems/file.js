@@ -46,6 +46,16 @@ export function grantFile() {
   };
   state.file = file;
 
+  // ★ 손실 잔상(fileBarGhostRatio/Ms)은 "지금 파일"의 진행률 기준 잔상이다 —
+  // 새 파일이 시작되는 이 순간까지 안 지우면, 직전 파일이 거의 다 찬 상태에서
+  // (예: 95%) 완료 직전에 큰 손실을 입어 잔상이 막 켜진 경우, 그 잔상 비율이
+  // 새 파일(진행률 0%부터 시작)에 그대로 이어져 "새 파일이 시작하자마자 바
+  // 전체가 빨갛다"로 보인다(실측 스샷으로 확인 — 방금 완료한 파일과 아무
+  // 상관없는 새 파일이 거의 통째로 빨갛게 뜬다). 새 파일은 아직 아무 것도
+  // 안 깎였으니 잔상이 있을 이유가 없다.
+  state.fileBarGhostRatio = 0;
+  state.fileBarGhostMs = 0;
+
   pickFilePicture(tier.key, prevPictureSrc).then(({ src, img }) => {
     // 로드되는 동안 파일이 또 넘어갔으면(스킵 연타 등) state.file은 이미 다른
     // 객체다 — 그때는 이 낡은 결과를 버린다(참조 비교라 tier가 우연히 같아도
