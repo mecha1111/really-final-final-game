@@ -80,20 +80,12 @@ export const state = {
   // === 콤보 (systems/combo.js, config.combo) ===
   // 클릭으로 잡을 때마다 +1, 허공/bait 클릭에 끊겨 0. 피격으로는 안 끊긴다
   // (이미 진행도가 깎이는데 콤보까지 뺏으면 이중처벌 — systems/combo.js 주석 참고).
+  // 화면 표시는 ui/renderEnemies.js의 drawCombo가 커서 위를 따라다니며 캔버스에
+  // 직접 그린다(DOM 아님) — 0/1일 땐 아예 안 그린다("x0" 표시 금지 요구사항).
   combo: 0,
-  // 콤보가 오른 순간을 알리는 신호. hitSeq와 같은 idiom이다 — 값 자체가 아니라
-  // "바뀌었는지"만 보고 ui/statusWindow.js가 숫자 팝 애니를 재시작한다
-  // (combo 값으로는 못 한다: 5→6→7처럼 매번 다르지만 5에서 끊겼다 다시 5가 되면
-  //  값이 같아서 "새로 올랐다"를 구분 못 하는 경우가 생긴다).
-  comboPopSeq: 0,
-  // 배율 구간에 새로 진입한 순간의 신호 + 그때 띄울 문구("x1.5!").
-  comboTierSeq: 0,
-  comboTierText: null,
-  comboTierMs: 0,
-  // 끊긴 직후 "끊김" 연출이 남은 시간(ms). 0보다 크면 카운터가 아직 화면에
-  // 남아 끊김을 보여주고, 0이 되면 사라진다.
-  comboBreakMs: 0,
-  comboBreakSeq: 0,
+  // 잡을 때마다 켜지는 "팝" 연출 남은 시간(ms) — drawCombo가 이 값으로 글자를
+  // 살짝 키웠다 가라앉힌다. 끊김 전용 연출은 따로 없다(위 combo 주석 참고).
+  comboPopMs: 0,
 
   // 파일 100% 완성 순간의 "해냈다" 연출(systems/file.js의 completeFile,
   // ui/uploadPicture.js가 소비). holdMs가 0보다 큰 동안은 다음 파일로 안

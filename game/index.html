@@ -242,20 +242,11 @@
         <div class="bsod-scanlines"></div>
       </div>
 
-      <!-- 콤보 카운터. 화면 오른쪽 위 빈 자리에 둔다 — 상태.dat(왼쪽)와
-           업로드 창(가운데)을 안 가리고, pointer-events:none이라 방해꾼 클릭도
-           절대 안 먹는다(그 위에 방해꾼이 지나가도 그대로 눌린다).
-           내용은 ui/statusWindow.js가 매 프레임 채우고, 안 보일 땐 .on 클래스가
-           빠져 통째로 사라진다(style.css). -->
-      <div class="layer-combo" id="layer-combo">
-        <div class="combo-box" id="combo-box">
-          <div class="combo-label">COMBO</div>
-          <div class="combo-count" id="combo-count">x0</div>
-          <div class="combo-mult" id="combo-mult">획득 x1</div>
-        </div>
-        <!-- 배율 계단을 새로 밟은 순간에만 튀어나오는 "x1.5!" 강조 -->
-        <div class="combo-tier" id="combo-tier">x1.5!</div>
-      </div>
+      <!-- 콤보 카운터는 이제 HTML이 아니라 캔버스에서 그린다(ui/renderEnemies.js의
+           drawCombo) — 커서를 따라다녀야 해서 매 프레임 world 좌표(state.pointer)에
+           바로 그리는 쪽이 화면 좌표로 변환해 DOM을 매번 옮기는 것보다 훨씬
+           간단하고, 이 프로젝트가 반복해서 겪은 좌표 변환 버그 부류에서도 완전히
+           자유롭다. 여기 있던 .layer-combo/.combo-box 마크업은 그래서 삭제됐다. -->
 
       <!-- 방해꾼 과밀 시 화면 전체 지지직(레이어7). systems/overload.js가 CSS 변수
            --ovl-level/--ovl-split로 강도만 흘려보내고, 임계 밑이면 0이라 안 보인다.

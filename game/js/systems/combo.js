@@ -16,16 +16,23 @@ import { state } from '../core/state.js';
 import { addFloat } from './floats.js';
 
 /**
- * 지금 콤보에서 나오는 MB 배율. config.combo.tiers에서 조건(combo >= min)을
- * 만족하는 **마지막** 칸이 이긴다 — 표가 min 오름차순이라는 전제다(config 주석).
- * 표의 마지막 칸이 곧 상한이라 콤보가 아무리 올라도 그 위로는 안 간다.
+ * 지금 콤보가 속한 config.combo.tiers의 칸(min/mult/size/color 전부 담긴 그 행).
+ * 조건(combo >= min)을 만족하는 **마지막** 칸이 이긴다 — 표가 min 오름차순이라는
+ * 전제다(config 주석). 표의 마지막 칸이 곧 상한이라 콤보가 아무리 올라도 그
+ * 위로는 안 간다. MB 배율(comboMultiplier)과 화면 표시(ui/renderEnemies.js의
+ * drawCombo)가 같은 이 함수 하나를 봐서, "몇 콤보부터 강해지나"가 절대 어긋나지 않는다.
  */
-export function comboMultiplier(combo = state.combo) {
-  let mult = 1;
-  for (const tier of config.combo.tiers) {
-    if (combo >= tier.min) mult = tier.mult;
+export function comboTier(combo = state.combo) {
+  let tier = config.combo.tiers[0];
+  for (const t of config.combo.tiers) {
+    if (combo >= t.min) tier = t;
   }
-  return mult;
+  return tier;
+}
+
+/** 지금 콤보에서 나오는 MB 배율만 뽑아 쓰는 곳(systems/file.js 등)을 위한 축약. */
+export function comboMultiplier(combo = state.combo) {
+  return comboTier(combo).mult;
 }
 
 /**
@@ -43,11 +50,8 @@ export function comboMultiplier(combo = state.combo) {
  * @param {number} x 잡힌 자리(월드 좌표) — "+0.45MB" 글씨를 그 자리에 띄운다
  */
 export function registerKill(x, y) {
-  const before = comboMultiplier();
-
   state.combo += 1;
-  state.comboPopSeq += 1;
-  state.comboBreakMs = 0; // 끊김 연출이 남아있었다면 새 콤보가 덮는다
+  state.comboPopMs = config.combo.popMs; // 커서 위 콤보 숫자가 살짝 커졌다 가라앉는 연출
   if (state.combo > state.stats.comboBest) state.stats.comboBest = state.combo;
 
   const mult = comboMultiplier();
@@ -55,14 +59,6 @@ export function registerKill(x, y) {
   state.uploaded += mb;
   state.stats.killMb += mb;
   addFloat(`+${mb.toFixed(2)}MB`, x, y, true);
-
-  // 배율 계단을 새로 밟은 순간에만 "x1.5!" 강조를 띄운다. 값이 실제로 바뀌었을
-  // 때만이라 x1.5에 도달한 뒤 계속 잡아도 다시 뜨지 않는다.
-  if (mult !== before) {
-    state.comboTierText = `x${mult}!`;
-    state.comboTierMs = config.combo.tierFlashMs;
-    state.comboTierSeq += 1;
-  }
 }
 
 /**
@@ -84,31 +80,22 @@ export function registerKill(x, y) {
  *   - popup 몸통 클릭(X가 아닌 곳): 방해꾼을 누르긴 눌렀고 흔들림으로 이미
  *     "여기가 아니다"라고 알려준다.
  *
- * 이미 0이면 아무 일도 안 한다 — 안 그러면 빈 화면을 연타할 때마다 끊김 연출이
- * 계속 다시 재생된다.
+ * ★ 끊긴 순간 별도 "끊김" 연출은 없다 — 요구사항이 "x0/x1 같은 무의미한 표시를
+ *   절대 띄우지 말라"고 명시했으므로, 콤보가 0이 되면 ui/renderEnemies.js의
+ *   drawCombo가 다음 프레임부터 그냥 안 그린다(config.combo.showFrom 미만).
+ *   그 이상 꾸밀 게 없어 상태도 없다.
  */
 export function registerMiss() {
-  if (state.combo <= 0) return;
   state.combo = 0;
-  state.comboBreakMs = config.combo.breakMs;
-  state.comboBreakSeq += 1;
-  state.comboTierMs = 0;
-  state.comboTierText = null;
 }
 
-/** 매 프레임. 연출 타이머만 깎는다(콤보 값 자체는 시간으로 안 줄어든다). */
+/** 매 프레임. 팝 연출 타이머만 깎는다(콤보 값 자체는 시간으로 안 줄어든다). */
 export function updateCombo(dt) {
-  if (state.comboBreakMs > 0) state.comboBreakMs = Math.max(0, state.comboBreakMs - dt * 1000);
-  if (state.comboTierMs > 0) {
-    state.comboTierMs = Math.max(0, state.comboTierMs - dt * 1000);
-    if (state.comboTierMs <= 0) state.comboTierText = null;
-  }
+  if (state.comboPopMs > 0) state.comboPopMs = Math.max(0, state.comboPopMs - dt * 1000);
 }
 
 /** 새 판이 시작될 때(core/stageManager.js의 startGame). 연출 잔여까지 확실히 끊는다. */
 export function clearCombo() {
   state.combo = 0;
-  state.comboBreakMs = 0;
-  state.comboTierMs = 0;
-  state.comboTierText = null;
+  state.comboPopMs = 0;
 }

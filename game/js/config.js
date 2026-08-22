@@ -382,26 +382,31 @@ export const config = {
     // — 할당량 상승 곡선(balance/progression.js)이 이 보조를 전제로 잡혀 있다.
     killMb: 0.3,
 
-    // 콤보 → MB 배율 계단. "combo가 min 이상이면 mult"이고, 조건을 만족하는
-    // **마지막** 칸이 이긴다(systems/combo.js의 comboMultiplier) — 그래서 표를
-    // min 오름차순으로 유지해야 한다. 마지막 칸이 곧 상한이라 무한히 커지지 않는다.
+    // 콤보 → MB 배율 계단 + 화면 표시(크기/색). "combo가 min 이상이면 이 칸"이고,
+    // 조건을 만족하는 **마지막** 칸이 이긴다(systems/combo.js의 comboMultiplier/
+    // comboVisual) — 그래서 표를 min 오름차순으로 유지해야 한다. 마지막 칸이 곧
+    // 상한이라 mult가 무한히 커지지 않는다. size/color는 "콤보가 오를수록 강조"
+    // 요구사항 그대로 계단마다 커지고 뜨거운 색(흰→노랑→주황→빨강)으로 옮겨간다.
     //   0~4 → x1.0 / 5~9 → x1.2 / 10~19 → x1.35 / 20+ → x1.5(상한)
     tiers: [
-      { min: 0, mult: 1 },
-      { min: 5, mult: 1.2 },
-      { min: 10, mult: 1.35 },
-      { min: 20, mult: 1.5 },
+      { min: 0, mult: 1, size: 26, color: '#ffffff' },
+      { min: 5, mult: 1.2, size: 30, color: '#ffd966' },
+      { min: 10, mult: 1.35, size: 34, color: '#ff9a3f' },
+      { min: 20, mult: 1.5, size: 40, color: '#ff4d4d' },
     ],
 
     // 콤보 카운터를 화면에 띄우기 시작하는 값. 1부터 띄우면 잡을 때마다
     // "COMBO x1"이 깜빡여서 오히려 시끄럽다 — 실제로 "이어지고 있다"가
-    // 성립하는 2부터 보여준다.
+    // 성립하는 2부터 보여준다. ★ 0/1일 땐 draw 자체를 안 한다(ui/renderEnemies.js의
+    // drawCombo) — "COMBO x0"·"x1" 같은 무의미한 표시는 절대 안 뜬다.
     showFrom: 2,
-    // 끊겼을 때 "끊김" 연출이 남아있는 시간(ms). 이 시간이 지나면 카운터가
-    // 사라진다. 과하지 않게 짧게 — 끊긴 건 이미 카운터가 사라지는 걸로 충분히 아프다.
-    breakMs: 450,
-    // 배율 구간에 새로 진입했을 때 뜨는 "x1.5!" 강조가 남아있는 시간(ms).
-    tierFlashMs: 900,
+
+    // 커서 위쪽으로 이만큼(px, 캔버스 좌표) 띄워서 따라다닌다 — 커서 자체를
+    // 안 가리려는 여백. 두 줄(라벨+숫자)을 그리므로 숫자 줄 기준 오프셋이다.
+    followOffsetY: 46,
+
+    // 잡을 때마다 살짝 커졌다 가라앉는 "팝" 연출이 남아있는 시간(ms).
+    popMs: 150,
   },
 
   fx: {

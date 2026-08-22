@@ -5,6 +5,7 @@ import { enemyImages } from '../assets.js';
 import { cssColor, roundRect, text, outlinedText } from './draw.js';
 import { drawBaitEnemy } from './baitRender.js';
 import { getFrameKey } from '../sprite/animator.js';
+import { comboTier } from '../systems/combo.js';
 
 export function drawEnemy(ctx, e, showHitbox, now) {
   if (e.isBait) {
@@ -296,6 +297,31 @@ function drawClickEnv(ctx, c) {
   lines.forEach((ln, i) => {
     text(ctx, ln, 6 + pad, 6 + pad + lineH * (i + 0.8), { size, color: '--color-debug-text' });
   });
+  ctx.restore();
+}
+
+/**
+ * 콤보 카운터 — 화면에 고정하지 않고 커서 바로 위를 따라다닌다(요구사항).
+ * config.combo.showFrom(2) 미만이면 아예 안 그린다 — "COMBO x0"·"x1" 같은
+ * 무의미한 표시는 절대 안 뜬다. comboTier()가 config.combo.tiers에서 지금
+ * 콤보의 계단을 찾아 크기/색을 주므로, 오를수록 커지고 뜨거운 색(흰→노랑→
+ * 주황→빨강)으로 옮겨간다 — MB 배율이 갈리는 기준과 완전히 같은 표라 "몇
+ * 콤보부터 강해지나"가 절대 어긋나지 않는다.
+ * 잡을 때마다 comboPopMs(systems/combo.js의 registerKill)가 켜지고 여기서
+ * 그 값을 스케일로 바꿔 살짝 부풀었다 가라앉는 "팝"을 낸다.
+ */
+export function drawCombo(ctx, state) {
+  if (state.combo < config.combo.showFrom) return;
+
+  const tier = comboTier(state.combo);
+  const popT = config.combo.popMs > 0 ? state.comboPopMs / config.combo.popMs : 0;
+  const popScale = 1 + 0.25 * popT; // 막 오른 순간 1.25배로 부풀었다 다음 프레임들에 걸쳐 1로 가라앉는다
+
+  ctx.save();
+  ctx.translate(state.pointer.x, state.pointer.y - config.combo.followOffsetY);
+  ctx.scale(popScale, popScale);
+  outlinedText(ctx, 'COMBO', 0, -tier.size * 0.72, { size: Math.round(tier.size * 0.42), color: tier.color, strokeWidth: 3 });
+  outlinedText(ctx, `x${state.combo}`, 0, 0, { size: tier.size, color: tier.color, strokeWidth: 4 });
   ctx.restore();
 }
 
