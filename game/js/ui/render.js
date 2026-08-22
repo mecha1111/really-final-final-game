@@ -79,7 +79,14 @@ export function render({ ctx, canvas, state, gameData, now }) {
     ctx.save();
     ctx.translate(shake.x, shake.y);
 
-    for (const enemy of state.enemies) drawEnemy(ctx, enemy, debugState.showHitbox, now);
+    // bait(시선강탈)는 항상 다른 방해꾼보다 아래 레이어에 그린다 — 진짜 목표물을
+    // 가리면 안 되는 미끼라서다. 두 패스로 나눠 그린다: bait 먼저(바닥), 나머지
+    // 나중(위). state.enemies 배열 자체의 순서는 안 건드린다 — 클릭 판정
+    // (systems/input.js)이나 분열(effects.js) 같은 다른 로직이 그 순서에 기대고
+    // 있을 수 있어서, 여기 그리기 순서만 두 번 훑어 해결한다(bait는 클릭 판정이
+    // 아예 없으므로 — hasHitbox=false — 이 재정렬이 판정 우선순위에 영향 없다).
+    for (const enemy of state.enemies) if (enemy.isBait) drawEnemy(ctx, enemy, debugState.showHitbox, now);
+    for (const enemy of state.enemies) if (!enemy.isBait) drawEnemy(ctx, enemy, debugState.showHitbox, now);
 
     for (const c of state.fakeCursors) drawCursorGlyph(ctx, c.x, c.y);
     // 위장 중이면 진짜 커서도 가짜와 똑같이 그린다
