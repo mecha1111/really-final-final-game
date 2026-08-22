@@ -23,6 +23,12 @@
   - 콤보 음정 상승: combo.js가 `detune`을 combo 수에 비례(상한 700센트)로 올림
   - `playSfx`에 `opts.detune`(고정 피치) 추가 — varyCents(무작위)와 병행
 
+- **SFX 3차 톤다운** — "너무 자주·날카로워 귀에 거슬림" 피드백 반영:
+  - 날카로운 소리 부드럽게 재제작(16종): kill 계열·hit·atk_warning·combo·time_tick·fakebtn·unplug
+  - `sound.js`에 전역 로우패스(8kHz) 추가 + 재생 시작 8ms 페이드인(어택·클릭 완화)
+  - 빈도 감소: 콤보음 매 처치 → **5콤보마다 1회**, 시간 똑딱 마지막 10초 → **5초**
+  - `SFX_GAIN` 전면 인하(자주 나는 소리 한 단계씩↓, 등장음 거의 깔리는 수준), 중요음(완료/클리어/게임오버)은 존재감 유지
+
 ## Next steps
 
 - 실기에서 SFX 톤/밸런스 청음 확인 후 `SFX_GAIN` 값 튜닝

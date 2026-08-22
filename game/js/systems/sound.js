@@ -86,48 +86,51 @@ const VARIANT_COUNTS = {
 
 // 소리별 상대 볼륨(0~1, masterGain 위에 곱해진다). 생성된 mp3의 절대 음량이
 // 제각각이라 "체감 크기"를 여기 한 곳에서 맞춘다. 원칙:
-//   - 자주 나는 소리(처치·콤보·클릭)는 작게, 드물고 중요한 소리(시작·클리어·게임오버)는
-//     존재감 있게.
-//   - 여기 값은 "서로 간의 상대"만 정하면 된다. 최종 볼륨은 masterGain(마스터×효과음
-//     슬라이더)이 한 번 더 곱해 누른다.
+//   - 자주 나는 소리(처치·콤보·클릭·등장)는 확 낮춰 전체 음압을 내린다.
+//   - 드물고 중요한 소리(완료·시작·클리어·게임오버)만 존재감 있게.
+//   - 2026-08-22 톤다운: "너무 자주·날카로워 귀에 거슬린다"는 피드백 반영 — 자주 나는
+//     소리 전부 한 단계씩 내리고, 등장음은 거의 깔리는 수준으로.
 const SFX_GAIN = {
-  [SFX.COMBO]: 0.45, // 처치마다 나서 가장 잦음
-  [SFX.UI_CLICK]: 0.5,
-  [SFX.CRT_KICK]: 0.5,
-  [SFX.ATK_WARNING]: 0.6,
-  [SFX.HIT]: 0.65,
-  [SFX.KILL_SOFT]: 0.7,
-  [SFX.CLONE_SPLIT]: 0.7,
-  [SFX.COPIER_SELFDESTRUCT]: 0.7,
-  [SFX.COMPLETE]: 0.7,
-  [SFX.COMBO_TIER]: 0.7,
-  [SFX.BAIT_APPEAR]: 0.7,
-  [SFX.UNPLUG_STOP]: 0.75,
-  [SFX.KILL_HARD]: 0.8,
-  [SFX.FAKEBTN_PENALTY]: 0.8,
-  [SFX.BOMB_EXPLODE]: 0.85,
-  [SFX.START]: 0.9,
-  [SFX.STAGE_CLEAR]: 0.9,
-  [SFX.GAMEOVER]: 1.0,
+  // === 자주 나는 소리 — 작게 ===
+  [SFX.COMBO]: 0.3, // 이제 5콤보마다 1회로 빈도도 줄임
+  [SFX.KILL_SOFT]: 0.5, // 처치음(연타) — 짧고 은은하게
+  [SFX.KILL_HARD]: 0.6,
+  [SFX.HIT]: 0.5,
+  [SFX.ATK_WARNING]: 0.5,
+  [SFX.UI_CLICK]: 0.4,
+  [SFX.CRT_KICK]: 0.45,
+  [SFX.CLONE_SPLIT]: 0.55,
+  [SFX.COPIER_SELFDESTRUCT]: 0.55,
+  [SFX.COMBO_TIER]: 0.55,
+  [SFX.BAIT_APPEAR]: 0.5,
+  [SFX.UNPLUG_STOP]: 0.55,
+  [SFX.FAKEBTN_PENALTY]: 0.6,
+  [SFX.BOMB_EXPLODE]: 0.7,
 
   // === 다단계 타격 ===
-  [SFX.RANSOM_CRACK_1]: 0.55, // 첫 균열 — 약하게
-  [SFX.RANSOM_CRACK_2]: 0.65, // 갈라짐 — 중간
+  [SFX.RANSOM_CRACK_1]: 0.4, // 첫 균열 — 약하게
+  [SFX.RANSOM_CRACK_2]: 0.5, // 갈라짐 — 중간
 
-  // === 등장음(자주 스폰되므로 확 낮게) ===
-  [SFX.ENTRANCE_POP]: 0.35,
-  [SFX.ENTRANCE_SLAM]: 0.45,
-  [SFX.ENTRANCE_WINDOW]: 0.4,
-  [SFX.ENTRANCE_PRINT]: 0.4,
+  // === 등장음(스폰 잦아 거의 깔리는 수준) ===
+  [SFX.ENTRANCE_POP]: 0.2,
+  [SFX.ENTRANCE_SLAM]: 0.3,
+  [SFX.ENTRANCE_WINDOW]: 0.25,
+  [SFX.ENTRANCE_PRINT]: 0.25,
 
   // === 기타 ===
-  [SFX.BAIT_EXIT]: 0.5,
-  [SFX.OVERLOAD_START]: 0.6,
-  [SFX.OVERLOAD_END]: 0.5,
-  [SFX.TIME_TICK]: 0.45,
-  [SFX.UI_OPEN]: 0.5,
-  [SFX.UI_CLOSE]: 0.5,
-  [SFX.SKIP]: 0.5,
+  [SFX.BAIT_EXIT]: 0.35,
+  [SFX.OVERLOAD_START]: 0.45,
+  [SFX.OVERLOAD_END]: 0.35,
+  [SFX.TIME_TICK]: 0.3, // 마지막 5초만 똑딱
+  [SFX.UI_OPEN]: 0.4,
+  [SFX.UI_CLOSE]: 0.4,
+  [SFX.SKIP]: 0.4,
+
+  // === 드물고 중요한 소리 — 존재감 유지 ===
+  [SFX.COMPLETE]: 0.65, // 파일 완료
+  [SFX.START]: 0.85, // 게임 시작(부팅)
+  [SFX.STAGE_CLEAR]: 0.85, // 구간 클리어(로그온)
+  [SFX.GAMEOVER]: 0.95, // 게임오버(블루스크린)
 };
 
 let ctx = null; // AudioContext. null이면 이 브라우저에서 사운드를 못 쓴다는 뜻(아래 initSound)
@@ -252,7 +255,17 @@ export function initSound() {
 
   masterGain = ctx.createGain();
   masterGain.gain.value = sfxVolume();
-  masterGain.connect(ctx.destination);
+
+  // 날카로운 고음을 전역에서 부드럽게 눌러주는 로우패스 — "삑삑거림/귀 찌름"을
+  // 한 곳에서 한 번에 완화하는 안전망이다(소리 파일 자체를 부드럽게 만든 것에 더해).
+  // 8kHz는 체감 음색을 흐리지 않으면서 최상단의 날 선 대역만 깎는 값 — 너무 낮추면
+  // XP 차임 같은 "또렷함"까지 뭉개지므로 이 선을 지킨다.
+  const soften = ctx.createBiquadFilter();
+  soften.type = 'lowpass';
+  soften.frequency.value = 8000;
+  soften.Q.value = 0.5;
+  masterGain.connect(soften);
+  soften.connect(ctx.destination);
 
   window.addEventListener('pointerdown', unlockAudio);
   window.addEventListener('keydown', unlockAudio);
@@ -312,8 +325,13 @@ export function playSfx(name, opts) {
 
   // 소리별 상대 볼륨을 곱해 준다(SFX_GAIN). 소스별 게인 노드를 하나 끼우는 이유는
   // masterGain은 슬라이더가 공유하는 노드라 소리마다 다르게 곱할 수 없기 때문이다.
+  // 시작을 아주 짧게(≈8ms) 페이드인해 "딱" 끊기는 어택·클릭 잡음을 부드럽게 만든다 —
+  // 날카로운 어택이 귀에 거슬린다는 지적에 대한 대응(짧아서 리듬감은 안 죽는다).
   const g = ctx.createGain();
-  g.gain.value = SFX_GAIN[name] ?? 1;
+  const g0 = SFX_GAIN[name] ?? 1;
+  const t0 = ctx.currentTime;
+  g.gain.setValueAtTime(0, t0);
+  g.gain.linearRampToValueAtTime(g0, t0 + 0.008);
   src.connect(g);
   g.connect(masterGain);
   src.start(0);

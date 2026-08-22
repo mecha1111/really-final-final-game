@@ -112,9 +112,9 @@ export function update(dt) {
   state.timeLeft -= dt;
   recordPointer(state.pointer, dt); // copier의 가짜 커서가 나중에 이 궤적을 따라간다
 
-  // 제한시간 임박(마지막 10초) 똑딱 — 1초에 한 번만(초가 바뀔 때만) 낸다. 긴장감용이라
-  // 짧게·작게(SFX_GAIN에서 낮춤). 10초를 넘는 구간엔 아무 것도 안 난다(안 시끄럽게).
-  if (state.timeLeft > 0 && state.timeLeft <= 10) {
+  // 제한시간 임박(마지막 5초) 똑딱 — 1초에 한 번만(초가 바뀔 때만) 낸다. 긴장감용이라
+  // 짧게·작게(SFX_GAIN에서 낮춤). 5초를 넘는 구간엔 아무 것도 안 난다(안 시끄럽게).
+  if (state.timeLeft > 0 && state.timeLeft <= 5) {
     const sec = Math.ceil(state.timeLeft);
     if (sec !== lastTickSec) {
       lastTickSec = sec;
