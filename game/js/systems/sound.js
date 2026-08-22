@@ -140,6 +140,42 @@ const buffers = {};
 /** SFX 이름 -> 실제로 로드된 파일 키 배열(변주 풀). playSfx가 여기서 하나를 무작위로 고른다. */
 const pools = {};
 
+// ── 재생 관리: "중요한 소리는 절대 안 끊긴다" ──────────────────────────────────
+// 이 배열 밖에서 만들어지는 BufferSource(=IMPORTANT_SFX)는 이 파일 어디서도 stop()을
+// 부르지 않는다 — 즉 한 번 시작하면 반드시 끝까지 튼다. 아래는 그 나머지("자주,
+// 짧게" 나는 소리)에만 적용되는 상한이다.
+//
+// ★ 왜 상한이 필요한가: 처치가 몰리거나(콤보 연속킬) 과밀 글리치 같은 순간엔 짧은
+//   소리가 한 프레임에 여러 개씩, 짧은 시간 동안 수십 개까지 겹칠 수 있다. 이 게임은
+//   막을 방법이 원래 없었다(BufferSource는 만들 때마다 새로 붙고 알아서 GC된다) —
+//   그런데 하필 게임오버/클리어처럼 "중요한 소리"가 나는 순간이 바로 그런 혼란
+//   직후인 경우가 많다(시간 임박·연속 피격·마무리 러시). 짧은 소리가 순간적으로
+//   너무 많이 겹치면 오디오 그래프에 부담이 걸려 마침 재생 중이던 중요한 소리의
+//   체감이 묻히거나 끊기는 것처럼 들릴 수 있다 — 그 부담 자체를 상한으로 없앤다.
+//   중요한 소리는 이 상한 풀에 아예 들어가지 않으므로 그 영향을 원천적으로 안 받는다.
+const IMPORTANT_SFX = new Set(); // initSound 이후 SFX 값으로 채운다(아래)
+const MAX_ACTIVE_MINOR = 16; // 평범한 플레이에선 절대 안 걸리고, 진짜 몰릴 때만 작동하는 넉넉한 상한
+
+/** 지금 재생 중인 "중요하지 않은" 소리들 — 오래된 순서(push만 하고 앞에서 뺀다).
+ *  {src, gain} — evict할 때 gain을 짧게 0으로 내린 뒤 멈춰야 "뚝" 끊기는 클릭음이
+ *  안 난다(끝까지 놔둔 채 그냥 stop()하면 그 순간 파형이 갑자기 잘려 클릭이 난다). */
+const activeMinor = [];
+
+/** 상한을 넘겼을 때 가장 오래된 minor 소리 하나를 짧게 페이드아웃하며 정리한다. */
+function evictOldestMinor() {
+  const oldest = activeMinor.shift();
+  if (!oldest) return;
+  const now = ctx.currentTime;
+  try {
+    oldest.gain.gain.cancelScheduledValues(now);
+    oldest.gain.gain.setValueAtTime(oldest.gain.gain.value, now);
+    oldest.gain.gain.linearRampToValueAtTime(0, now + 0.015);
+    oldest.src.stop(now + 0.02);
+  } catch {
+    // 이미 끝난 소스에 stop을 부르면 예외가 난다 — 어차피 정리하려던 상태이므로 무시한다.
+  }
+}
+
 /** 콘솔로 "이 순간 무슨 소리가 불렸나"를 확인할 때 켠다 — window.__sfx.log = true */
 const sfxDebug = { log: false };
 
@@ -267,12 +303,29 @@ export function initSound() {
   masterGain.connect(soften);
   soften.connect(ctx.destination);
 
+  // "절대 안 끊기는" 소리들 — 게임의 큰 매듭에서만 나는, 화면 전체가 바뀌는 순간의
+  // 소리다. 나머지 전부(처치·콤보·등장·경고 등)는 activeMinor 상한의 대상이다.
+  IMPORTANT_SFX.add(SFX.START);
+  IMPORTANT_SFX.add(SFX.GAMEOVER);
+  IMPORTANT_SFX.add(SFX.STAGE_CLEAR);
+  IMPORTANT_SFX.add(SFX.COMPLETE);
+
   window.addEventListener('pointerdown', unlockAudio);
   window.addEventListener('keydown', unlockAudio);
 
   preloadAll();
 
-  if (config.debug.enabled) window.__sfx = { sfxDebug, buffers, pools, playSfx, volume: sfxVolume };
+  if (config.debug.enabled) {
+    window.__sfx = {
+      sfxDebug,
+      buffers,
+      pools,
+      playSfx,
+      volume: sfxVolume,
+      activeMinorCount: () => activeMinor.length,
+      isImportant: (name) => IMPORTANT_SFX.has(name),
+    };
+  }
 }
 
 /**
@@ -334,5 +387,23 @@ export function playSfx(name, opts) {
   g.gain.linearRampToValueAtTime(g0, t0 + 0.008);
   src.connect(g);
   g.connect(masterGain);
+
+  // 중요한 소리(IMPORTANT_SFX)는 여기서 끝 — 추적도, 상한도 안 걸린다. 한 번
+  // start()하면 이 파일의 그 무엇도 이 소스를 다시 건드리지 않으므로 반드시
+  // 끝까지 튼다. 나머지("minor")만 activeMinor로 추적해 상한을 지킨다.
+  if (IMPORTANT_SFX.has(name)) {
+    src.start(0);
+    return;
+  }
+
+  if (activeMinor.length >= MAX_ACTIVE_MINOR) evictOldestMinor();
+
+  const entry = { src, gain: g };
+  activeMinor.push(entry);
+  src.onended = () => {
+    const i = activeMinor.indexOf(entry);
+    if (i !== -1) activeMinor.splice(i, 1);
+  };
+
   src.start(0);
 }
