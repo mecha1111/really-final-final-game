@@ -58,6 +58,18 @@ export function closeButtonRect(e) {
   return artRect(e);
 }
 
+/**
+ * 사각형을 중심은 그대로 둔 채 최소 크기까지 넓힌다(이미 크면 그대로).
+ * 중심을 유지하는 게 핵심이다 — 판정이 그림 밖으로 밀리면 "엉뚱한 데를 눌러야
+ * 죽는다"가 되어버린다. 여기선 그림을 가운데 두고 사방으로만 넓힌다.
+ */
+export function inflateToMin(r, minW, minH) {
+  if (!r) return r;
+  const w = Math.max(r.w, minW);
+  const h = Math.max(r.h, minH);
+  return { x: r.x + (r.w - w) / 2, y: r.y + (r.h - h) / 2, w, h };
+}
+
 export function rectContains(r, px, py) {
   if (!r) return false;
   return px >= r.x && px <= r.x + r.w && py >= r.y && py <= r.y + r.h;

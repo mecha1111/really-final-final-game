@@ -2,7 +2,7 @@
 
 import { config, getScaleFactor, parseSpecialEffect } from '../config.js';
 import { PATTERN_KIND, initMovement, moveEnemy, bounceInside } from './behaviors.js';
-import { hitRect, bodyRect, closeButtonRect, artRect, rectContains } from './hitbox.js';
+import { hitRect, bodyRect, closeButtonRect, artRect, rectContains, inflateToMin } from './hitbox.js';
 import { pickBasicVariant, pickAbVariant, FRAME_SETS } from '../sprite/animator.js';
 
 export class Enemy {
@@ -36,9 +36,10 @@ export class Enemy {
     // (min_hitbox도 기준 해상도 값이라 같이 스케일한다).
     // hit이 0이면 "판정 자체가 없음"이라는 뜻이다(bait) — 바닥값을 적용하지 않는다.
     this.hasHitbox = (spec.hit_w || 0) > 0 && (spec.hit_h || 0) > 0;
-    const minHitbox = rules.minHitbox * this.scaleFactor;
-    this.hitW = this.hasHitbox ? Math.max((spec.hit_w || 0) * scale * this.scaleFactor, minHitbox) : 0;
-    this.hitH = this.hasHitbox ? Math.max((spec.hit_h || 0) * scale * this.scaleFactor, minHitbox) : 0;
+    // hitRect()의 그림 기준 경로에서도 같은 바닥을 써야 해서 값을 남겨둔다.
+    this.minHitbox = rules.minHitbox * this.scaleFactor;
+    this.hitW = this.hasHitbox ? Math.max((spec.hit_w || 0) * scale * this.scaleFactor, this.minHitbox) : 0;
+    this.hitH = this.hasHitbox ? Math.max((spec.hit_h || 0) * scale * this.scaleFactor, this.minHitbox) : 0;
 
     this.hp = spec.hp;
     this.maxHp = spec.hp;
@@ -169,7 +170,19 @@ export class Enemy {
    * 종류(basic/ransom/unplug 등)는 시트 값으로 충분해서 표에 안 올려뒀다.
    */
   hitRect() {
-    return artRect(this) ?? hitRect(this);
+    const art = artRect(this);
+    if (!art) return hitRect(this);
+
+    // ★ 분열 조각만 min_hitbox 바닥을 깐다.
+    // 시트가 크기를 줄이고(대100→중70→소50) 그림 자체도 캔버스 안에서 더 작게
+    // 그려져 있어서(비율 0.98→0.63→0.38) 두 축소가 곱해진다. 그 결과 소 조각의
+    // 판정이 16x14까지 내려가 사실상 못 누른다. 위 hitW/hitH에는 이미 바닥이
+    // 깔려 있는데 그림 기준 경로(artRect)만 그걸 안 거쳐서 생긴 구멍이다.
+    //
+    // 조각(tier>0)에만 거는 이유: popup의 X 버튼과 fake_btn은 "작고 정확한
+    // 표적"인 게 설계다. 거기까지 넓히면 X 대신 창 아무 데나 눌러도 닫히고,
+    // 밟으면 안 되는 함정이 더 잘 밟히게 된다.
+    return this.tier > 0 ? inflateToMin(art, this.minHitbox, this.minHitbox) : art;
   }
 
   bodyRect() {
