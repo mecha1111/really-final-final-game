@@ -31,6 +31,15 @@ export const SFX = Object.freeze({
   CLONE_SPLIT: 'sfx_clone_split',
   COPIER_SELFDESTRUCT: 'sfx_copier_selfdestruct',
 
+  // === 특수능력 방해꾼 고유 처치음(Enemy.kill의 KILL_SFX 표에서 골라 낸다) ===
+  KILL_CLONE: 'sfx_kill_clone', // 복제 취소/삭제
+  KILL_POPUP: 'sfx_kill_popup', // X로 창 닫힘
+  KILL_UNPLUG: 'sfx_kill_unplug', // 전원 복구
+  KILL_HIDDEN: 'sfx_kill_hidden', // 발각
+  KILL_BOMB: 'sfx_kill_bomb', // 폭탄 처치(클릭 제거)
+  // popup 몸통(X 아닌 곳) 오클릭 — "틀렸다" 오답음(fakebtn_penalty와 구분)
+  POPUP_WRONG: 'sfx_popup_wrong',
+
   HIT: 'sfx_hit',
   BOMB_EXPLODE: 'sfx_bomb_explode',
   FAKEBTN_PENALTY: 'sfx_fakebtn_penalty',
@@ -112,7 +121,15 @@ const SFX_GAIN = {
   [SFX.BAIT_APPEAR]: 0.5,
   [SFX.UNPLUG_STOP]: 0.55,
   [SFX.FAKEBTN_PENALTY]: 0.6,
-  [SFX.BOMB_EXPLODE]: 0.7,
+  [SFX.BOMB_EXPLODE]: 0.85, // 화면 최고 위협 — 만료 폭발은 임팩트 있게
+
+  // === 특수능력 처치음(고유) — basic(KILL_SOFT)과 같은 결, 살짝만 개성 ===
+  [SFX.KILL_CLONE]: 0.5,
+  [SFX.KILL_POPUP]: 0.5,
+  [SFX.KILL_UNPLUG]: 0.5,
+  [SFX.KILL_HIDDEN]: 0.5,
+  [SFX.KILL_BOMB]: 0.6, // 폭탄 처치(제거) — 존재감
+  [SFX.POPUP_WRONG]: 0.45, // 가벼운 오답음
 
   // === 다단계 타격 ===
   [SFX.RANSOM_CRACK_1]: 0.45, // 첫 균열 — 반응은 있어야 한다: 0.4→0.45

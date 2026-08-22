@@ -29,6 +29,11 @@
   - 빈도 감소: 콤보음 매 처치 → **5콤보마다 1회**, 시간 똑딱 마지막 10초 → **5초**
   - `SFX_GAIN` 전면 인하(자주 나는 소리 한 단계씩↓, 등장음 거의 깔리는 수준), 중요음(완료/클리어/게임오버)은 존재감 유지
 
+- **SFX 4차 보강(3건)**:
+  - popup 몸통 오클릭 오답음(`POPUP_WRONG`) 추가 — input.js의 몸통 클릭(shake) 지점
+  - 특수능력 방해꾼 고유 처치음: clone/popup/unplug/hidden/bomb(Enemy.kill의 KILL_SFX 표 확장), copier는 자폭음이 이미 고유
+  - 폭탄 임팩트 강화: 처치음(KILL_BOMB) 신설 + 만료 폭발음 재제작 & `SFX_GAIN` 0.7→0.85
+
 ## Next steps
 
 - 실기에서 SFX 톤/밸런스 청음 확인 후 `SFX_GAIN` 값 튜닝

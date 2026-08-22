@@ -193,6 +193,9 @@ function hitTestEnemies(pt) {
       }
       if (enemy.containsBody(pt.x, pt.y)) {
         enemy.triggerShake();
+        // X가 아닌 몸통을 눌렀다 — "여기가 아니다"를 시각(흔들림)뿐 아니라 소리로도
+        // 알린다. fake_btn 페널티음과 같은 "틀림" 결이지만, 구분되는 가벼운 오답음이다.
+        playSfx(SFX.POPUP_WRONG);
         return 'shake';
       }
       continue; // 이 놈은 안 맞았다 — 뒤에 깔린 놈을 계속 검사
