@@ -8,6 +8,7 @@ import { startLoop } from './core/gameLoop.js';
 import { update, getPlayArea, startGame } from './core/stageManager.js';
 import { consumeHitStop, updateParticles, clearJuice } from './systems/juice.js';
 import { initInput } from './systems/input.js';
+import { initSound } from './systems/sound.js';
 import { render } from './ui/render.js';
 import { initReloadButton } from './ui/screens.js';
 import { initCanvasFit, fitCanvasToViewport } from './ui/canvasFit.js';
@@ -99,6 +100,7 @@ async function main() {
   initCursor(); // 게임 영역 커서(config.cursor) — hotspot이 클릭 좌표와 어긋나면 안 되므로 최대한 일찍
 
   initInput(canvas);
+  initSound(); // 효과음 — AudioContext를 세우고 mp3 프리로드를 시작한다(await 안 함)
   initDesktop(); // HTML 바탕화면(창 드래그·개그 팝업·시계)
   initTitleScreen(); // 타이틀 화면 버튼(시작/설정/나가기)
   initBsodScreen(); // 실패 화면(BSOD) 버튼(재도전/로비/나가기)
