@@ -771,19 +771,17 @@ body {
 #desktop .xpbar.big { height: 34px; padding: 3px; gap: 3px; border: 3px solid #7f9db9; }
 #desktop .xpbar.big i { width: 19px; }
 
-/* 건너뛰기 — 실제 클릭 가능한 <button>(ui/desktop.js). 눌러본 적 없는 사람도
-   "이건 누르는 것"이라고 알 수 있게 다른 요소(.dayflag 등)와 같은 raised-bevel
-   문법(테두리+그림자)을 쓰고, 눌렀을 때(active)와 다 썼을 때(disabled) 상태를
-   눈에 보이게 다르게 한다. */
+/* 건너뛰기 — S키 전용(ui/desktop.js에 클릭 핸들러가 없다). <button> 모양(테두리+
+   그림자 raised-bevel, .dayflag 등과 같은 문법)은 그대로 두되, 마우스로는 절대
+   안 눌리므로 hover/active 같은 "누르는 중" 피드백은 뺐다(그게 있으면 실제로는
+   무반응인데 눌리는 것처럼 보여서 오히려 헷갈린다) — cursor도 pointer가 아니라
+   기본값으로. 대신 라벨에 키 안내("[S]")를 박아 "이건 S키로 누르는 것"임을
+   글자로 알린다. 다 썼을 때(disabled)는 여전히 비활성 스타일로 표시한다. */
 #desktop .skipbtn {
-  width: 100%; display: flex; flex-direction: column; align-items: center; gap: 4px;
+  width: 100%; display: flex; flex-direction: row; align-items: baseline; justify-content: center; gap: 6px;
   padding: 10px 14px; font-family: 'DGM', 'Galmuri11', monospace;
   background: #ffcf3f; border: 3px solid #111; box-shadow: 3px 3px 0 #b8912a;
-  cursor: pointer; -webkit-font-smoothing: none;
-}
-#desktop .skipbtn:hover:not(:disabled) { background: #ffd966; }
-#desktop .skipbtn:active:not(:disabled) {
-  transform: translate(2px, 2px); box-shadow: 1px 1px 0 #b8912a;
+  cursor: default; -webkit-font-smoothing: none;
 }
 #desktop .skipbtn-label { font-size: 22px; color: #111; }
 #desktop .skipbtn-key { font-size: 15px; color: #6b5a1f; }
