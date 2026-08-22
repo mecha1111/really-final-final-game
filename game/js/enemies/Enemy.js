@@ -3,6 +3,7 @@
 import { config, getScaleFactor, parseSpecialEffect } from '../config.js';
 import { PATTERN_KIND, initMovement, moveEnemy, bounceInside } from './behaviors.js';
 import { hitRect, bodyRect, closeButtonRect, artRect, rectContains, inflateToMin } from './hitbox.js';
+import { initEntrance, updateEntrance } from './entrance.js';
 import { pickBasicVariant, pickAbVariant, FRAME_SETS } from '../sprite/animator.js';
 
 export class Enemy {
@@ -110,11 +111,36 @@ export class Enemy {
     this.targetY = y;
 
     initMovement(this, rules, playArea);
+    // 등장 연출은 이동 초기화 뒤에 잡는다 — enterStop처럼 initMovement가 시작 위치를
+    // 화면 밖으로 옮기는 종류가 있어서, 그 결과 위에 연출 오프셋이 얹혀야 한다.
+    initEntrance(this);
   }
 
   /** 시트의 speed(기준 해상도 px/s)에 해상도 비율을 곱한다 — 화면을 가로지르는 체감 속도가 같아진다. */
   get speed() {
     return (this.spec.speed || 0) * this.scaleFactor;
+  }
+
+  // === 등장 연출이 반영된 "실제로 보이는" 위치·크기 ===
+  // ★ 그리기(ui/renderEnemies.js)와 판정(enemies/hitbox.js)이 **둘 다 이 네 개만**
+  //   읽는다. 그래서 등장 연출로 스프라이트가 움직이거나 작아져도 히트박스가 정확히
+  //   같이 따라가고, "보이는 자리와 눌리는 자리가 다른" 상태가 구조적으로 못 생긴다
+  //   (이 프로젝트에서 그 사고가 반복돼서 아예 한 출처로 묶었다).
+  //   물리(이동·벽 튕김)는 연출과 무관해야 하므로 계속 x/y/w/h(논리값)를 쓴다.
+  get drawX() {
+    return this.x + this.entOffX;
+  }
+
+  get drawY() {
+    return this.y + this.entOffY;
+  }
+
+  get drawW() {
+    return this.w * this.entScaleX;
+  }
+
+  get drawH() {
+    return this.h * this.entScaleY;
   }
 
   /** 업로드를 완전히 멈추는 A타입인가 */
@@ -141,6 +167,7 @@ export class Enemy {
     }
 
     this.age += dt;
+    updateEntrance(this); // 끝났으면 내부에서 즉시 return한다(살아있는 내내 불려도 싸다)
     this.hitFlash = Math.max(0, this.hitFlash - dt);
     this.shakeTimer = Math.max(0, this.shakeTimer - dt);
     this.hitFrameTimer = Math.max(0, this.hitFrameTimer - dt);

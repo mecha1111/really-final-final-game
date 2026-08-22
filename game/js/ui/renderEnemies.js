@@ -22,21 +22,28 @@ export function drawEnemy(ctx, e, showHitbox, now) {
   const telegraph = e.atkTelegraphRatio;
   const shakeRatio = e.shakeTimer / config.enemy.bodyShakeSec;
 
+  // ★ 등장 연출이 반영된 drawW/drawH/drawX/drawY에서 출발한다 — 판정(enemies/hitbox.js)도
+  //   같은 게터를 읽으므로 연출 중에 그림과 히트박스가 갈라지지 않는다.
+  //   punch/telegraph 흔들림은 그 위에 얹는 아주 짧은 순간 연출이라 예전처럼 그리기에만 건다.
   const punch = 1 + config.enemy.hitPunch * flashRatio + config.enemy.atkTelegraphPunch * telegraph;
-  const w = e.w * punch;
-  const h = e.h * punch;
+  const w = e.drawW * punch;
+  const h = e.drawH * punch;
 
   const shakeX =
     shakeRatio > 0 ? Math.sin(shakeRatio * Math.PI * 6) * config.enemy.bodyShakeAmount * shakeRatio : 0;
   const telegraphX = telegraph > 0 ? Math.sin(e.age * 40) * config.enemy.atkTelegraphShake * telegraph : 0;
   const telegraphY = telegraph > 0 ? Math.cos(e.age * 47) * config.enemy.atkTelegraphShake * telegraph : 0;
 
-  const x = e.x + shakeX + telegraphX - w / 2;
-  const y = e.y + telegraphY - h / 2;
+  const x = e.drawX + shakeX + telegraphX - w / 2;
+  const y = e.drawY + telegraphY - h / 2;
 
   ctx.save();
-  if (flashRatio > 0) ctx.filter = `brightness(${1 + 1.6 * flashRatio})`;
-  else if (telegraph > 0) ctx.filter = `brightness(${1 + 0.5 * telegraph})`;
+  // 등장 연출의 투명도/블러(fade·print·blurIn). 연출이 끝나면 1/0이라 무해하다.
+  if (e.entAlpha < 1) ctx.globalAlpha = Math.max(0, e.entAlpha);
+  const blur = e.entBlurPx > 0.1 ? `blur(${e.entBlurPx.toFixed(2)}px)` : '';
+  if (flashRatio > 0) ctx.filter = `${blur} brightness(${1 + 1.6 * flashRatio})`.trim();
+  else if (telegraph > 0) ctx.filter = `${blur} brightness(${1 + 0.5 * telegraph})`.trim();
+  else if (blur) ctx.filter = blur;
 
   if (img) {
     ctx.drawImage(img, x, y, w, h);
@@ -46,7 +53,7 @@ export function drawEnemy(ctx, e, showHitbox, now) {
     roundRect(ctx, x, y, w, h, 8);
     ctx.fill();
     ctx.filter = 'none';
-    text(ctx, e.id, e.x, e.y, { size: 12, align: 'center', baseline: 'middle' });
+    text(ctx, e.id, e.drawX, e.drawY, { size: 12, align: 'center', baseline: 'middle' });
   }
   ctx.restore();
 
@@ -71,9 +78,11 @@ function drawEnemyGauges(ctx, e) {
   const life = e.lifeRatio();
 
   if (barH > 0) {
-    const w = Math.max(e.w * 0.7, 40);
-    const x = e.x - w / 2;
-    const y = e.y + e.h / 2 + 4;
+    // 게이지도 그림을 따라가야 한다 — 등장 연출로 스프라이트가 움직이는데 바만
+    // 논리 위치에 남아 있으면 따로 떠 있는 것처럼 보인다(draw* 는 연출 반영값).
+    const w = Math.max(e.drawW * 0.7, 40);
+    const x = e.drawX - w / 2;
+    const y = e.drawY + e.drawH / 2 + 4;
 
     // 수명이 끝날 때 벌칙이 있거나(bomb, hidden) 커서를 노리는 놈(copier)은
     // 빨갛게 — 우선순위 판단용
@@ -91,8 +100,8 @@ function drawEnemyGauges(ctx, e) {
     const dot = 6;
     const gap = 4;
     const total = e.maxHp * dot + (e.maxHp - 1) * gap;
-    let px = e.x - total / 2;
-    const py = e.y - e.h / 2 - 10;
+    let px = e.drawX - total / 2;
+    const py = e.drawY - e.drawH / 2 - 10;
 
     for (let i = 0; i < e.maxHp; i++) {
       ctx.fillStyle = cssColor(i < e.hp ? '--color-hp-pip' : '--color-hp-pip-empty');

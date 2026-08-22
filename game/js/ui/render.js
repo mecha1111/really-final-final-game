@@ -6,6 +6,7 @@ import { debugState } from '../debug.js';
 import { drawEnemy, drawCursorGlyph, drawFloats, drawClickMarkers } from './renderEnemies.js';
 import { drawSelectScreen, drawResultScreen, drawLoadingOverlay } from './screens.js';
 import { getCrtShakeOffset } from './crtTransition.js';
+import { getShakeOffset } from '../systems/screenShake.js';
 
 /**
  * 캔버스를 비운다. 배경(Bliss·언덕·구름)은 이제 캔버스가 아니라 그 아래 깔린
@@ -52,7 +53,11 @@ export function render({ ctx, canvas, state, gameData, now }) {
   // 어디로 계산됐는지"를 있는 그대로 보여주는 진단 도구라, 여기서 흔들어버리면
   // 클릭은 안 흔들렸는데 십자선만 흔들려 보여서 좌표가 어긋난 것처럼 오해하게
   // 만든다(이 프로젝트가 그런 자체 오진단으로 여러 번 헛짚었다).
-  const shake = getCrtShakeOffset(now);
+  // 화면 전환 CRT 흔들림 + 게임 중 흔들림(ransom 착지·처치 타격감)을 합친다.
+  // 둘 다 DOM이 아니라 그리기 원점만 미는 방식이라 그냥 더하면 된다.
+  const crtShake = getCrtShakeOffset(now);
+  const gameShake = getShakeOffset();
+  const shake = { x: crtShake.x + gameShake.x, y: crtShake.y + gameShake.y };
 
   // 방해꾼/가짜커서/뜬 글씨는 물리(실제) 캔버스 좌표 그대로 그린다 — 이미
   // getScaleFactor()(baseWidth=1280)로 스케일된 값들이라 여기서 또 손대면 안 된다.

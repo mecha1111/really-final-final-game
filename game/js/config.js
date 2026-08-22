@@ -158,6 +158,37 @@ export const config = {
     },
   },
 
+  // 방해꾼별 등장 연출. 스폰 직후 durSec 동안만 재생되고 그 뒤엔 완전히 무해해진다
+  // (enemies/entrance.js). kind가 실제 움직임 종류, durSec이 재생 시간(초).
+  //
+  // ★ 등장 연출은 "그리기"만 바꾸는 게 아니라 판정(hitRect)도 같이 따라간다 —
+  //   enemies/Enemy.js의 drawX/drawY/drawW/drawH 게터 하나를 그리기와 판정이
+  //   같이 읽는다. 보이는 자리와 눌리는 자리가 갈라지는 사고가 이 프로젝트에서
+  //   반복됐기 때문에, 연출을 넣을 때도 그 둘이 구조적으로 못 갈라지게 묶어뒀다.
+  //
+  // 여기 없는 id는 연출 없음(none)이다:
+  //   unplug — 시트의 '화면밖→안 진입후 정지'(enterStop)가 이미 "손이 쑥 들어와
+  //            멈추는" 연출이라 그대로 둔다(요구사항도 "기존 사양").
+  //   bait   — 자체 등장/소멸 연출 5종이 따로 있다(config.bait.effects).
+  entrance: {
+    // 아래에서 폴짝 튀어오르며 스쿼시&스트레치
+    basic: { kind: 'hop', durSec: 0.42, risePx: 90, squash: 0.35 },
+    // 위에서 쿵 떨어지고 착지 순간 화면이 살짝 흔들린다(무게감)
+    ransom: { kind: 'slam', durSec: 0.5, dropPx: 260, landShakePx: 7, landShakeMs: 260 },
+    // 뿅 하고 증식 — 0.1배에서 1.25배로 넘쳤다가 1로 정착
+    clone: { kind: 'pop', durSec: 0.35, from: 0.1, overshoot: 1.25 },
+    // 창 열리듯 가로로 쫙 펴진 뒤 세로로 열린다
+    popup: { kind: 'window', durSec: 0.32, xPhase: 0.45 },
+    // 위에서 투하 + 착지 후 한 번 통통 튄다
+    bomb: { kind: 'drop', durSec: 0.55, dropPx: 320, bounce: 0.22 },
+    // 시스템 알림처럼 스윽 나타난다(진짜 창인 척해야 해서 요란하면 안 된다)
+    fake_btn: { kind: 'fade', durSec: 0.45, risePx: 18 },
+    // 지지직 인쇄되듯 위아래로 떨며 나온다
+    copier: { kind: 'print', durSec: 0.5, jitterPx: 7, jitterHz: 26 },
+    // 블러에서 스르륵 — 위장한 놈이라 느리고 눈에 안 띄게
+    hidden: { kind: 'blurIn', durSec: 1.2, blurPx: 10 },
+  },
+
   cursor: {
     // copier가 안착해서 터질 때 뿌리는 가짜 커서 개수. 시트의 special_effect
     // 문구("가짜커서 8개 5초간")에 적힌 숫자는 무시하고 이 값을 쓴다 — "졸라

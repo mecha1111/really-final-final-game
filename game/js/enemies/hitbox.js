@@ -9,15 +9,23 @@ import { config } from '../config.js';
 export function hitRect(e) {
   if (!e.hasHitbox) return null;
 
-  const topAligned = e.hitH < e.h;
-  const cy = topAligned ? e.y - e.h / 2 + e.hitH / 2 : e.y;
+  // ★ 등장 연출 중에는 그림이 움직이고 작아진다. 판정도 정확히 같이 움직여야 하므로
+  //   논리값(x/y/w/h)이 아니라 그리기와 같은 출처(drawX/drawY/drawW/drawH)를 쓴다
+  //   — enemies/Enemy.js의 그 게터 주석 참고. 연출이 끝나면 두 값이 같아진다.
+  const scaleX = e.w > 0 ? e.drawW / e.w : 1;
+  const scaleY = e.h > 0 ? e.drawH / e.h : 1;
+  const hitW = e.hitW * scaleX;
+  const hitH = e.hitH * scaleY;
 
-  return { x: e.x - e.hitW / 2, y: cy - e.hitH / 2, w: e.hitW, h: e.hitH };
+  const topAligned = hitH < e.drawH;
+  const cy = topAligned ? e.drawY - e.drawH / 2 + hitH / 2 : e.drawY;
+
+  return { x: e.drawX - hitW / 2, y: cy - hitH / 2, w: hitW, h: hitH };
 }
 
 /** 그림 전체 사각형. closeButton형 몸통 판정에 쓴다. */
 export function bodyRect(e) {
-  return { x: e.x - e.w / 2, y: e.y - e.h / 2, w: e.w, h: e.h };
+  return { x: e.drawX - e.drawW / 2, y: e.drawY - e.drawH / 2, w: e.drawW, h: e.drawH };
 }
 
 /**
@@ -32,17 +40,19 @@ export function artRect(e) {
   const box = config.enemy.artHitbox[e.artHitboxKey];
   if (!box) return null;
 
+  // 등장 연출 중에도 그림과 정확히 같은 자리에 있어야 하므로 draw* 를 쓴다
+  // (위 hitRect 주석과 같은 이유 — 그리기와 판정의 출처를 하나로 묶어둔다).
   const pad = config.enemy.artHitboxPadRatio;
-  const left = e.x - e.w / 2;
-  const top = e.y - e.h / 2;
-  const x = left + (box.l - pad) * e.w;
-  const y = top + (box.t - pad) * e.h;
+  const left = e.drawX - e.drawW / 2;
+  const top = e.drawY - e.drawH / 2;
+  const x = left + (box.l - pad) * e.drawW;
+  const y = top + (box.t - pad) * e.drawH;
 
   return {
     x,
     y,
-    w: (box.r - box.l + pad * 2) * e.w,
-    h: (box.b - box.t + pad * 2) * e.h,
+    w: (box.r - box.l + pad * 2) * e.drawW,
+    h: (box.b - box.t + pad * 2) * e.drawH,
   };
 }
 
