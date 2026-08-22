@@ -17,6 +17,7 @@
 
 import { config } from '../config.js';
 import { state } from '../core/state.js';
+import { playSfx, refreshSfxVolume, SFX } from '../systems/sound.js';
 import { applyCrtSteadyVars } from './crtTransition.js';
 
 // ESC로 "열 수" 있는 phase. 이미 열려 있으면 phase와 무관하게 항상 닫을 수 있다
@@ -80,8 +81,14 @@ function syncAllControls() {
   syncFullscreenControl();
 }
 
+// ★ 여닫는 소리를 버튼 핸들러가 아니라 이 두 함수 안에 둔다 — 팝업을 여는 길이
+//   여러 갈래(타이틀의 설정 버튼, ESC)고 닫는 길은 더 많다(닫기 X, 계속하기,
+//   메인으로, ESC). 각 핸들러에 하나씩 붙이면 새 진입점이 생길 때마다 빠뜨리게 된다.
+// ★ ui:true — 팝업이 열려 있는 동안은 게임이 멈춰 있어서 일반 SFX가 막힌다.
+//   설정창 조작음은 그 와중에 사용자가 직접 누른 것이므로 나야 한다.
 export function openSettings() {
   if (!layer || !ESC_OPENABLE_PHASES.has(state.phase)) return;
+  playSfx(SFX.UI_CLICK, { ui: true });
   syncAllControls();
   state.settingsOpen = true;
   layer.classList.add('open');
@@ -89,12 +96,16 @@ export function openSettings() {
 
 export function closeSettings() {
   if (!layer) return;
+  playSfx(SFX.UI_CLICK, { ui: true });
   state.settingsOpen = false;
   layer.classList.remove('open');
 }
 
-/** 사운드 슬라이더 하나를 state.settings[key]에 연결한다. 값만 저장 — 실제
- * 볼륨은 사운드가 생기면 그 코드가 이 값을 읽어가면 된다. */
+/** 사운드 슬라이더 하나를 state.settings[key]에 연결한다.
+ *
+ * 값을 저장한 뒤 refreshSfxVolume()으로 실제 볼륨 노드에 바로 흘려보낸다 — 지금
+ * 재생 중인 소리까지 그 자리에서 같이 바뀐다(systems/sound.js의 masterGain).
+ * soundBgm도 같은 함수로 배선해두지만 지금은 BGM이 없어서 값만 쌓인다. */
 function wireSoundSlider(key, inputId, outId) {
   const input = document.getElementById(inputId);
   const out = document.getElementById(outId);
@@ -102,6 +113,7 @@ function wireSoundSlider(key, inputId, outId) {
     const v = Number(input.value);
     state.settings[key] = v;
     if (out) out.textContent = String(v);
+    refreshSfxVolume();
   });
 }
 
@@ -123,7 +135,9 @@ export function initSettingsPanel() {
   });
 
   document.getElementById('settings-reset')?.addEventListener('click', () => {
+    playSfx(SFX.UI_CLICK, { ui: true });
     Object.assign(state.settings, DEFAULTS.sound);
+    refreshSfxVolume(); // 슬라이더를 안 거치고 값이 바뀌는 경로라 여기서 직접 알려준다
     config.crt.enabled = DEFAULTS.crtEnabled;
     config.crt.intensity = DEFAULTS.crtIntensity;
     applyCrtSteadyVars();

@@ -6,6 +6,7 @@ import { startGame, advanceStage } from '../core/stageManager.js';
 import { skipFile } from './file.js';
 import { damageUpload } from './upload.js';
 import { registerKill, registerMiss } from './combo.js';
+import { playSfx, SFX } from './sound.js';
 import { pointInRect } from '../ui/draw.js';
 import { getStartButton, getRestartButton } from '../ui/screens.js';
 import { handleDebugKey, debugState } from '../debug.js';
@@ -210,6 +211,9 @@ function hitTestEnemies(pt) {
     if (enemy.isTrap) {
       // 누르면 안 되는 버튼을 눌렀다
       state.stats.trapClicks += 1;
+      // damageUpload()가 안에서 공통 피격음(HIT)을 내므로, 이건 그 위에 겹치는
+      // "속았다" 전용 소리다(bomb 폭발과 같은 구성 — enemies/effects.js 주석 참고).
+      playSfx(SFX.FAKEBTN_PENALTY);
       damageUpload(enemy.effect.wrongClickPct, enemy.x, enemy.y);
       enemy.hitFlash = config.enemy.hitFlashSec;
       return 'trap';

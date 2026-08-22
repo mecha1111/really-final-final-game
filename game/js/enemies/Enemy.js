@@ -5,12 +5,22 @@ import { PATTERN_KIND, initMovement, moveEnemy, bounceInside } from './behaviors
 import { hitRect, bodyRect, closeButtonRect, artRect, rectContains, inflateToMin } from './hitbox.js';
 import { initEntrance, updateEntrance } from './entrance.js';
 import { burstOnKill } from '../systems/juice.js';
+import { playSfx, SFX } from '../systems/sound.js';
 import { pickBasicVariant, pickAbVariant, FRAME_SETS } from '../sprite/animator.js';
 
 // 시트의 stops_upload를 무시하고 "절대 업로드를 멈추지 않는다"고 못박는 id들.
 // 왜 필요한지는 아래 Enemy.stopsUpload 게터 주석 참고 — 시트 쪽 분류가 고쳐지면
 // 여기서 그 id를 빼면 된다(비면 이 Set째로 지워도 된다).
 const NEVER_BLOCKS = new Set(['bomb']);
+
+// 클릭으로 잡았을 때 낼 소리. 여기 없는 종류는 전부 기본값(KILL_SOFT)이다 —
+// 단단한 걸 깨부순 느낌이 필요한 놈만 예외로 적는다(ransom은 hp가 3이라 마지막
+// 한 방이 "드디어 깨졌다"가 되어야 한다). bomb/unplug처럼 클릭으로도 죽는 나머지는
+// 기본값으로 충분하고, 종류가 늘어도 여기 한 줄만 보면 된다.
+// ★ 여기 안 오는 종류들: fake_btn(함정이라 clickable이 아니다 — 밟으면 아래
+//   FAKEBTN_PENALTY가 따로 난다), copier(클릭이 아니라 커서에 안착해 자폭한다 —
+//   enemies/effects.js의 triggerSelfDestruct), bait(히트박스 자체가 없다).
+const KILL_SFX = { ransom: SFX.KILL_HARD };
 
 export class Enemy {
   /**
@@ -291,6 +301,10 @@ export class Enemy {
       // 팝이 끝날 때까지는 배열에 남아있어야 그 연출이 보인다(basic은 원래 더 길다).
       this.corpseTimer = Math.max(basicLinger, config.enemy.kill.popSec);
       burstOnKill(this.drawX, this.drawY);
+      // 타격감(히트스톱+흔들림+조각)을 켜는 바로 그 자리에서 같이 낸다 — 눈에 보이는
+      // 타격과 소리가 갈라질 수 없게. 수명만료(expired)나 copier 자폭(triggered)은
+      // 이 분기에 안 들어오므로 "잡았다" 소리가 거기 섞이지 않는다.
+      playSfx(KILL_SFX[this.id] ?? SFX.KILL_SOFT);
     } else {
       this.corpseTimer = basicLinger;
     }

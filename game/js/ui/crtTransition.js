@@ -4,6 +4,7 @@
 // 아니라 여기 JS(getCrtShakeOffset)에 있는지는 아래 큰 주석 참고.
 
 import { config } from '../config.js';
+import { playSfx, SFX } from '../systems/sound.js';
 
 // ── 화면 흔들림이 CSS @keyframes가 아니라 여기 있는 이유 ─────────────────────
 // 원래는 #stage(또는 그 안의 전용 래퍼)에 CSS로 흔들림을 걸었다. 그런데 실측으로
@@ -154,6 +155,12 @@ export function syncCrtTransition(phase, now) {
  * 없앤 것이다. 여기 JS는 그 클래스 하나만 remove→리플로우→add 하면 된다.
  */
 function playCrtKick(now) {
+  // 브라운관 켜지는 소리. 이 함수 자체가 "phase가 바뀐 프레임"에만 불리므로
+  // (syncCrtTransition의 prevPhase 비교) 게임 중 계속 울릴 일이 구조적으로 없다.
+  // ★ ui:true — 설정창에서 "메인으로"를 눌러 화면이 넘어가는 경우처럼, 일시정지
+  //   중에 사용자가 직접 일으킨 전환에서도 화면 연출과 소리가 같이 가야 한다.
+  playSfx(SFX.CRT_KICK, { ui: true });
+
   const layer = document.getElementById('layer-crt');
   if (!layer) return;
 

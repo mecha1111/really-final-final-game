@@ -4,6 +4,7 @@ import { config } from '../config.js';
 import { state } from '../core/state.js';
 import { addFloat } from '../systems/floats.js';
 import { damageUpload, triggerHitFeedback } from '../systems/upload.js';
+import { playSfx, SFX } from '../systems/sound.js';
 import { trailPositionAt } from '../systems/pointerTrail.js';
 import { Enemy } from './Enemy.js';
 
@@ -68,6 +69,11 @@ export function splitEnemy(parent, rules, playArea) {
     children.push(child);
   }
 
+  // 실제로 조각이 나왔을 때만 낸다 — 위 두 가드(막내 tier, 구간 게이트)에 걸려
+  // 그냥 죽는 경우엔 분열이 일어나지 않았으므로 분열음도 나면 안 된다.
+  // (그 경우에도 Enemy.kill()의 처치음은 이미 났다 — 잡힌 건 잡힌 것이다)
+  if (children.length) playSfx(SFX.CLONE_SPLIT);
+
   return children;
 }
 
@@ -76,6 +82,10 @@ export function applyExpiryEffect(enemy) {
   const fx = enemy.effect;
 
   if (fx.expirePct > 0) {
+    // bomb이 터졌다. damageUpload()가 안에서 triggerHitFeedback()을 거치며 공통
+    // 피격음(HIT)도 같이 내므로, 폭발은 그 위에 겹쳐 나는 전용 소리다
+    // ("맞았다"는 공통 신호 + "폭탄이었다"는 정체를 두 겹으로 알린다).
+    playSfx(SFX.BOMB_EXPLODE);
     damageUpload(fx.expirePct, enemy.x, enemy.y);
   }
   if (fx.expireNextFileMb > 0) {
@@ -97,6 +107,8 @@ export function applyExpiryEffect(enemy) {
 export function triggerSelfDestruct(enemy) {
   const fx = enemy.effect.fakeCursor;
   if (!fx) return;
+
+  playSfx(SFX.COPIER_SELFDESTRUCT);
 
   const cc = config.cursor;
   // 터진 지점 = 진짜 커서 자리. 각 가짜는 이 자리를 기준으로 궤적을 따라간다

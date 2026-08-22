@@ -4,8 +4,49 @@ import { config } from '../config.js';
 import { state } from '../core/state.js';
 import { addFloat } from './floats.js';
 import { completeFile, grantFile } from './file.js';
+import { playSfx, SFX } from './sound.js';
 
 const clamp = (v, min, max) => Math.max(min, Math.min(max, v));
+
+// ── "상태가 바뀌는 순간"만 소리를 내기 위한 직전 프레임 값 ──────────────────────
+// state.blocked / state.attackWarning은 매 프레임 처음부터 다시 계산되는 값이라,
+// 그 값만 봐서는 "지금 막 멈췄다"와 "아까부터 멈춰 있다"가 구분되지 않는다 —
+// 그대로 소리를 걸면 정지가 이어지는 내내 매 프레임 울린다. 그래서 직전 프레임에
+// 무엇이었는지를 여기 들고 있다가 false→true로 넘어가는 그 한 프레임에만 낸다.
+//
+// ★ state에 얹지 않고 모듈 안에 두는 이유: 이건 게임 상태가 아니라 "소리를 이미
+//   냈는가"라는 이 파일만의 기억이다. 매 프레임 다시 정해지는 값을 공용 객체에
+//   붙여두면 "누가 이걸 읽나"를 매번 다시 확인해야 한다(이 파일 아래쪽 blockers
+//   주석에 같은 이유로 enemy.isBlocking을 걷어낸 전례가 있다).
+// ★ 판이 바뀔 때는 반드시 resetUploadEdges()로 지워야 한다 — 정지된 채로 판이
+//   끝나면 wasBlocked가 true로 남아, 다음 판에서 처음 멈출 때 소리가 안 난다.
+let wasBlocked = false;
+let wasTelegraph = false;
+
+/** 새 판이 시작될 때(core/stageManager.js의 startGame). 지난 판의 엣지 기억을 끊는다. */
+export function resetUploadEdges() {
+  wasBlocked = false;
+  wasTelegraph = false;
+}
+
+/**
+ * state.blocked를 정하면서 "이번 프레임에 막 멈췄나"만 걸러 소리를 낸다.
+ * blocked를 쓰는 곳이 두 군데(완료 연출 홀드 중 / 평상시)라 대입을 여기 하나로 모은다 —
+ * 한쪽에서 직접 state.blocked에 대입해버리면 그 경로만 엣지 추적에서 빠져,
+ * "완료 연출 직후 첫 정지에는 소리가 안 나는" 식으로 조용히 갈라진다.
+ */
+function setBlocked(next) {
+  if (next && !wasBlocked) playSfx(SFX.UNPLUG_STOP);
+  wasBlocked = next;
+  state.blocked = next;
+}
+
+/** 위 setBlocked와 같은 이유로 attackWarning도 대입을 한 곳으로 모은다. */
+function setAttackWarning(next) {
+  if (next && !wasTelegraph) playSfx(SFX.ATK_WARNING);
+  wasTelegraph = next;
+  state.attackWarning = next;
+}
 
 /**
  * 피해 피드백을 한꺼번에 켠다 — 업로드 바 빨간 번쩍임 + 화면 가장자리 비네트 펄스 +
@@ -16,6 +57,10 @@ const clamp = (v, min, max) => Math.max(min, Math.min(max, v));
  * @param {string} text 바 옆에 띄울 텍스트(예: "-20%", "-15MB")
  */
 export function triggerHitFeedback(text) {
+  // "당했다"를 켜는 단 하나의 자리라, 공통 피격음도 여기 하나만 걸면 종류가 늘어도
+  // 자동으로 따라온다(피해 종류별 전용 소리는 부르는 쪽에서 이 위에 겹쳐 낸다 —
+  // bomb 폭발/함정 오클릭이 그렇다).
+  playSfx(SFX.HIT);
   state.hitFlash = config.hud.hitFlashSec;
   state.vignetteMs = config.hud.vignettePulseSec * 1000;
   state.dmgFloatText = text;
@@ -62,8 +107,8 @@ export function updateUpload(dt, rules) {
   // systems/file.js의 completeFile() 주석 참고.
   if (state.fileCompleteHoldMs > 0) {
     state.fileCompleteHoldMs = Math.max(0, state.fileCompleteHoldMs - dt * 1000);
-    state.blocked = false;
-    state.attackWarning = false;
+    setBlocked(false);
+    setAttackWarning(false);
     state.hitFlash = Math.max(0, state.hitFlash - dt);
     state.vignetteMs = Math.max(0, state.vignetteMs - dt * 1000);
     state.dmgFloatMs = Math.max(0, state.dmgFloatMs - dt * 1000);
@@ -90,9 +135,9 @@ export function updateUpload(dt, rules) {
     }
   }
 
-  state.blocked = blockers.length > 0;
+  setBlocked(blockers.length > 0);
   state.blockedBy = blockers;
-  state.attackWarning = anyTelegraph;
+  setAttackWarning(anyTelegraph);
 
   // 피해 피드백 타이머들 감쇠. 전부 triggerHitFeedback()이 켜고 여기서만 줄어든다.
   state.hitFlash = Math.max(0, state.hitFlash - dt);

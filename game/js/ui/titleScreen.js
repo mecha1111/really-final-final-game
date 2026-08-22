@@ -2,11 +2,13 @@
 // 배경·로고 애니(floaty, hover 확대)는 순수 CSS(style.css)라 여기선 클릭 훅만 담당한다.
 
 import { startGame } from '../core/stageManager.js';
+import { playSfx, SFX } from '../systems/sound.js';
 import { openSettings } from './settingsPanel.js';
 
 /** 최초 1회. 타이틀 화면 버튼에 핸들러를 붙인다. */
 export function initTitleScreen() {
   document.getElementById('title-btn-start')?.addEventListener('click', () => {
+    playSfx(SFX.UI_CLICK, { ui: true });
     // 대기화면(select)을 건너뛰고 첫 구간(n=0)으로 바로 들어간다.
     // 타이틀에서 "게임 시작"을 이미 눌렀는데 또 "엔터/클릭" 대기 화면이 나오면
     // 확인을 두 번 받는 꼴이라 흐름이 끊긴다.
@@ -25,6 +27,7 @@ export function initTitleScreen() {
   // 톤(ui/desktop.js의 메인 창 X 비활성 전례)에 맞춰 살짝 흔들리기만 한다.
   const quitBtn = document.getElementById('title-btn-quit');
   quitBtn?.addEventListener('click', () => {
+    playSfx(SFX.UI_CLICK, { ui: true });
     quitBtn.classList.remove('shake');
     void quitBtn.offsetWidth; // 리플로우 강제 — 연타해도 애니가 처음부터 다시 재생되게
     quitBtn.classList.add('shake');

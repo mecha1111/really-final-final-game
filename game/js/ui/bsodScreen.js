@@ -3,6 +3,7 @@
 
 import { state } from '../core/state.js';
 import { startGame } from '../core/stageManager.js';
+import { playSfx, SFX } from '../systems/sound.js';
 
 const last = {};
 function setText(el, value) {
@@ -58,12 +59,14 @@ export function initBsodScreen() {
   // "영구강화 보존"은 지금은 자명하게 참이다(애초에 지워질 영구 상태가 없다).
   // 나중에 그런 시스템이 생기면 여기서 그 부분만 안 건드리게 손봐야 한다.
   document.getElementById('bsod-retry')?.addEventListener('click', () => {
+    playSfx(SFX.UI_CLICK, { ui: true });
     startGame(0);
   });
 
   // 로비 — 타이틀로. startGame()을 거치지 않고 phase만 바로 바꾼다(최초 부팅 때
   // main.js의 applyLoadedData()가 'loading' → 'title'로 착지시키는 것과 같은 방식).
   document.getElementById('bsod-lobby')?.addEventListener('click', () => {
+    playSfx(SFX.UI_CLICK, { ui: true });
     state.phase = 'title';
   });
 
@@ -71,6 +74,7 @@ export function initBsodScreen() {
   // 않은 창은 못 닫는다). 종료 프로토콜을 새로 만들지 않고, 타이틀의 "나가기"와
   // 같은 톤으로 로비로 보낸다(배포 맥락에서 "나가기"가 할 수 있는 가장 정직한 동작).
   document.getElementById('bsod-quit')?.addEventListener('click', () => {
+    playSfx(SFX.UI_CLICK, { ui: true });
     state.phase = 'title';
   });
 }

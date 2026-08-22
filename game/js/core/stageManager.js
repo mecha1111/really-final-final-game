@@ -6,8 +6,9 @@ import { Spawner, buildPool } from '../enemies/spawner.js';
 import { splitEnemy, applyExpiryEffect, triggerSelfDestruct, updateFakeCursors } from '../enemies/effects.js';
 import { clearJuice } from '../systems/juice.js';
 import { clearShake } from '../systems/screenShake.js';
-import { updateUpload } from '../systems/upload.js';
+import { updateUpload, resetUploadEdges } from '../systems/upload.js';
 import { grantFile } from '../systems/file.js';
+import { playSfx, SFX } from '../systems/sound.js';
 import { updateFloats, clearFloats } from '../systems/floats.js';
 import { updateCombo, clearCombo } from '../systems/combo.js';
 import { recordPointer, resetTrail } from '../systems/pointerTrail.js';
@@ -58,10 +59,14 @@ export function startGame(stageIndex = 0) {
   clearJuice(); // 지난 판의 터진 조각·히트스톱이 새 판 첫 프레임에 남지 않게
   clearShake(); // 흔들리다 판이 바뀌면 그 잔여 흔들림이 새 판으로 새어 들어간다
   resetTrail(); // 지난 판의 마우스 궤적이 새 판의 가짜 커서에 섞여 들어가지 않게
+  // 정지·공격예고 소리의 "직전 프레임 기억"을 끊는다 — 정지된 채로 판이 끝났으면
+  // 그 기억이 남아 새 판의 첫 정지에서 소리가 안 난다(systems/upload.js 주석 참고).
+  resetUploadEdges();
 
   spawner.reset(rules);
   grantFile();
   state.phase = 'playing';
+  playSfx(SFX.START);
 }
 
 /**
@@ -159,11 +164,16 @@ function processDeaths(rules, playArea) {
 }
 
 function checkWinLose(rules) {
+  // ★ 여기 두 소리는 "판이 끝나는 그 프레임"에만 난다 — 아래 else의 return이
+  //   판이 안 끝난 프레임을 전부 걸러내고, 끝난 뒤로는 update() 맨 위 가드에
+  //   막혀 이 함수 자체가 다시 안 불린다. 그래서 별도의 엣지 추적이 필요 없다.
   if (state.uploaded >= rules.quota) {
     state.phase = 'cleared';
+    playSfx(SFX.STAGE_CLEAR);
   } else if (state.timeLeft <= 0) {
     state.timeLeft = 0;
     state.phase = 'failed';
+    playSfx(SFX.GAMEOVER);
   } else {
     return; // 판이 안 끝났다 — 아래 정리는 phase가 실제로 바뀔 때만 필요하다
   }

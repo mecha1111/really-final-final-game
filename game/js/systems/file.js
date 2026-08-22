@@ -4,6 +4,7 @@ import { config, getFileTiers } from '../config.js';
 import { state } from '../core/state.js';
 import { addFloat } from './floats.js';
 import { pickFilePicture } from './filePicture.js';
+import { playSfx, SFX } from './sound.js';
 
 /**
  * "+60MB" 같은 뜬 글씨를 띄울 자리. 화면 가로 중앙, 세로는 위쪽 1/4쯤.
@@ -68,6 +69,7 @@ export function grantFile() {
 
 export function completeFile() {
   const file = state.file;
+  playSfx(SFX.COMPLETE);
   state.uploaded += file.sizeMb;
   state.reward += file.sizeMb;
   state.stats.filesDone += 1;

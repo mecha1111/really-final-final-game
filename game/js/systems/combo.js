@@ -14,6 +14,7 @@
 import { config } from '../config.js';
 import { state } from '../core/state.js';
 import { addFloat } from './floats.js';
+import { playSfx, SFX } from './sound.js';
 
 /**
  * 지금 콤보가 속한 config.combo.tiers의 칸(min/mult/size/color 전부 담긴 그 행).
@@ -50,11 +51,23 @@ export function comboMultiplier(combo = state.combo) {
  * @param {number} x 잡힌 자리(월드 좌표) — "+0.45MB" 글씨를 그 자리에 띄운다
  */
 export function registerKill(x, y) {
+  // 올리기 **전** 배율을 먼저 재둔다 — 아래에서 올린 뒤 값과 견줘 "이번 처치로 계단을
+  // 하나 올라섰나"를 판별한다. 계단이 그대로면(같은 구간 안에서 콤보만 오르는 대부분의
+  // 경우) 승급음은 안 난다. 별도 상태를 안 들고도 되는 건 배율이 콤보 값 하나에서
+  // 순수하게 계산되기 때문이다(comboTier) — 판이 바뀌어 clearCombo()로 0이 되면
+  // 기준도 자동으로 같이 리셋된다.
+  const prevMult = comboMultiplier(state.combo);
+
   state.combo += 1;
   state.comboPopMs = config.combo.popMs; // 커서 위 콤보 숫자가 살짝 커졌다 가라앉는 연출
   if (state.combo > state.stats.comboBest) state.stats.comboBest = state.combo;
 
   const mult = comboMultiplier();
+  // 처치할 때마다 나는 소리 + 계단을 올라선 그 한 번만 나는 승급음. 승급 프레임엔
+  // 둘 다 나서 "잡았다" 위에 "강해졌다"가 겹친다.
+  playSfx(SFX.COMBO);
+  if (mult > prevMult) playSfx(SFX.COMBO_TIER);
+
   const mb = config.combo.killMb * mult;
   state.uploaded += mb;
   state.stats.killMb += mb;
