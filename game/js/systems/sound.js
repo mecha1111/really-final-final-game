@@ -183,21 +183,30 @@ const pools = {};
 //   체감이 묻히거나 끊기는 것처럼 들릴 수 있다 — 그 부담 자체를 상한으로 없앤다.
 //   중요한 소리는 이 상한 풀에 아예 들어가지 않으므로 그 영향을 원천적으로 안 받는다.
 const IMPORTANT_SFX = new Set(); // initSound 이후 SFX 값으로 채운다(아래)
-// 2026-08-24 상향(16→28): 몬스터가 몰린 상태에서 연타로 여러 마리를 빠르게 처치하면
-// 짧은 시간 안에 처치음·콤보·피격음이 한꺼번에 겹쳐 16개를 순식간에 채웠다 — 그러면
-// 정작 "지금 막 잡았다"는 처치음 자체가 상한에 걸려 먹히는 게 체감됐다("연타 처치
-// 시 소리가 한 번씩 안 남"). 28은 평범한 플레이에선 여전히 절대 안 걸리는 값이면서,
-// 실제 폭주 상황(콤보 연속킬+과밀 글리치가 겹치는 극단)에도 처치음이 밀려나기 전에
-// 훨씬 더 많은 여유를 준다.
-const MAX_ACTIVE_MINOR = 28;
+const MAX_ACTIVE_MINOR = 28; // 평범한 플레이에선 절대 안 걸리는, 처치음을 뺀 나머지용 상한
 
-// 그래도 상한에 닿는 진짜 극단적인 순간엔 "처치음(kill 계열)"부터 지켜야 한다 —
-// 처치했다는 확인음이 안 들리면 손맛 자체가 흔들린다. 등장음·경고음처럼 덜
-// 치명적인 것들을 먼저 내주고, 처치음은 최후의 보루로 남긴다(evictOldestMinor 참고).
+// 2026-08-25: 처치음(kill 계열)을 상한 풀에서 완전히 빼낸다 — IMPORTANT_SFX와
+// 똑같이 "이 파일의 그 무엇도 다시 안 건드리는" 취급으로 승격했다.
+//
+// ★ 왜 "우선순위 보호"만으로는 부족했나: 예전엔 activeMinor 안에 그대로 두고
+//   evictOldestMinor()가 "가장 오래된 비-처치음부터" 정리하게만 해뒀다. 그런데
+//   콤보 연속킬처럼 짧은 시간에 처치음만 28개(상한) 넘게 몰리면 — 흔한 상황이다,
+//   처치음 하나가 ~1초짜리라 채 안 끝난 게 계속 쌓인다 — 보호 대상 자체가 상한을
+//   넘겨버리니 "가장 오래된 처치음"부터 정리 대상이 됐다. 실측(합성 40연타)으로
+//   확인: 40개 중 12개가 시작 15~35ms 만에 강제 페이드아웃-정지됐다 — 시작은
+//   했지만 거의 안 들리게 잘린 것이라, 사용자에게는 "처치음이 한 번씩 안 난다"로
+//   들렸다. 상한 안에서의 우선순위로는 "상한 자체를 넘는 폭주"를 못 막는다.
+//
+// ★ 상한 없이 둬도 괜찮은 이유: 처치음은 ~1초짜리로 스스로 곧 끝난다(무한정
+//   쌓이는 종류가 아니다 — 볼륨 자동화 이벤트가 무한히 쌓이던 그 버그와는 성격이
+//   다르다, 그건 별도로 고쳐졌다). 콤보 연속킬이 아무리 빨라도 사람 손이나
+//   게임 로직이 낼 수 있는 처치 속도는 초당 수십 회를 못 넘으므로, 동시에
+//   떠 있는 처치음 소스 수는 자연히 자기 제한된다.
+//
 // enemies/Enemy.js의 KILL_SFX 표(종류별 고유 처치음)와 정확히 같은 집합이어야
 // 한다 — 표에 새 종류가 늘면 여기도 같이 늘려야 그 처치음도 보호받는다.
-// POPUP_WRONG은 처치가 아니라 "틀렸다" 오답음이라 여기 안 넣는다.
-const PRIORITY_MINOR_SFX = new Set([
+// POPUP_WRONG은 처치가 아니라 "틀렸다" 오답음이라 여기 안 넣는다(상한 대상 그대로).
+const KILL_SFX_NAMES = new Set([
   SFX.KILL_SOFT,
   SFX.KILL_HARD,
   SFX.KILL_CLONE,
@@ -207,23 +216,15 @@ const PRIORITY_MINOR_SFX = new Set([
   SFX.KILL_BOMB,
 ]);
 
-/** 지금 재생 중인 "중요하지 않은" 소리들 — 오래된 순서(push만 하고 앞에서 뺀다).
- *  {src, gain, priority} — evict할 때 gain을 짧게 0으로 내린 뒤 멈춰야 "뚝" 끊기는
- *  클릭음이 안 난다(끝까지 놔둔 채 그냥 stop()하면 그 순간 파형이 갑자기 잘려
- *  클릭이 난다). priority(=처치음 계열)는 아래 evictOldestMinor가 최대한 건너뛴다. */
+/** 지금 재생 중인 "중요하지도, 처치음도 아닌" 소리들(콤보·피격·등장·경고 등) —
+ *  오래된 순서(push만 하고 앞에서 뺀다). {src, gain} — evict할 때 gain을 짧게
+ *  0으로 내린 뒤 멈춰야 "뚝" 끊기는 클릭음이 안 난다(끝까지 놔둔 채 그냥
+ *  stop()하면 그 순간 파형이 갑자기 잘려 클릭이 난다). */
 const activeMinor = [];
 
-/**
- * 상한을 넘겼을 때 하나를 짧게 페이드아웃하며 정리한다.
- * "가장 오래된 것"이 아니라 "가장 오래된 비-처치음"을 먼저 고른다 — 처치음이
- * 배열 앞쪽(=먼저 시작한 쪽)에 몰려 있어도 뒤쪽 등장음·경고음이 대신 정리된다.
- * 전부 처치음뿐인 극단(=이미 처치음만으로 28개를 채운 경우)에는 그때는 정말
- * 가장 오래된 처치음 하나를 정리한다 — 안 그러면 상한 자체가 무의미해진다.
- */
+/** 상한을 넘겼을 때 가장 오래된 하나를 짧게 페이드아웃하며 정리한다. */
 function evictOldestMinor() {
-  let idx = activeMinor.findIndex((e) => !e.priority);
-  if (idx === -1) idx = 0;
-  const [oldest] = activeMinor.splice(idx, 1);
+  const oldest = activeMinor.shift();
   if (!oldest) return;
   const now = ctx.currentTime;
   try {
@@ -436,7 +437,7 @@ export function initSound() {
       volume: sfxVolume,
       activeMinorCount: () => activeMinor.length,
       isImportant: (name) => IMPORTANT_SFX.has(name),
-      isPriorityMinor: (name) => PRIORITY_MINOR_SFX.has(name),
+      isKillSfx: (name) => KILL_SFX_NAMES.has(name),
       // 지연 진단용 — 콘솔에서 __sfx.latency()로 바로 확인할 수 있게.
       latency: () => ({
         baseLatency: ctx.baseLatency, // 하드웨어 왕복 지연(초) — latencyHint가 낮출 수 있는 값
@@ -509,17 +510,18 @@ export function playSfx(name, opts) {
   src.connect(g);
   g.connect(masterGain);
 
-  // 중요한 소리(IMPORTANT_SFX)는 여기서 끝 — 추적도, 상한도 안 걸린다. 한 번
-  // start()하면 이 파일의 그 무엇도 이 소스를 다시 건드리지 않으므로 반드시
-  // 끝까지 튼다. 나머지("minor")만 activeMinor로 추적해 상한을 지킨다.
-  if (IMPORTANT_SFX.has(name)) {
+  // 중요한 소리(IMPORTANT_SFX)와 처치음(KILL_SFX_NAMES)은 여기서 끝 — 추적도,
+  // 상한도 안 걸린다. 한 번 start()하면 이 파일의 그 무엇도 이 소스를 다시
+  // 건드리지 않으므로 반드시 끝까지 튼다. 나머지("minor")만 activeMinor로
+  // 추적해 상한을 지킨다.
+  if (IMPORTANT_SFX.has(name) || KILL_SFX_NAMES.has(name)) {
     src.start(0);
     return;
   }
 
   if (activeMinor.length >= MAX_ACTIVE_MINOR) evictOldestMinor();
 
-  const entry = { src, gain: g, priority: PRIORITY_MINOR_SFX.has(name) };
+  const entry = { src, gain: g };
   activeMinor.push(entry);
   src.onended = () => {
     const i = activeMinor.indexOf(entry);
