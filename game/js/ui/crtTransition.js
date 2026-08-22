@@ -67,6 +67,32 @@ export function getCrtShakeOffset(now) {
 let prevPhase = null;
 
 /**
+ * 상시 CRT 오버레이(레이어9, style.css의 .layer-crt-steady)용 값을 다시 흘려보낸다.
+ * config.crt.intensity가 가리키는 프리셋을 --crt-* CSS 변수로 내려보내고,
+ * config.crt.enabled를 #desktop의 .crt-off 클래스로 반영한다(꺼져 있으면
+ * style.css가 오버레이와 블룸 필터를 둘 다 끈다).
+ *
+ * init에서 한 번, 그리고 설정 팝업(ui/settingsPanel.js)에서 사용자가 CRT
+ * 체크박스/강도 라디오를 바꿀 때마다 다시 불린다 — "실시간 반영" 요구사항이
+ * 이 함수 하나 재호출로 끝나는 이유다(값을 CSS 변수 하나에 흘려보내는 방식이라
+ * 매 프레임 다시 밀 필요가 없다, 위 initCrtTransition 옛 주석과 같은 이유).
+ */
+export function applyCrtSteadyVars() {
+  const preset = config.crt.intensityPresets[config.crt.intensity] ?? config.crt.intensityPresets.mid;
+  const root = document.documentElement.style;
+  root.setProperty('--crt-scanline-opacity', preset.scanlineOpacity);
+  root.setProperty('--crt-scanline-gap', `${preset.scanlineGapPx}px`);
+  root.setProperty('--crt-vignette-px', `${preset.vignettePx}px`);
+  root.setProperty('--crt-vignette-opacity', preset.vignetteOpacity);
+  root.setProperty('--crt-curve-radius', `${preset.curveRadiusPx}px`);
+  root.setProperty('--crt-bloom-saturate', preset.bloomSaturate);
+  root.setProperty('--crt-bloom-contrast', preset.bloomContrast);
+  root.setProperty('--crt-bloom-brightness', preset.bloomBrightness);
+
+  document.getElementById('desktop')?.classList.toggle('crt-off', !config.crt.enabled);
+}
+
+/**
  * 최초 1회. config.crt.durationMs를 CSS 변수(--crt-duration)로 내려보낸다 — 재생시간을
  * config 한 곳에서만 바꿀 수 있게 하려는 것. style.css의 @keyframes(.layer-crt 쪽)는
  * 전부 이 변수를 참조한다. 흔들림 세기(shakeAmpPx)는 CSS가 아니라 getCrtShakeOffset이
@@ -74,18 +100,7 @@ let prevPhase = null;
  */
 export function initCrtTransition() {
   document.documentElement.style.setProperty('--crt-duration', `${config.crt.durationMs}ms`);
-
-  // 상시 CRT 오버레이(레이어9, style.css의 .layer-crt-steady)용 정적 값들.
-  // 매 프레임 갱신할 이유가 없다 — config가 안 바뀌는 한 그대로다.
-  const root = document.documentElement.style;
-  root.setProperty('--crt-scanline-opacity', config.crt.scanlineOpacity);
-  root.setProperty('--crt-scanline-gap', `${config.crt.scanlineGapPx}px`);
-  root.setProperty('--crt-vignette-px', `${config.crt.vignettePx}px`);
-  root.setProperty('--crt-vignette-opacity', config.crt.vignetteOpacity);
-  root.setProperty('--crt-curve-radius', `${config.crt.curveRadiusPx}px`);
-  root.setProperty('--crt-bloom-saturate', config.crt.bloomSaturate);
-  root.setProperty('--crt-bloom-contrast', config.crt.bloomContrast);
-  root.setProperty('--crt-bloom-brightness', config.crt.bloomBrightness);
+  applyCrtSteadyVars();
 
   // 깜빡임/롤링바 — 기본 꺼짐. 켜져 있으면(config.crt.flickerEnabled) 클래스만
   // 붙여둔다 — 실제 애니는 style.css의 .crt-flicker-on 스코프 안에만 있다.

@@ -46,6 +46,20 @@ export const state = {
 
   pointer: { x: 0, y: 0 },
 
+  // === 설정 팝업(ui/settingsPanel.js) ===
+  // true인 동안 main.js의 루프가 update(dt)/updateParticles(dt)를 통째로 건너뛴다
+  // (일시정지) — phase는 안 건드린다. 열려 있던 phase 그대로 돌아온다.
+  settingsOpen: false,
+  // 사운드는 아직 구현이 없다 — 슬라이더 값만 여기 보관해뒀다가 나중에 실제
+  // 볼륨 붙일 때 이 셋을 그대로 읽으면 된다. localStorage는 안 쓴다(Verse8
+  // iframe/artifact 환경에서 못 쓰거나 세션마다 초기화될 수 있어 기대를
+  // 못 지킨다 — 어차피 사운드가 없으니 세션을 넘어 기억할 값도 없다).
+  settings: {
+    soundMaster: 100,
+    soundSfx: 100,
+    soundBgm: 100,
+  },
+
   blocked: false, // A타입 때문에 업로드가 멈춰 있나
   blockedBy: [],
   attackWarning: false, // 예비동작 중인 방해꾼이 있나(곧 얻어맞는다)

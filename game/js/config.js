@@ -562,25 +562,43 @@ export const config = {
     shakeAmpPx: 10,
 
     // === 상시 CRT 오버레이(레이어9, playing 내내) — 위 durationMs/shakeAmpPx(전환
-    // "킥")와는 별개다. "중(권장)" 세팅 기본값. ui/crtTransition.js의
-    // initCrtTransition()이 이 값들을 --crt-* CSS 변수로 한 번만 흘려보내고,
-    // 실제 그림은 style.css(.layer-crt-steady)가 그린다 — 정적 값이라 매 프레임
-    // 다시 흘려보낼 필요가 없다.
-    // 주사선 진하기(0~1)와 간격(px).
-    scanlineOpacity: 0.22,
-    scanlineGapPx: 3,
-    // 비네트 — 가장자리가 어두워지는 번짐 폭(px)과 진하기(0~1).
-    vignettePx: 90,
-    vignetteOpacity: 0.4,
-    // 모서리 곡률 인상(px). 실제 좌표 왜곡이 전혀 없는 순수 장식(둥근 모서리)이라
-    // 방해꾼 클릭 위치와는 무관하다 — 과하게 느껴지면 0으로 꺼도 된다.
-    curveRadiusPx: 28,
-    // 빛번짐(블룸) — #desktop 전체에 거는 CSS filter 값(채도/대비/밝기).
-    bloomSaturate: 1.25,
-    bloomContrast: 1.08,
-    bloomBrightness: 1.04,
-    // 깜빡임/롤링바 — 기본 꺼짐. 전용 설정 UI가 없어(title의 "설정" 버튼은 훅만
-    // 비어있다) 지금은 여기 값으로만 켠다.
+    // "킥")와는 별개다. ui/crtTransition.js의 applyCrtSteadyVars()가 아래
+    // intensityPresets[intensity]의 값들을 --crt-* CSS 변수로 흘려보내고,
+    // 실제 그림은 style.css(.layer-crt-steady)가 그린다.
+    //
+    // ★ enabled/intensity 둘 다 "지금 켜진 실시간 값"이다 — ui/settingsPanel.js가
+    //   설정 팝업의 체크박스/라디오에서 이 값을 직접 고치고, 고칠 때마다
+    //   applyCrtSteadyVars()를 다시 불러 바로 반영한다(debug.js가 슬라이더로
+    //   rules를 직접 덮어쓰는 것과 같은 패턴). 기본값 복원(설정 팝업의
+    //   "기본값 복원")은 이 둘을 true/'mid'로 되돌린다.
+    enabled: true,
+    intensity: 'mid', // 'weak' | 'mid' | 'strong' — 아래 intensityPresets의 키
+
+    // 강도별 프리셋. mid가 예전부터 쓰던 "중(권장)" 세팅 그 숫자 그대로다 —
+    // 설정을 한 번도 안 건드린 사람은 화면이 예전과 똑같아야 한다.
+    intensityPresets: {
+      weak: {
+        scanlineOpacity: 0.12, scanlineGapPx: 4,
+        vignettePx: 60, vignetteOpacity: 0.22,
+        curveRadiusPx: 20,
+        bloomSaturate: 1.1, bloomContrast: 1.03, bloomBrightness: 1.02,
+      },
+      mid: {
+        scanlineOpacity: 0.22, scanlineGapPx: 3,
+        vignettePx: 90, vignetteOpacity: 0.4,
+        curveRadiusPx: 28,
+        bloomSaturate: 1.25, bloomContrast: 1.08, bloomBrightness: 1.04,
+      },
+      strong: {
+        scanlineOpacity: 0.34, scanlineGapPx: 2,
+        vignettePx: 130, vignetteOpacity: 0.55,
+        curveRadiusPx: 34,
+        bloomSaturate: 1.45, bloomContrast: 1.14, bloomBrightness: 1.07,
+      },
+    },
+
+    // 깜빡임/롤링바 — 기본 꺼짐. 설정 팝업에도 없는 항목이라(요구사항 3개
+    // 항목 밖) 여전히 이 값으로만 켠다.
     flickerEnabled: false,
   },
 };

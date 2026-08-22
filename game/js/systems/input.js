@@ -9,6 +9,7 @@ import { registerKill, registerMiss } from './combo.js';
 import { pointInRect } from '../ui/draw.js';
 import { getStartButton, getRestartButton } from '../ui/screens.js';
 import { handleDebugKey, debugState } from '../debug.js';
+import { handleSettingsKey } from '../ui/settingsPanel.js';
 import { clientToWorld, worldToClient, getCanvasGeometry } from '../ui/canvasGeometry.js';
 
 // pointerdown에서 "방해꾼을 못 맞혀 아래로 흘려보낸" 대상. 이어서 오는 click을
@@ -279,6 +280,18 @@ function onCanvasClick(evt) {
 }
 
 function onKeyDown(evt) {
+  // ESC는 항상 가장 먼저 본다 — 설정 팝업이 열려 있든 닫혀 있든 이 한 줄이
+  // 최종 결정권을 가져야 "닫히긴 하는데 다른 키도 같이 먹힌다" 같은 꼬임이 없다.
+  if (handleSettingsKey(evt.code)) {
+    evt.preventDefault();
+    return;
+  }
+  // 설정 팝업이 열린 동안은 일시정지 중이다 — D/H 같은 디버그 키까지 포함해서
+  // 나머지 단축키를 전부 막는다(특히 S: 열어놓은 채로 건너뛰기가 몰래 발동하면
+  // 안 된다). 캔버스 클릭은 이미 .layer-settings(z11)가 캔버스(z5)보다 물리적으로
+  // 위에서 가로채므로(ui/settingsPanel.js 상단 주석) 여기 키보드 쪽만 막아주면 된다.
+  if (state.settingsOpen) return;
+
   if (handleDebugKey(evt.code)) {
     evt.preventDefault();
     return;

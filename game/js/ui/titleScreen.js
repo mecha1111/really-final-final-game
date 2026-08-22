@@ -2,6 +2,7 @@
 // 배경·로고 애니(floaty, hover 확대)는 순수 CSS(style.css)라 여기선 클릭 훅만 담당한다.
 
 import { startGame } from '../core/stageManager.js';
+import { openSettings } from './settingsPanel.js';
 
 /** 최초 1회. 타이틀 화면 버튼에 핸들러를 붙인다. */
 export function initTitleScreen() {
@@ -15,8 +16,9 @@ export function initTitleScreen() {
     startGame(0);
   });
 
-  // 설정창은 아직 없다. 훅만 비워둔다 — 나중에 설정 모듈이 생기면 여기서 연결.
-  document.getElementById('title-btn-settings')?.addEventListener('click', () => {});
+  document.getElementById('title-btn-settings')?.addEventListener('click', () => {
+    openSettings();
+  });
 
   // Verse8 iframe 배포본에서는 window.close()가 무효다(스크립트가 열지 않은 창은
   // 못 닫는다) — 종료 프로토콜을 새로 만들지 않고, 게임 전체의 "안 닫히는 창" 개그

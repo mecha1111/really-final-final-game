@@ -594,6 +594,90 @@ body {
 }
 
 /* ---------------------------------------------------------------------------
+   ===== 설정 팝업 (레이어11, 전부보다 위) =====
+   ui/settingsPanel.js가 state.settingsOpen을 보고 .open만 토글한다 — phase와
+   무관하게 열고 닫힌다(playing 중에는 main.js의 루프가 시뮬레이션을 건너뛰어
+   일시정지, title/select/cleared에선 애초에 시뮬레이션이 없어 이 토글만으로 충분).
+   톤은 상태.dat/업로드 창(.win/.tbar/.grp)과 같은 XP Luna 문법을 그대로 쓰되,
+   그 규칙이 "#desktop .win" 식으로 스코프돼 있어 그대로 재사용은 못 하므로(이
+   모달은 클래스가 다르다) 같은 색·굵기를 새 셀렉터로 다시 선언한다.
+   --------------------------------------------------------------------------- */
+#desktop .layer-settings {
+  position: absolute; inset: 0; z-index: 11;
+  display: none; /* 기본 숨김 — .open이 붙어야 보인다 */
+  align-items: center; justify-content: center;
+  background: rgba(10, 14, 30, 0.55); /* 뒤 dim */
+  pointer-events: none; /* 안 열려 있으면 클릭도 완전히 투명 */
+}
+#desktop .layer-settings.open { display: flex; pointer-events: auto; }
+
+#desktop .settings-modal {
+  width: 640px; max-height: 86vh; overflow-y: auto;
+  background: #ece9d8; border: 1px solid #003c9d; border-radius: 8px;
+  box-shadow: 0 0 0 1px #0054e3, 6px 6px 0 rgba(0, 0, 0, 0.3), 14px 20px 40px rgba(0, 0, 0, 0.45);
+}
+/* 제목바 — win-status/win-upload의 .tbar와 완전히 같은 그라디언트(재사용, 새 선언). */
+#desktop .settings-modal .tbar {
+  height: 48px; background: linear-gradient(180deg, #3c91f2 0, #177bea 6%, #0f66d8 50%, #1a72e0 92%, #0f5fc8 100%);
+  display: flex; align-items: center; gap: 8px; padding: 0 10px 0 14px;
+}
+#desktop .settings-modal .tbar .ico { font-size: 20px; }
+#desktop .settings-modal .tbar .t { color: #fff; font-size: 22px; flex: 1; text-shadow: 1px 1px 0 rgba(0, 0, 0, 0.5); }
+#desktop .settings-modal .tbar .wb .x {
+  width: 32px; height: 28px; border: 1px solid #fff; color: #fff; font-size: 16px; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  background: linear-gradient(180deg, #f2724d, #d1330f); border-radius: 3px;
+}
+#desktop .settings-modal .tbar .wb .x:hover { filter: brightness(1.1); }
+
+#desktop .settings-body { padding: 18px 22px; display: flex; flex-direction: column; gap: 18px; }
+#desktop .settings-sec { border: 2px solid #a9a488; background: #fff; padding: 14px 16px; }
+#desktop .settings-sec-h { font-size: 19px; color: #0a327a; margin-bottom: 10px; }
+
+#desktop .settings-row {
+  display: flex; align-items: center; gap: 10px; font-size: 16px; color: #111; margin-bottom: 8px;
+}
+#desktop .settings-row:last-of-type { margin-bottom: 0; }
+#desktop .settings-row label { width: 92px; flex-shrink: 0; }
+#desktop .settings-row input[type='range'] { flex: 1; accent-color: #0f5fc8; }
+#desktop .settings-row output { width: 34px; text-align: right; color: #0a327a; }
+#desktop .settings-row-check label { width: auto; margin-right: auto; }
+#desktop .settings-row input[type='checkbox'] { width: 20px; height: 20px; accent-color: #0f5fc8; cursor: pointer; }
+#desktop .settings-row input[type='checkbox']:disabled { cursor: not-allowed; opacity: 0.5; }
+
+#desktop .settings-radiorow { gap: 16px; }
+#desktop .settings-radiorow-label { width: 92px; flex-shrink: 0; }
+#desktop .settings-radiorow label { width: auto; display: flex; align-items: center; gap: 4px; cursor: pointer; }
+#desktop .settings-radiorow input[type='radio'] { accent-color: #0f5fc8; cursor: pointer; }
+#desktop .settings-radiorow input:disabled,
+#desktop .settings-radiorow input:disabled + * { cursor: not-allowed; opacity: 0.5; }
+
+#desktop .settings-hint { font-size: 13px; color: #888; margin-top: 8px; }
+
+#desktop .settings-controls { margin: 0; padding-left: 4px; list-style: none; display: flex; flex-direction: column; gap: 6px; }
+#desktop .settings-controls li { font-size: 16px; color: #333; }
+#desktop .settings-controls b { color: #0a327a; }
+
+#desktop .settings-footer {
+  display: flex; gap: 12px; padding: 16px 22px; border-top: 2px solid #c9c5b0; justify-content: flex-end;
+}
+#desktop .settings-btn {
+  font-family: 'DGM', 'Galmuri11', monospace; font-size: 16px; padding: 8px 18px;
+  background: linear-gradient(180deg, #fff, #cfcbb2); border: 2px solid #111; cursor: pointer;
+}
+#desktop .settings-btn:hover { filter: brightness(1.05); }
+#desktop .settings-btn:active { transform: translate(1px, 1px); }
+#desktop .settings-btn-primary { background: linear-gradient(180deg, #ffd966, #ffcf3f); }
+
+/* CRT를 껐을 때(설정에서 "CRT 효과" 체크 해제) — config.crt.enabled=false를
+   ui/crtTransition.js의 applyCrtSteadyVars()가 이 클래스로 반영한다. 상시
+   오버레이(레이어9)와 블룸 필터 둘 다 여기서 끈다. 두 셀렉터 다 이미 있는
+   규칙(#desktop.phase-playing .layer-crt-steady / #desktop.phase-playing)보다
+   클래스가 하나 더 많아 자동으로 우선한다 — !important 불필요. */
+#desktop.crt-off .layer-crt-steady { display: none; }
+#desktop.crt-off.phase-playing { filter: none; }
+
+/* ---------------------------------------------------------------------------
    ===== 방해꾼 과밀 지지직 (레이어7) =====
    systems/overload.js가 매 프레임 --ovl-level(전체 세기)과 --ovl-split(색수차 폭)만
    흘려보낸다. 임계 밑이면 --ovl-level이 0이라 통째로 안 보이고, 애니메이션도 없다.

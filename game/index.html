@@ -291,6 +291,76 @@
         <div class="crt-line"></div>
         <div class="crt-jitter"></div>
       </div>
+
+      <!-- 설정 팝업(레이어11, 전부보다 위). phase와 무관하게 ui/settingsPanel.js가
+           state.settingsOpen만 보고 .open을 토글한다(ESC/타이틀 "설정" 버튼 둘 다
+           같은 진입점). 열려있는 동안 systems/upload 등 시뮬레이션 자체를
+           main.js의 루프가 건너뛴다(일시정지) — 여기 백드롭은 그 위에서
+           pointer-events:auto로 클릭을 물리적으로 가로채 방해꾼이 안 눌리게 한다
+           (클릭 통과 로직 없이 그냥 캔버스보다 물리적으로 위에 있으면 된다,
+           .layer-title과 같은 원리). -->
+      <div class="layer-settings" id="layer-settings">
+        <div class="settings-modal">
+          <div class="tbar">
+            <div class="ico">⚙</div>
+            <div class="t">설정</div>
+            <div class="wb"><span class="x" id="settings-close">×</span></div>
+          </div>
+          <div class="settings-body">
+            <section class="settings-sec">
+              <div class="settings-sec-h">🔊 사운드</div>
+              <div class="settings-row">
+                <label for="set-sound-master">마스터</label>
+                <input type="range" id="set-sound-master" min="0" max="100" step="1" />
+                <output id="set-sound-master-out">100</output>
+              </div>
+              <div class="settings-row">
+                <label for="set-sound-sfx">효과음</label>
+                <input type="range" id="set-sound-sfx" min="0" max="100" step="1" />
+                <output id="set-sound-sfx-out">100</output>
+              </div>
+              <div class="settings-row">
+                <label for="set-sound-bgm">배경음</label>
+                <input type="range" id="set-sound-bgm" min="0" max="100" step="1" />
+                <output id="set-sound-bgm-out">100</output>
+              </div>
+              <div class="settings-hint">사운드는 아직 없어요 — 값만 저장해뒀다가 나중에 붙일게요.</div>
+            </section>
+
+            <section class="settings-sec">
+              <div class="settings-sec-h">🖥 화면</div>
+              <div class="settings-row settings-row-check">
+                <label for="set-crt-on">CRT 효과</label>
+                <input type="checkbox" id="set-crt-on" />
+              </div>
+              <div class="settings-row settings-radiorow" id="set-crt-intensity-row">
+                <span class="settings-radiorow-label">강도</span>
+                <label><input type="radio" name="set-crt-intensity" value="weak" /> 약</label>
+                <label><input type="radio" name="set-crt-intensity" value="mid" /> 중</label>
+                <label><input type="radio" name="set-crt-intensity" value="strong" /> 강</label>
+              </div>
+              <div class="settings-row settings-row-check">
+                <label for="set-fullscreen">전체화면</label>
+                <input type="checkbox" id="set-fullscreen" />
+              </div>
+            </section>
+
+            <section class="settings-sec">
+              <div class="settings-sec-h">🎮 조작법</div>
+              <ul class="settings-controls">
+                <li><b>마우스 클릭</b> — 처치</li>
+                <li><b>S</b> — 건너뛰기</li>
+                <li><b>ESC</b> — 설정</li>
+              </ul>
+            </section>
+          </div>
+          <div class="settings-footer">
+            <button type="button" class="settings-btn settings-btn-primary" id="settings-resume">계속하기</button>
+            <button type="button" class="settings-btn" id="settings-title">메인으로</button>
+            <button type="button" class="settings-btn" id="settings-reset">기본값 복원</button>
+          </div>
+        </div>
+      </div>
       </div>
     </div>
 

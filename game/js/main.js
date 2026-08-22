@@ -15,6 +15,7 @@ import { initDesktop, syncDesktopPhase } from './ui/desktop.js';
 import { initTitleScreen } from './ui/titleScreen.js';
 import { initBsodScreen, updateBsodScreen } from './ui/bsodScreen.js';
 import { initCrtTransition, syncCrtTransition } from './ui/crtTransition.js';
+import { initSettingsPanel } from './ui/settingsPanel.js';
 import { updateStatusWindows } from './ui/statusWindow.js';
 import { initUploadPicture, updateUploadPicture } from './ui/uploadPicture.js';
 import { initDebugPanel, bindRules, updateDebugStats } from './debug.js';
@@ -101,6 +102,7 @@ async function main() {
   initBsodScreen(); // 실패 화면(BSOD) 버튼(재도전/로비/나가기)
   initUploadPicture(); // 완료 연출(반짝+팝+라벨) CSS 변수 세팅
   initCrtTransition(); // 화면 전환 CRT 킥 — config.crt.durationMs를 CSS 변수로 내려보낸다
+  initSettingsPanel(); // ESC 설정 팝업(사운드값 저장/CRT 실시간 토글/전체화면)
   initDebugPanel();
   exposeDebugHandle();
   initReloadButton(async () => {
@@ -110,6 +112,11 @@ async function main() {
 
   startLoop({
     update: (dt) => {
+      // ★ 설정 팝업이 열려 있으면 완전히 멈춘다(일시정지) — 히트스톱과 같은 자리에
+      //   같은 방식으로 걸었다: 그리기(render)는 계속 돌아서 멈춘 화면이 그대로
+      //   보이고, 갱신만 건너뛴다. floats/juice까지 전부 여기서 같이 멈춘다.
+      if (state.settingsOpen) return;
+
       // ★ 히트스톱 — 처치 순간 아주 잠깐 월드를 통째로 멈춘다(타격감의 핵심).
       //   멈추는 건 "갱신"뿐이고 그리기는 계속 돌아간다. 그래야 멈춘 그 화면이
       //   실제로 눈에 보인다(안 그리면 그냥 프레임이 끊긴 것과 구분이 안 된다).
