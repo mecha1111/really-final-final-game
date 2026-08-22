@@ -53,6 +53,11 @@
   /* bait 화질 복구 경계선의 지지직 스캔라인 */
   --color-bait-glitch: #eaffff;
 
+  /* 처치 순간 터지는 조각. 방해꾼이 전부 "검은 펜선 낙서" 톤이라 조각도 잉크색으로
+     둔다 — 흰색으로 두면 밝은 Bliss 배경(하늘/잔디) 위에서 잘 안 보이고, 같은
+     순간 터지는 흰 번쩍임과 뭉쳐서 한 덩어리로 보인다(실측 스샷으로 확인). */
+  --color-kill-particle: #12161f;
+
   /* 뜬 글씨 (+60MB / -10%) */
   --color-float-plus: #44ff88;
   --color-float-minus: #ff4d4d;

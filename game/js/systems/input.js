@@ -152,6 +152,12 @@ function hitTestEnemies(pt) {
   for (let i = state.enemies.length - 1; i >= 0; i--) {
     const enemy = state.enemies[i];
 
+    // ★ 죽은 놈은 건너뛴다. 죽고도 잠깐 화면에 남는 시체(corpseTimer — basic의 죽음
+    //   프레임, 그리고 처치 팝 연출)가 그 자리의 클릭을 통째로 삼켜서, 뒤에 겹쳐 있던
+    //   멀쩡한 방해꾼을 못 누르게 만든다. takeHit()이 이미 죽은 놈에겐 아무 일도
+    //   안 하므로(kill이 alive 가드로 막는다) 클릭만 사라지고 아무 반응이 없다.
+    if (!enemy.alive) continue;
+
     if (enemy.closeButton) {
       // popup류: 창 안에 그려진 닫기 버튼만 죽인다(위치는 config.enemy.closeButtonOffset*).
       // 몸통은 흔들리기만 하고 클릭을 소비한다.

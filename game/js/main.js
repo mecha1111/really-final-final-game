@@ -6,6 +6,7 @@ import { buildAssetKeys } from './sprite/animator.js';
 import { state } from './core/state.js';
 import { startLoop } from './core/gameLoop.js';
 import { update, getPlayArea, startGame } from './core/stageManager.js';
+import { consumeHitStop, updateParticles, clearJuice } from './systems/juice.js';
 import { initInput } from './systems/input.js';
 import { render } from './ui/render.js';
 import { initReloadButton } from './ui/screens.js';
@@ -104,7 +105,15 @@ async function main() {
   });
 
   startLoop({
-    update,
+    update: (dt) => {
+      // ★ 히트스톱 — 처치 순간 아주 잠깐 월드를 통째로 멈춘다(타격감의 핵심).
+      //   멈추는 건 "갱신"뿐이고 그리기는 계속 돌아간다. 그래야 멈춘 그 화면이
+      //   실제로 눈에 보인다(안 그리면 그냥 프레임이 끊긴 것과 구분이 안 된다).
+      if (consumeHitStop(dt)) return;
+      update(dt);
+      // 터진 조각은 게임 규칙과 무관한 순수 연출이라 stageManager 밖에서 돈다.
+      updateParticles(dt);
+    },
     render: (now) => {
       render({ ctx, canvas, state, gameData, now });
       // HUD는 이제 HTML 창이다 — 캔버스를 그린 뒤 같은 프레임에 값만 흘려 넣는다.

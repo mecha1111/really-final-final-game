@@ -4,6 +4,7 @@ import { config, getScaleFactor, parseSpecialEffect } from '../config.js';
 import { PATTERN_KIND, initMovement, moveEnemy, bounceInside } from './behaviors.js';
 import { hitRect, bodyRect, closeButtonRect, artRect, rectContains, inflateToMin } from './hitbox.js';
 import { initEntrance, updateEntrance } from './entrance.js';
+import { burstOnKill } from '../systems/juice.js';
 import { pickBasicVariant, pickAbVariant, FRAME_SETS } from '../sprite/animator.js';
 
 export class Enemy {
@@ -49,6 +50,8 @@ export class Enemy {
 
     this.alive = true;
     this.deathReason = null;
+    // 죽은 뒤 흐른 시간(초). 처치 팝/흰 번쩍임 진행도가 전부 이 값 기준이다.
+    this.deathAge = 0;
     this.hitFlash = 0;
     this.shakeTimer = 0;
 
@@ -163,6 +166,7 @@ export class Enemy {
       // 그 사이엔 움직이거나 공격하지 않고 그냥 시간만 깎는다. 실제로 배열에서
       // 치우는 건 core/stageManager.js의 processDeaths가 corpseTimer<=0일 때 한다.
       this.corpseTimer = Math.max(0, this.corpseTimer - dt);
+      this.deathAge += dt; // 처치 팝(부풀며 사라지기)이 이 시간으로 진행된다
       return;
     }
 
@@ -253,8 +257,23 @@ export class Enemy {
     if (!this.alive) return;
     this.alive = false;
     this.deathReason = reason;
-    // basic 클릭사망만 dead 프레임을 잠깐 보여주고 치운다 — 그 외 타입은 기존처럼 즉시 치워진다.
-    this.corpseTimer = reason === 'clicked' && this.id === 'basic' ? config.anim.basicDeathLingerSec : 0;
+    this.deathAge = 0;
+
+    // basic 클릭사망만 dead 프레임을 잠깐 보여주고 치운다.
+    const basicLinger = reason === 'clicked' && this.id === 'basic' ? config.anim.basicDeathLingerSec : 0;
+
+    if (reason === 'clicked') {
+      // 클릭으로 잡았을 때만 타격감을 준다 — 수명만료(expired)나 copier 자폭
+      // (triggered)까지 터뜨리면 "잡았다"는 신호가 흐려지고 화면만 시끄러워진다.
+      // 팝이 끝날 때까지는 배열에 남아있어야 그 연출이 보인다(basic은 원래 더 길다).
+      this.corpseTimer = Math.max(basicLinger, config.enemy.kill.popSec);
+      burstOnKill(this.drawX, this.drawY);
+    } else {
+      this.corpseTimer = basicLinger;
+    }
+    // 옅어지는 진행도를 재려면 "원래 얼마였는지"가 있어야 한다. basic은 죽음 프레임을
+    // 오래(0.35s) 보여주고 나머지는 팝 길이(0.16s)만 남으므로 종류마다 다르다.
+    this.corpseTotal = this.corpseTimer;
   }
 
   /** 남은 수명 비율 0~1. 이벤트형은 이 시간 안에 커서에 못 닿으면 그냥 사라진다. */

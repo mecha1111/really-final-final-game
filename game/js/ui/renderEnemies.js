@@ -25,9 +25,23 @@ export function drawEnemy(ctx, e, showHitbox, now) {
   // ★ 등장 연출이 반영된 drawW/drawH/drawX/drawY에서 출발한다 — 판정(enemies/hitbox.js)도
   //   같은 게터를 읽으므로 연출 중에 그림과 히트박스가 갈라지지 않는다.
   //   punch/telegraph 흔들림은 그 위에 얹는 아주 짧은 순간 연출이라 예전처럼 그리기에만 건다.
+  // 처치 팝 — 클릭으로 잡았을 때만. 스프라이트가 확 부풀면서 옅어진다.
+  // 배율은 짧고 날카롭게(popSec), 투명도는 시체가 남는 시간 전체에 걸쳐 옅어진다
+  // (basic은 죽음 프레임을 더 오래 보여줘야 해서 둘의 길이가 다르다).
+  let killScale = 1;
+  let killAlpha = 1;
+  let whiteFlash = false;
+  if (!e.alive && e.deathReason === 'clicked') {
+    const k = config.enemy.kill;
+    const pop = k.popSec > 0 ? Math.min(1, e.deathAge / k.popSec) : 1;
+    killScale = 1 + (k.popScale - 1) * pop;
+    killAlpha = e.corpseTotal > 0 ? Math.max(0, e.corpseTimer / e.corpseTotal) : 1;
+    whiteFlash = e.deathAge < k.whiteFlashSec;
+  }
+
   const punch = 1 + config.enemy.hitPunch * flashRatio + config.enemy.atkTelegraphPunch * telegraph;
-  const w = e.drawW * punch;
-  const h = e.drawH * punch;
+  const w = e.drawW * punch * killScale;
+  const h = e.drawH * punch * killScale;
 
   const shakeX =
     shakeRatio > 0 ? Math.sin(shakeRatio * Math.PI * 6) * config.enemy.bodyShakeAmount * shakeRatio : 0;
@@ -38,10 +52,16 @@ export function drawEnemy(ctx, e, showHitbox, now) {
   const y = e.drawY + telegraphY - h / 2;
 
   ctx.save();
-  // 등장 연출의 투명도/블러(fade·print·blurIn). 연출이 끝나면 1/0이라 무해하다.
-  if (e.entAlpha < 1) ctx.globalAlpha = Math.max(0, e.entAlpha);
+  // 등장 연출의 투명도/블러(fade·print·blurIn)와 처치 팝의 투명도를 곱해서 건다.
+  // 연출이 없을 땐 둘 다 1이라 무해하다.
+  const alpha = Math.max(0, e.entAlpha) * killAlpha;
+  if (alpha < 1) ctx.globalAlpha = alpha;
   const blur = e.entBlurPx > 0.1 ? `blur(${e.entBlurPx.toFixed(2)}px)` : '';
-  if (flashRatio > 0) ctx.filter = `${blur} brightness(${1 + 1.6 * flashRatio})`.trim();
+  if (whiteFlash) {
+    // 죽은 첫 1~2프레임만 새하얀 실루엣으로. brightness(0)으로 색을 다 죽인 뒤
+    // invert로 흰색을 만든다 — 알파(모양)는 그대로 살아있어서 실루엣이 유지된다.
+    ctx.filter = `${blur} brightness(0) invert(1)`.trim();
+  } else if (flashRatio > 0) ctx.filter = `${blur} brightness(${1 + 1.6 * flashRatio})`.trim();
   else if (telegraph > 0) ctx.filter = `${blur} brightness(${1 + 0.5 * telegraph})`.trim();
   else if (blur) ctx.filter = blur;
 
@@ -111,6 +131,29 @@ function drawEnemyGauges(ctx, e) {
       px += dot + gap;
     }
   }
+}
+
+/**
+ * 처치 순간 사방으로 튀는 조각들(systems/juice.js가 관리하는 state.particles).
+ * 손그림/픽셀 톤에 맞춰 원이 아니라 회전하는 네모 조각으로 그린다.
+ */
+export function drawKillParticles(ctx, particles) {
+  if (!particles || particles.length === 0) return;
+
+  ctx.save();
+  ctx.fillStyle = cssColor('--color-kill-particle');
+  for (const p of particles) {
+    // 수명이 다할수록 옅어지고 작아진다 — 딱 끊기지 않고 사그라들게.
+    const t = p.maxLife > 0 ? Math.max(0, p.life / p.maxLife) : 0;
+    ctx.globalAlpha = Math.min(1, t * 1.6);
+    const s = p.size * (0.35 + 0.65 * t);
+    ctx.save();
+    ctx.translate(p.x, p.y);
+    ctx.rotate(p.rot);
+    ctx.fillRect(-s / 2, -s / 2, s, s);
+    ctx.restore();
+  }
+  ctx.restore();
 }
 
 /**

@@ -36,6 +36,8 @@ export const state = {
   enemies: [],
   fakeCursors: [],
   floats: [],
+  // 처치 순간 사방으로 튀는 조각들(systems/juice.js가 넣고 지운다, 월드 좌표).
+  particles: [],
 
   pointer: { x: 0, y: 0 },
 
