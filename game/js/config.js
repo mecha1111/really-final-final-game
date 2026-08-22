@@ -165,6 +165,16 @@ export const config = {
     // 아무 효과 없이 그냥 사라진다 — 그게 "피했다"는 뜻이다.
     homingArriveDist: 28,
 
+    // === fake_btn(함정 "확인" 창)이 스폰 시 커서 근처에 나타나는 거리 ===
+    // enemies/behaviors.js의 'chase' 분기가 homing.js의 placeNearPointer를 그대로
+    // 재사용해서 여기 값을 넘긴다 — copier(homingSpawnDist*)보다 범위를 넉넉히
+    // 잡았다: 너무 딱 붙으면(copier 수준) "억울하게 당했다"가 되고, 너무 멀면
+    // (화면 가장자리 스폰과 다를 바 없으면) "다른 방해꾼 잡으려던 손 근처에 뜬다"는
+    // 요구사항의 함정 의도가 안 산다 — 그 중간을 노린 값. 스폰 후에는 기존
+    // 커서 추격(behaviors.js의 updateChase)이 그대로 이어받는다.
+    fakeBtnSpawnDistMin: 100,
+    fakeBtnSpawnDistMax: 220,
+
     // === 그림에 실제로 그려진 클릭 대상 위치표 ===
     //
     // 왜 필요한가: 시트의 hit_w/hit_h는 "스프라이트 박스 중심에 놓인 사각형" 하나뿐이라

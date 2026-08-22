@@ -6,13 +6,26 @@ const rand = (min, max) => min + Math.random() * (max - min);
 const clampNum = (v, min, max) => Math.max(min, Math.min(max, v));
 
 /**
- * 스폰 시 1회. 화면 가장자리가 아니라 진짜 커서에서 무작위 각도·거리
- * (config.enemy.homingSpawnDist*)만큼 떨어진 곳에 뿅 나타난다. 놀이 영역을
- * 벗어나면 안 보이니 안쪽으로 클램프한다.
+ * 스폰 시 1회. 화면 가장자리가 아니라 진짜 커서에서 무작위 각도·거리(distMin~
+ * distMax, 기본값은 copier용 config.enemy.homingSpawnDist*)만큼 떨어진 곳에
+ * 나타난다. 놀이 영역을 벗어나면 안 보이니 안쪽으로 클램프한다 — 이 클램프가
+ * 곧 "커서가 화면 밖에 가깝거나 pointer 자체를 못 구했을 때"의 안전 폴백이다
+ * (spawnPointer 자체는 enemies/Enemy.js 생성자가 pointer 없으면 이미 화면
+ * 중앙으로 대체해두므로, 여기 클램프까지 더해 이중으로 안전하다).
+ *
+ * fake_btn(enemies/behaviors.js의 'chase' 분기)도 이 함수를 그대로 재사용한다 —
+ * "커서 근처에 뿅 나타난다"는 성질 자체는 copier와 같고, 거리만 다르다(다른
+ * config 값을 넘기면 된다).
  */
-export function placeNearPointer(enemy, pointer, playArea) {
+export function placeNearPointer(
+  enemy,
+  pointer,
+  playArea,
+  distMin = config.enemy.homingSpawnDistMin,
+  distMax = config.enemy.homingSpawnDistMax,
+) {
   const angle = rand(0, Math.PI * 2);
-  const dist = rand(config.enemy.homingSpawnDistMin, config.enemy.homingSpawnDistMax) * enemy.scaleFactor;
+  const dist = rand(distMin, distMax) * enemy.scaleFactor;
 
   const halfW = enemy.w / 2;
   const halfH = enemy.h / 2;

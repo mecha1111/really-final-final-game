@@ -76,11 +76,18 @@ export function initMovement(enemy, rules, playArea) {
       break;
 
     case 'chase':
+      // fake_btn: 스포너가 준 자리(화면 아무 데나) 대신 커서 근처로 다시 놓는다
+      // — "다른 방해꾼 치려던 손 근처에 확인창이 뜬다"는 요구사항 그대로. copier가
+      // 커서 근처에 뿅 나타나는 것과 같은 함수(homing.js의 placeNearPointer)를
+      // 거리만 다르게(config.enemy.fakeBtnSpawnDist*) 재사용한다 — pointer를
+      // 못 구했거나 화면 밖에 가까운 경우의 폴백(화면 중앙 대체 + 놀이 영역
+      // 클램프)도 이미 그 함수 안에 있다(homing.js 주석 참고).
+      placeNearPointer(enemy, enemy.spawnPointer, playArea, config.enemy.fakeBtnSpawnDistMin, config.enemy.fakeBtnSpawnDistMax);
       // 매 프레임 커서 쪽으로 방향을 다시 잡으므로 초기 속도는 의미 없다.
       enemy.vx = 0;
       enemy.vy = 0;
-      // 지연 추격이 쫓아갈 "뒤처진 목표점". 자기 자리에서 시작해야 스폰 순간
-      // 목표가 커서로 확 튀지 않는다(그러면 지연을 준 의미가 없다).
+      // 지연 추격이 쫓아갈 "뒤처진 목표점". 방금 다시 놓은 자리에서 시작해야
+      // 스폰 순간 목표가 커서로 확 튀지 않는다(그러면 지연을 준 의미가 없다).
       enemy.chaseGoalX = enemy.x;
       enemy.chaseGoalY = enemy.y;
       break;
