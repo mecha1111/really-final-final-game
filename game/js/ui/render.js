@@ -60,7 +60,7 @@ export function render({ ctx, canvas, state, gameData, now }) {
   // 살아있는 놈만 센다 — 시체(corpseTimer로 잠깐 남는 것)까지 세면 처치할수록
   // 과부하가 심해지는 거꾸로 된 신호가 된다.
   const aliveCount = state.enemies.reduce((n, e) => n + (e.alive ? 1 : 0), 0);
-  updateOverload(aliveCount, state.rules ? state.rules.maxAlive : 0);
+  updateOverload(aliveCount); // 판마다 다른 maxAlive와 무관하게 고정 마릿수 기준(config.overload)
   const overloadJitter = getOverloadJitter();
 
   const crtShake = getCrtShakeOffset(now);

@@ -20,20 +20,22 @@ import { config } from '../config.js';
 let level = 0; // 0~1. 0이면 완전히 꺼진 상태.
 
 /**
- * 지금 살아있는 방해꾼 수와 이번 판의 동시 최대로 강도를 정한다.
+ * 지금 살아있는 방해꾼 수로 강도를 정한다. 판마다 다른 rules.maxAlive와 무관하게
+ * "몇 마리"라는 고정 기준(config.overload.startCount/fullCount)만 본다 —
+ * 판이 바뀌어도 "몇 마리부터 지지직거리나"가 항상 같아야 예측 가능하다.
  * @param {number} aliveCount 살아있는(시체 제외) 방해꾼 수
- * @param {number} maxAlive   이번 판의 동시 최대(rules.maxAlive)
  */
-export function updateOverload(aliveCount, maxAlive) {
+export function updateOverload(aliveCount) {
   const c = config.overload;
-  // maxAlive가 0이면(디버그로 스폰을 꺼둔 상태 등) 비율을 낼 수 없다 — 꺼둔다.
-  if (!(maxAlive > 0)) {
-    level = 0;
-  } else {
-    const ratio = aliveCount / maxAlive;
-    const span = c.fullRatio - c.startRatio;
-    level = span > 0 ? Math.max(0, Math.min(1, (ratio - c.startRatio) / span)) : ratio >= c.startRatio ? 1 : 0;
-  }
+  // ★ startCount("8마리 이상")는 그 마릿수 자체에서 이미 강도>0이어야 한다.
+  //   그냥 (aliveCount-startCount)/span으로 재면 딱 8마리일 때 분자가 0이라
+  //   강도가 정확히 0으로 나온다 — "8마리부터"가 아니라 "9마리부터"가 돼버린다
+  //   (실측: 8마리→0.000, 9마리→0.25로 확인됐다). +1을 넣어 8마리째부터 이미
+  //   램프가 시작되게 한다.
+  const span = c.fullCount - c.startCount + 1;
+  level = span > 0
+    ? Math.max(0, Math.min(1, (aliveCount - c.startCount + 1) / span))
+    : aliveCount >= c.startCount ? 1 : 0;
 
   const layer = document.getElementById('layer-overload');
   if (!layer) return;
