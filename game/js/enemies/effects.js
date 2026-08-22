@@ -11,9 +11,30 @@ const rand = (min, max) => min + Math.random() * (max - min);
 const clamp = (v, min, max) => Math.max(min, Math.min(max, v));
 
 /**
+ * 이번 구간(rules.stageIndex)에서 분열이 갈 수 있는 가장 깊은 tier.
+ * config.enemy.cloneSplitMaxTierByStage에서 "stage <= stageIndex"를 만족하는
+ * 마지막 칸이 이긴다(config.combo.tiers와 같은 표 문법 — 표가 stage 오름차순이라는
+ * 전제다). 표가 비어 있으면(잘못 지워진 경우) 안전하게 무제한(Infinity) 취급한다 —
+ * 새 설정이 게임을 멈추게 하면 안 된다.
+ */
+function cloneMaxTierForStage(stageIndex) {
+  const table = config.enemy.cloneSplitMaxTierByStage;
+  let maxTier = Infinity;
+  for (const row of table) {
+    if (stageIndex >= row.stage) maxTier = row.maxTier;
+  }
+  return maxTier;
+}
+
+/**
  * clone이 터질 때 나올 조각들을 만든다.
  * special_effect의 "대100→중70x2→소50x4"를 그대로 따른다:
  * 큰 놈 1 → 중간 2 → 작은 4 (마지막 단계는 더 안 갈라진다).
+ *
+ * ★ 구간 게이트(config.enemy.cloneSplitMaxTierByStage)로 초반 구간엔 이 마지막
+ *   단계 전에 멈춘다 — 시트의 분열 정의 자체는 안 건드리고, "이번에 만들 조각의
+ *   tier가 이 구간에서 허용된 깊이를 넘는지"만 여기서 한 번 더 본다. split 효과를
+ *   쓰는 종류가 늘어도(지금은 clone뿐) 이 함수 하나로 똑같이 적용된다.
  */
 export function splitEnemy(parent, rules, playArea) {
   const split = parent.effect.split;
@@ -21,6 +42,7 @@ export function splitEnemy(parent, rules, playArea) {
 
   const nextTier = parent.tier + 1;
   if (nextTier >= split.tiers.length) return []; // 막내는 그냥 죽는다
+  if (nextTier > cloneMaxTierForStage(rules.stageIndex)) return []; // 이 구간엔 여기까지
 
   const baseW = parent.spec.size_w || 60;
   const scale = split.tiers[nextTier] / baseW;

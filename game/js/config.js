@@ -113,6 +113,21 @@ export const config = {
     //   별도 취소 처리가 필요 없다.
     blockDelaySec: 1,
 
+    // clone(복제 바이러스)이 구간에 따라 몇 단계까지 분열하는가.
+    // 시트의 special_effect("대100→중70x2→소50x4")는 그대로 3단계(빅→미드→스몰)를
+    // 정의하지만, 초반 구간엔 그 끝(스몰 4마리)까지 다 쪼개지면 손이 너무 많이
+    // 간다 — 여기서 "이 구간에서 갈 수 있는 가장 깊은 tier"를 따로 제한한다
+    // (tier는 0부터: 0=빅, 1=미드, 2=스몰 — enemies/effects.js의 splitEnemy 참고).
+    //
+    // combo.tiers(config.combo)와 같은 표 문법이다 — stage(0부터) 오름차순으로
+    // 두고, "stageIndex >= stage"를 만족하는 **마지막** 칸이 이긴다.
+    //   0~1구간(n=0,1): maxTier 1 → 빅→미드까지만. 미드는 안 죽고 그냥 죽는다.
+    //   2구간부터(n>=2, "3구간"): maxTier 2 → 시트 그대로 스몰까지 끝까지.
+    cloneSplitMaxTierByStage: [
+      { stage: 0, maxTier: 1 },
+      { stage: 2, maxTier: 2 },
+    ],
+
     // === copier처럼 커서를 쫓아가는(클릭 대상이 아닌) 이벤트형 방해꾼 ===
     // 화면 가장자리가 아니라 진짜 커서에서 이만큼(px, 기준 해상도) 떨어진
     // 무작위 위치에 뿅 나타난다. 너무 가까우면(0에 가까우면) 나타나자마자
