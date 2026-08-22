@@ -202,27 +202,27 @@ function drawClickEnv(ctx, c) {
   if (!c?.env) return;
   const e = c.env;
 
-  // 두 방식의 결과가 다르면 그 자체가 "rect가 배율을 잘못 반영한다"는 증거다.
-  // offsetX는 (clientX - rect.left)와 같은 값이어야 정상이다(둘 다 화면에 보이는 크기 기준).
-  // 갈리면 rect가 조상의 zoom을 잘못 반영하고 있다는 뜻 = 클릭만 밀리는 원인.
-  const offVsRect = Math.round(Math.abs(e.offset[0] - (e.client[0] - e.rect[0])));
-
-  // 판정에 쓰는 표시 크기(disp)와 rect.width가 갈리면, 그 브라우저의 rect가 조상의 zoom을
-  // 반영하지 않는다는 뜻이다. 갈려도 판정은 disp로 하므로 커서와 맞는다 — 정보용 표시.
-  const rectVsDisp = e.disp ? Math.round(Math.abs(e.rect[2] - e.disp[0])) : 0;
+  // 왕복 오차 = 화면→월드→화면. 두 방향이 같은 기하값을 쓰므로 정상이면 0이다.
+  // 0이 아니면 변환 쌍이 깨진 것이고, 이 숫자가 곧 십자선이 커서에서 벗어난 거리다.
+  const rt = e.roundTrip ? Math.max(Math.abs(e.roundTrip[0]), Math.abs(e.roundTrip[1])) : 0;
+  // 표시 크기 후보 셋이 갈리면 그 브라우저가 어떤 값을 이상하게 주는지 그대로 보인다.
+  // 판정은 셋의 중앙값을 쓰므로, 하나가 튀어도 나머지 둘이 이겨서 커서와 맞는다.
+  const cw = e.candW || [];
+  const spreadW = cw.length ? Math.round(Math.max(...cw) - Math.min(...cw)) : 0;
 
   const lines = [
-    `client ${e.client[0]},${e.client[1]}  →  world ${Math.round(c.x)},${Math.round(c.y)}  [판정에 쓰는 값]`,
-    `disp ${e.disp ? e.disp.join('x') : '-'} (판정 기준)   rect ${e.rect[2]}x${e.rect[3]} @${e.rect[0]},${e.rect[1]}   차이 ${rectVsDisp}px${rectVsDisp > 3 ? ' ← rect가 zoom 미반영(무해)' : ''}`,
-    `box ${e.box[0]}x${e.box[1]}   backing ${e.backing[0]}x${e.backing[1]}   cfg ${e.cfg[0]}x${e.cfg[1]}   w2b ${e.w2b}`,
-    `offsetX ${e.offset[0]} vs clientX-rect.left ${e.client[0] - e.rect[0]}  차이 ${offVsRect}px`,
-    `zoom ${e.zoom}   dpr ${e.dpr}   visualViewport ${e.vv ? e.vv[0] + ' @' + e.vv[1] + ',' + e.vv[2] : '-'}`,
+    `client ${e.client[0]},${e.client[1]}  →  world ${Math.round(c.x)},${Math.round(c.y)}`,
+    `왕복오차 ${e.roundTrip ? e.roundTrip.join(',') : '-'}px ${rt > 2 ? '★ 변환 쌍이 깨짐' : '(정상 — 십자선이 커서에 얹힘)'}`,
+    `disp ${e.disp ? e.disp.join('x') : '-'} @${e.origin ? e.origin.join(',') : '-'} (판정 기준=후보 중앙값)`,
+    `가로후보 rect/zoom/center = ${cw.join(' / ')}${spreadW > 3 ? '  ★ 갈림(중앙값 채택)' : '  (일치)'}`,
+    `세로후보 ${e.candH ? e.candH.join(' / ') : '-'}   box ${e.box[0]}x${e.box[1]}   backing ${e.backing[0]}x${e.backing[1]}`,
+    `cfg ${e.cfg[0]}x${e.cfg[1]}  w2b ${e.w2b}  zoom ${e.zoom}  dpr ${e.dpr}  vv ${e.vv ? e.vv[0] : '-'}`,
   ];
 
   const size = 11;
   const pad = 6;
   const lineH = size + 4;
-  const w = 430;
+  const w = 470;
   const h = lines.length * lineH + pad * 2;
 
   ctx.save();
