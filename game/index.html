@@ -210,6 +210,16 @@
            안 되므로. -->
       <div class="layer-vignette" id="layer-vignette"></div>
 
+      <!-- 상시 CRT 모니터 질감(레이어9). 화면 전환 킥(레이어10, 아래)과 다른 것 —
+           이건 phase-change 순간에만 반짝 재생되는 게 아니라 playing 내내 계속
+           떠 있는 은은한 배경 질감(주사선·비네트·모서리 곡률 인상)이다. 전부 순수
+           CSS(정적 값, 애니메이션 없음) — 채도/대비/밝기(블룸)는 여기가 아니라
+           #desktop 자체에 filter로 건다(아래 style.css 주석 참고). ui/crtTransition.js의
+           initCrtTransition()이 config.crt 값을 --crt-* CSS 변수로 흘려보낸다.
+           pointer-events:none이라 클릭을 절대 못 먹는다 — 방해꾼(z5)보다 위에
+           덮여도 클릭은 그대로 아래로 통과한다. -->
+      <div class="layer-crt-steady" id="layer-crt-steady"></div>
+
       <!-- 화면 전환 CRT 킥(레이어10, 항상 최상단). phase가 바뀌는 순간에만
            ui/crtTransition.js가 애니를 1회 재시작시킨다 — 평소엔(재생 안 할 땐)
            투명해서 아무 것도 안 보이고 클릭도 pointer-events:none이라 절대 안 먹는다. -->

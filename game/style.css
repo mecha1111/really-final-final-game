@@ -171,14 +171,18 @@ body {
   );
 }
 
-/* 레이어 z순서(위 → 아래): CRT 킥 > 타이틀 > 방해꾼(캔버스) > HTML 창 > 개그팝업 >
-   개그아이콘/작업표시줄 > 배경.
+/* 레이어 z순서(위 → 아래): CRT 킥 > 상시 CRT 질감 > 비네트 > 과밀지지직 >
+   타이틀/BSOD > 방해꾼(캔버스) > HTML 창 > 개그팝업 > 개그아이콘/작업표시줄 > 배경.
    방해꾼이 창을 덮어도 된다(정보 좀 가려도 OK) — 대신 캔버스가 물리적으로 맨 위에 있으면
    창/팝업이 클릭을 못 받으므로, 캔버스는 "방해꾼을 맞았을 때만" 클릭을 먹고 나머지는
    그 아래로 그대로 넘긴다(systems/input.js의 클릭 통과 로직, elementFromPoint 사용).
-   .layer-title은 그 위(6)에 얹혀서 title 단계엔 캔버스까지 통째로 덮는다 — 이쪽은
-   반대로 단순하다(캔버스가 title 단계엔 아무것도 안 그리고 클릭도 안 받으므로
-   그냥 위에 얹기만 하면 된다, 통과 장치 불필요).
+   .layer-title/.layer-bsod는 그 위(둘 다 6)에 얹혀서 해당 phase엔 캔버스까지
+   통째로 덮는다 — 이쪽은 반대로 단순하다(캔버스가 그 단계엔 아무것도 안 그리고
+   클릭도 안 받으므로 그냥 위에 얹기만 하면 된다, 통과 장치 불필요). 둘은 phase가
+   서로 배타적이라(title↔failed 동시에 참일 수 없다) 같은 z-index를 그대로 나눠 써도
+   된다.
+   .layer-crt-steady(9)는 상시 CRT 질감(주사선·비네트·곡률 인상) — .phase-playing일
+   때만 보이므로 타이틀/BSOD(6)와 겹칠 일이 없다.
    .layer-crt(10)는 전부보다 위 — 항상 존재하지만 pointer-events:none + 평소엔
    투명이라 클릭도 못 먹고 화면도 안 가린다(재생 중인 900ms만 예외, 그마저도
    pointer-events:none이라 클릭은 그 밑 진짜 화면으로 그대로 간다). */
@@ -188,8 +192,10 @@ body {
 #desktop .layer-win { position: absolute; inset: 0; z-index: 4; pointer-events: none; }
 #desktop #game-canvas { position: absolute; inset: 0; z-index: 5; pointer-events: auto; }
 #desktop .layer-title { position: absolute; inset: 0; z-index: 6; pointer-events: none; display: none; }
+#desktop .layer-bsod { position: absolute; inset: 0; z-index: 6; pointer-events: none; display: none; }
 #desktop .layer-overload { position: absolute; inset: 0; z-index: 7; pointer-events: none; overflow: hidden; }
 #desktop .layer-vignette { position: absolute; inset: 0; z-index: 8; pointer-events: none; }
+#desktop .layer-crt-steady { position: absolute; inset: 0; z-index: 9; pointer-events: none; display: none; overflow: hidden; }
 #desktop .layer-crt { position: absolute; inset: 0; z-index: 10; pointer-events: none; overflow: hidden; }
 /* 레이어 자체는 클릭을 통과시키고, 그 안의 "실제" 것만 클릭을 받는다 —
    빈 공간을 눌렀을 때(그리고 캔버스가 방해꾼을 못 맞혔을 때) 아래로 통과되게 하려는 것. */
@@ -202,6 +208,10 @@ body {
    #desktop에 .phase-title을 토글) — 나머지 단계에선 display:none이 기본값이라
    캔버스/창을 가리지 않는다. */
 #desktop.phase-title .layer-title { display: block; }
+/* failed 단계(BSOD)도 같은 방식 — ui/desktop.js가 .phase-failed를 토글한다. */
+#desktop.phase-failed .layer-bsod { display: block; }
+/* 상시 CRT 질감도 같은 방식 — playing 중에만 보인다(대기·타이틀·BSOD엔 안 얹는다). */
+#desktop.phase-playing .layer-crt-steady { display: block; }
 
 /* 캔버스는 UI 좌표계(1920x1080) 그대로 CSS 크기를 잡는다.
    축소/확대는 #desktop의 transform: scale이 전담한다. */
@@ -320,6 +330,75 @@ body {
   80% { transform: translateX(4px); }
 }
 .layer-title .btn.shake { animation: title-quit-shake 0.35s ease-in-out; }
+
+/* ---------------------------------------------------------------------------
+   ===== 상시 CRT 모니터 질감 (레이어9, playing 내내 계속) =====
+   위 화면 전환 "킥"(레이어10)과는 완전히 다른 것 — 킥은 phase가 바뀌는 순간에만
+   반짝 재생되는 연출이고, 이건 플레이 중 항상 떠 있는 은은한 배경 질감이다.
+   순전히 정적 CSS(값이 안 바뀐다, @keyframes 없음)라 canvas 조상 transform 애니
+   버그(위 큰 주석, ui/crtTransition.js 상단 주석과 동일한 이유)와 아예 무관하다.
+
+   구성 3가지:
+   ① 주사선 — ::before의 반복 그라디언트. 진하기/간격은 --crt-scanline-*(px 단위
+      값은 ui/crtTransition.js의 initCrtTransition()이 config.crt에서 한 번만
+      CSS 변수로 흘려보낸다 — 여기서 숫자를 또 안 박아 config 한 곳만 보면 된다).
+   ② 비네트+곡률 인상 — box-shadow(inset)로 가장자리를 어둡게, border-radius로
+      모서리를 살짝 둥글게 깎아 "곡면 브라운관"처럼 보이게 한다. ★ 실제 그림/캔버스
+      좌표는 1px도 안 건드린다 — 이 레이어는 방해꾼 캔버스의 "형제"일 뿐이고
+      단순 오버레이 장식이라, 방해꾼 클릭 판정(좌표계)에는 원천적으로 영향이 없다
+      (사용자가 우려한 "곡률 때문에 클릭 위치가 왜곡돼 보이는" 문제를 애초에
+      만들 수 없는 구조 — 곡률이 실제 지오메트리를 왜곡하는 게 아니라 순전히
+      색칠뿐이다).
+   ③ 빛번짐(블룸) — 채도/대비/밝기는 이 레이어가 아니라 #desktop 자체에 filter로
+      건다(아래). 화면 "전체 색감"을 살짝 들뜨게 하는 효과라 오버레이 장식이
+      아니라 실제 화면 합성 필터가 맞다. filter는 transform이 아니라 캔버스
+      getBoundingClientRect() 버그와 무관하고(레이아웃에 영향 없는 순수 페인트
+      효과), 값도 정적이라(phase 클래스 토글로만 바뀐다) 애니메이션 관련 위험도
+      없다. */
+#desktop .layer-crt-steady {
+  border-radius: var(--crt-curve-radius);
+  box-shadow: inset 0 0 var(--crt-vignette-px) rgba(0, 0, 0, var(--crt-vignette-opacity));
+}
+#desktop .layer-crt-steady::before {
+  content: '';
+  position: absolute; inset: 0;
+  border-radius: inherit;
+  background: repeating-linear-gradient(
+    to bottom,
+    rgba(0, 0, 0, var(--crt-scanline-opacity)) 0px,
+    rgba(0, 0, 0, var(--crt-scanline-opacity)) 1px,
+    transparent 1px,
+    transparent var(--crt-scanline-gap)
+  );
+}
+/* 빛번짐(블룸) — 화면 전체(playing 중)에 거는 정적 색보정. #desktop은 이미
+   canvasFit.js가 정적 transform:scale을 걸어두는 바로 그 요소라 filter를
+   추가해도 새로운 위험 패턴이 아니다(둘 다 정적 값, 애니메이션 없음). */
+#desktop.phase-playing {
+  filter: saturate(var(--crt-bloom-saturate)) contrast(var(--crt-bloom-contrast)) brightness(var(--crt-bloom-brightness));
+}
+
+/* 깜빡임/롤링바 — 기본 꺼짐(config.crt.flickerEnabled). 전용 설정 UI가 아직
+   없어서(ui/titleScreen.js의 "설정" 버튼은 훅만 비어있다) config 값으로만
+   켠다 — true면 initCrtTransition()이 이 클래스를 붙인다. 롤링바는 캔버스의
+   "형제"(.layer-crt-steady 안의 가상요소)에만 transform을 거니 조상 transform
+   버그와 무관하다(그 버그는 canvas의 "조상"에만 해당 — 형제는 대상이 아니다). */
+@keyframes crtFlicker {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.97; }
+  62% { opacity: 0.99; }
+}
+#desktop .layer-crt-steady.crt-flicker-on { animation: crtFlicker 5s ease-in-out infinite; }
+#desktop .layer-crt-steady.crt-flicker-on::after {
+  content: '';
+  position: absolute; left: 0; right: 0; height: 90px;
+  background: linear-gradient(to bottom, transparent, rgba(255, 255, 255, 0.05), transparent);
+  animation: crtRollingBar 9s linear infinite;
+}
+@keyframes crtRollingBar {
+  0% { top: -90px; }
+  100% { top: 100%; }
+}
 
 /* ---------------------------------------------------------------------------
    ===== 화면 전환 CRT 킥 (레이어10, "클래식" 스타일 1종 + 흔들림/밀림 보강) =====

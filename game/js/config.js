@@ -466,6 +466,28 @@ export const config = {
     // 이 값에 지수감쇠 배수를 곱해서 정하므로, 여기 하나만 바꾸면 흔들림 세기가
     // 전체적으로 변한다.
     shakeAmpPx: 10,
+
+    // === 상시 CRT 오버레이(레이어9, playing 내내) — 위 durationMs/shakeAmpPx(전환
+    // "킥")와는 별개다. "중(권장)" 세팅 기본값. ui/crtTransition.js의
+    // initCrtTransition()이 이 값들을 --crt-* CSS 변수로 한 번만 흘려보내고,
+    // 실제 그림은 style.css(.layer-crt-steady)가 그린다 — 정적 값이라 매 프레임
+    // 다시 흘려보낼 필요가 없다.
+    // 주사선 진하기(0~1)와 간격(px).
+    scanlineOpacity: 0.22,
+    scanlineGapPx: 3,
+    // 비네트 — 가장자리가 어두워지는 번짐 폭(px)과 진하기(0~1).
+    vignettePx: 90,
+    vignetteOpacity: 0.4,
+    // 모서리 곡률 인상(px). 실제 좌표 왜곡이 전혀 없는 순수 장식(둥근 모서리)이라
+    // 방해꾼 클릭 위치와는 무관하다 — 과하게 느껴지면 0으로 꺼도 된다.
+    curveRadiusPx: 28,
+    // 빛번짐(블룸) — #desktop 전체에 거는 CSS filter 값(채도/대비/밝기).
+    bloomSaturate: 1.25,
+    bloomContrast: 1.08,
+    bloomBrightness: 1.04,
+    // 깜빡임/롤링바 — 기본 꺼짐. 전용 설정 UI가 없어(title의 "설정" 버튼은 훅만
+    // 비어있다) 지금은 여기 값으로만 켠다.
+    flickerEnabled: false,
   },
 };
 

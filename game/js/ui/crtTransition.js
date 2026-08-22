@@ -74,6 +74,24 @@ let prevPhase = null;
  */
 export function initCrtTransition() {
   document.documentElement.style.setProperty('--crt-duration', `${config.crt.durationMs}ms`);
+
+  // 상시 CRT 오버레이(레이어9, style.css의 .layer-crt-steady)용 정적 값들.
+  // 매 프레임 갱신할 이유가 없다 — config가 안 바뀌는 한 그대로다.
+  const root = document.documentElement.style;
+  root.setProperty('--crt-scanline-opacity', config.crt.scanlineOpacity);
+  root.setProperty('--crt-scanline-gap', `${config.crt.scanlineGapPx}px`);
+  root.setProperty('--crt-vignette-px', `${config.crt.vignettePx}px`);
+  root.setProperty('--crt-vignette-opacity', config.crt.vignetteOpacity);
+  root.setProperty('--crt-curve-radius', `${config.crt.curveRadiusPx}px`);
+  root.setProperty('--crt-bloom-saturate', config.crt.bloomSaturate);
+  root.setProperty('--crt-bloom-contrast', config.crt.bloomContrast);
+  root.setProperty('--crt-bloom-brightness', config.crt.bloomBrightness);
+
+  // 깜빡임/롤링바 — 기본 꺼짐. 켜져 있으면(config.crt.flickerEnabled) 클래스만
+  // 붙여둔다 — 실제 애니는 style.css의 .crt-flicker-on 스코프 안에만 있다.
+  if (config.crt.flickerEnabled) {
+    document.getElementById('layer-crt-steady')?.classList.add('crt-flicker-on');
+  }
 }
 
 /**
