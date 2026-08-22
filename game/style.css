@@ -985,27 +985,30 @@ body {
 #desktop .xpbar.big { height: 34px; padding: 3px; gap: 3px; border: 3px solid #7f9db9; }
 #desktop .xpbar.big i { width: 19px; }
 
-/* 건너뛰기 — S키 전용(ui/desktop.js에 클릭 핸들러가 없다). <button> 모양(테두리+
-   그림자 raised-bevel, .dayflag 등과 같은 문법)은 그대로 두되, 마우스로는 절대
-   안 눌리므로 hover/active 같은 "누르는 중" 피드백은 뺐다(그게 있으면 실제로는
-   무반응인데 눌리는 것처럼 보여서 오히려 헷갈린다) — cursor도 pointer가 아니라
-   기본값으로. 대신 라벨에 키 안내("[S]")를 박아 "이건 S키로 누르는 것"임을
-   글자로 알린다. 다 썼을 때(disabled)는 여전히 비활성 스타일로 표시한다. */
+/* 건너뛰기 — S키 전용(ui/desktop.js에 클릭 핸들러가 없다).
+   ★ 2026-08-24: 예전엔 여기 <button> 모양(테두리+배경+raised-bevel 그림자,
+   .dayflag 등과 같은 문법)을 그대로 두고 hover/active 피드백만 뺐다 — "마우스로는
+   절대 안 눌리니 그거면 충분하다"고 짰는데, 실측 피드백은 "그래도 버튼처럼
+   생겨서 눌러보고 싶다"였다. 눌리는 것처럼 생겼는데 실제로는 무반응이면, 아예
+   안 그런 것보다 더 헷갈린다(클릭이 씹혔다고 오해한다). 그래서 버튼 껍데기
+   (배경·테두리·그림자·패딩박스)를 통째로 걷어내고, 옆 항목(할당량·남은 시간)과
+   같은 평범한 텍스트 행으로 앉혔다 — 이 항목만 유난히 눌리게 생겨 보이던 문제가
+   생김새 자체에서 사라진다. "[S]"는 여전히 다른 색·굵기로 남겨 "이건 키보드로
+   쓰는 것"임을 글자로 알린다. 다 썼을 때(disabled)는 전부 흐린 색 하나로 묶는다
+   (더 이상 배경을 바꿀 일이 없으니 텍스트만 무채색으로 가라앉히면 충분하다). */
 #desktop .skipbtn {
-  width: 100%; display: flex; flex-direction: row; align-items: baseline; justify-content: center; gap: 6px;
-  padding: 10px 14px; font-family: 'DGM', 'Galmuri11', monospace;
-  background: #ffcf3f; border: 3px solid #111; box-shadow: 3px 3px 0 #b8912a;
+  width: 100%; display: flex; flex-direction: row; align-items: baseline; justify-content: center; gap: 8px;
+  padding: 0; font-family: 'DGM', 'Galmuri11', monospace;
+  background: none; border: none; box-shadow: none;
   cursor: default; -webkit-font-smoothing: none;
 }
-#desktop .skipbtn-label { font-size: 22px; color: #111; }
-#desktop .skipbtn-key { font-size: 15px; color: #6b5a1f; }
-#desktop .skipbtn-count { font-size: 16px; color: #0a327a; }
-#desktop .skipbtn:disabled {
-  background: #cfcbb2; box-shadow: 3px 3px 0 #a8a48c; cursor: not-allowed;
-}
+#desktop .skipbtn-label { font-size: 20px; color: #333; }
+#desktop .skipbtn-key { font-size: 15px; font-weight: 700; color: #6b5a1f; }
+#desktop .skipbtn-count { font-size: 15px; color: #6b6b6b; }
+#desktop .skipbtn:disabled { cursor: not-allowed; }
 #desktop .skipbtn:disabled .skipbtn-label,
-#desktop .skipbtn:disabled .skipbtn-key { color: #8a866f; }
-#desktop .skipbtn:disabled .skipbtn-count { color: #8a866f; }
+#desktop .skipbtn:disabled .skipbtn-key,
+#desktop .skipbtn:disabled .skipbtn-count { color: #b3ae98; }
 
 #desktop .winB { left: 600px; top: 70px; width: 760px; }
 #desktop .winB .menu {
