@@ -3,8 +3,17 @@
 // 아래 함수들은 전부 즉시 return한다.
 
 import { config } from './config.js';
+// ★ 순환 참조: core/stageManager.js도 debug.js의 bindRules를 가져다 쓴다.
+//   둘 다 모듈 최상단이 아니라 함수 안(클릭 핸들러/startGame 호출 시점)에서만
+//   서로를 쓰므로 문제없다 — ES 모듈 순환참조는 "당장 평가 시점에 값이 필요한지"만
+//   문제가 된다.
+import { startGame } from './core/stageManager.js';
 
 const DEBUG = config.debug.enabled;
+
+// 구간 즉시 이동 버튼 — 밸런스 확인용. 표시는 1구간부터(사람이 읽는 번호),
+// startGame()에 넘기는 n은 0부터(코드 규칙, progression.js 주석 참고).
+const STAGE_JUMPS = [0, 1, 2];
 
 // 슬라이더로 조절할 값들. key는 rules 객체의 속성 이름과 같아야 한다.
 // live=false인 항목은 이미 시작된 판에는 영향이 없고 다음 판부터 적용된다.
@@ -50,6 +59,25 @@ export function initDebugPanel() {
   hint.className = 'debug-hint';
   hint.textContent = 'D키 패널 접기 · H키 히트박스 · 판을 시작하면 시트 값으로 초기화됨';
   panel.appendChild(hint);
+
+  // 구간 즉시 이동 — 누르면 그 구간 n으로 startGame()을 다시 불러 처음부터
+  // 시작한다(진행도·타이머·할당량 전부 그 구간의 시작값 — startGame()이 매판
+  // 시작 때 하는 리셋을 그대로 재사용하므로 여기서 따로 뭘 안 맞춰도 된다).
+  const jumpHint = document.createElement('p');
+  jumpHint.className = 'debug-hint';
+  jumpHint.textContent = '구간 즉시 이동 (그 구간 시작값으로 재시작)';
+  panel.appendChild(jumpHint);
+
+  const jumpRow = document.createElement('div');
+  jumpRow.className = 'debug-stagejump';
+  for (const n of STAGE_JUMPS) {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.textContent = `${n + 1}구간`;
+    btn.addEventListener('click', () => startGame(n));
+    jumpRow.appendChild(btn);
+  }
+  panel.appendChild(jumpRow);
 
   for (const field of FIELDS) {
     const row = document.createElement('div');

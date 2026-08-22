@@ -1046,6 +1046,27 @@ body {
   color: var(--color-text-muted);
 }
 
+#debug-panel .debug-stagejump {
+  display: flex;
+  gap: 5px;
+  margin-bottom: 8px;
+}
+
+#debug-panel .debug-stagejump button {
+  flex: 1;
+  padding: 4px 0;
+  font: inherit;
+  border: 1px solid var(--color-debug-border);
+  border-radius: 4px;
+  background: transparent;
+  color: var(--color-debug-text);
+  cursor: pointer;
+}
+
+#debug-panel .debug-stagejump button:hover {
+  background: var(--color-debug-border);
+}
+
 #debug-panel .debug-row {
   display: grid;
   grid-template-columns: 1fr auto;
