@@ -87,32 +87,25 @@ export function updateStatusWindows(state) {
 
   // ── 상태.dat ──
   // 표시 구간은 사람이 읽기 쉽게 n+1 ("1 구간"부터). 내부 n은 0부터.
+  // ★ 리뉴얼로 구간명 옆 "START/공격!/정지!" 라벨(st-tag)을 없앴다 — 그 정보는
+  //   업로드 창의 up-caption + 일시정지 오버레이(아래)가 이미 더 명확하게 보여준다.
   setText(document.getElementById('st-stage'), `${state.stageIndex + 1} 구간`);
-  setText(document.getElementById('st-tag'), state.blocked ? '정지!' : state.attackWarning ? '공격!' : 'UPLOAD');
 
   setText(document.getElementById('st-uploaded'), Math.floor(state.uploaded));
   setText(document.getElementById('st-quota'), state.rules.quota);
-  setBar(document.getElementById('st-quotabar'), state.uploaded / state.rules.quota, 13);
+  // xpbar.big(19px 슬롯, style.css)로 키웠으므로 슬롯 폭도 그것과 맞춘다.
+  setBar(document.getElementById('st-quotabar'), state.uploaded / state.rules.quota, 19);
 
   const timeEl = document.getElementById('st-time');
   setText(timeEl, mmss(state.timeLeft));
   if (timeEl) timeEl.style.color = state.timeLeft <= config.desktop.timeWarnSec ? '#c0281a' : '#111';
 
-  // 남은 스킵을 칸으로. 다 쓴 칸은 × 로 회색 처리(시안 그대로).
-  const skips = document.getElementById('st-skips');
-  if (skips && last['skips'] !== `${state.skipsLeft}/${state.rules.skipLimit}`) {
-    last['skips'] = `${state.skipsLeft}/${state.rules.skipLimit}`;
-    skips.textContent = '';
-    for (let i = 0; i < state.rules.skipLimit; i++) {
-      const s = document.createElement('span');
-      const used = i >= state.skipsLeft;
-      s.className = used ? 's used' : 's';
-      // ○/× 로 표시한다. 시안의 ↷ 는 DungGeunMo(둥근모) 폰트에 글리프가 없어서
-      // 엉뚱한 문자로 렌더된다("q"로 보임) — 폰트에 있는 글자만 쓴다.
-      s.textContent = used ? '×' : '○';
-      skips.appendChild(s);
-    }
-  }
+  // 건너뛰기 버튼 — 잔여 횟수를 문장으로("3회 남음"), 다 썼으면 비활성 스타일.
+  // 실제 클릭 처리는 ui/desktop.js(skipFile 호출)가 맡는다 — 여기는 표시만.
+  const skipBtn = document.getElementById('skip-btn');
+  const skipCount = document.getElementById('skip-count');
+  setText(skipCount, state.skipsLeft > 0 ? `${state.skipsLeft}회 남음` : '다 썼음');
+  if (skipBtn) skipBtn.disabled = state.skipsLeft <= 0;
 
   // ── 진짜_최종…exe (업로드 창) ──
   const file = state.file;

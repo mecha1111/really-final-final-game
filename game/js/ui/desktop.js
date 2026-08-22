@@ -6,6 +6,7 @@
 //   - 방해꾼 popup: 캔버스, enemies 시트의 적, X 버튼 클릭으로 잡아야 업로드가 산다
 
 import { config } from '../config.js';
+import { skipFile } from '../systems/file.js';
 
 // #desktop의 고정 좌표계 크기. index.html/style.css와 같은 값이어야 한다.
 const BASE_W = 1920;
@@ -173,6 +174,11 @@ export function initDesktop() {
     m.classList.add('disabled');
     m.title = '이 창은 최소화할 수 없습니다';
   });
+
+  // 건너뛰기 버튼 — 이제 S키뿐 아니라 실제 클릭으로도 동작한다(진짜 <button>이라
+  // disabled 상태일 땐 브라우저가 알아서 클릭을 안 먹는다 — 잔여 0일 때 별도
+  // 가드가 필요 없다. 잔여 표시는 ui/statusWindow.js가 매 프레임 갱신한다).
+  document.getElementById('skip-btn')?.addEventListener('click', () => skipFile());
 
   for (let i = 0; i < config.desktop.initialGagPopups; i++) spawnGagPopup();
   startClock();

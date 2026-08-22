@@ -108,19 +108,38 @@
             <div class="t">상태.dat</div>
             <div class="wb"><span class="min">_</span><span>□</span><span class="x">×</span></div>
           </div>
+          <!--
+            리뉴얼(2026-08-22): 항목 3개로 미니멀하게 유지 — 할당량 / 남은 시간 / 건너뛰기.
+            바뀐 것:
+              · dayflag 옆 "START/공격!/정지!" 라벨 제거. 그 상태는 이미 다른 곳에서
+                더 명확하게 보여준다 — 정지는 업로드 창(win-upload)의 up-caption과
+                새로 추가된 일시정지 오버레이(ui/statusWindow.js), 공격 임박은 방해꾼
+                자체의 예비동작 흔들림(ui/renderEnemies.js)이 이미 알려준다. 구간
+                번호 옆에 또 적으면 "지금 뭐가 중요한지" 판단할 게 하나 더 늘어난다.
+              · 할당량을 시각적 1순위로 — big 폰트를 키우고 진행바를 크게(xpbar big
+                재사용, 업로드 창과 같은 굵기) 둬서 남은 시간보다 먼저 눈에 들어오게.
+              · 건너뛰기를 실제 버튼(<button>)으로 — 예전엔 칸 3개가 장식용 점이라
+                눌러도 아무 일도 안 났다(S키로만 동작). 이제 진짜 클릭도 되고
+                (ui/desktop.js), 잔여 횟수를 문장으로 보여준다("3회 남음").
+          -->
           <div class="body">
-            <div class="dayflag"><span class="d" id="st-stage">1 구간</span><span class="hard" id="st-tag">START</span></div>
-            <div class="grp">
+            <div class="dayflag"><span class="d" id="st-stage">1 구간</span></div>
+            <div class="grp grp-quota">
               <div class="h">할당량</div>
               <div class="c">
-                <div class="big"><span id="st-uploaded">0</span><span class="unit"> / <span id="st-quota">200</span> MB</span></div>
-                <div class="xpbar" id="st-quotabar"></div>
+                <div class="big big-quota"><span id="st-uploaded">0</span><span class="unit"> / <span id="st-quota">200</span> MB</span></div>
+                <div class="xpbar big" id="st-quotabar"></div>
               </div>
             </div>
             <div class="grp"><div class="h">남은 시간</div><div class="c"><div class="big time" id="st-time">03:00</div></div></div>
             <div class="grp">
-              <div class="h">건너뛰기 (S)</div>
-              <div class="c"><div class="skips" id="st-skips"></div></div>
+              <div class="h">건너뛰기</div>
+              <div class="c">
+                <button type="button" class="skipbtn" id="skip-btn">
+                  <span class="skipbtn-label">건너뛰기 <span class="skipbtn-key">(S)</span></span>
+                  <span class="skipbtn-count" id="skip-count">3회 남음</span>
+                </button>
+              </div>
             </div>
           </div>
         </div>
