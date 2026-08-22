@@ -364,18 +364,31 @@ body {
 #desktop .layer-bsod .bsod-sub { font-size: 22px; color: #dfe4ff; }
 #desktop .layer-bsod .bsod-stop { font-size: 17px; color: #b9c2f2; margin-top: 6px; }
 #desktop .layer-bsod .bsod-hr { border: none; border-top: 2px solid #4d5ecf; margin: 18px 0; }
-#desktop .layer-bsod .bsod-tips-title { font-size: 22px; font-weight: 700; color: #ffe14d; margin-bottom: 10px; }
-#desktop .layer-bsod .bsod-tips ul { margin: 0; padding-left: 26px; display: flex; flex-direction: column; gap: 7px; }
-#desktop .layer-bsod .bsod-tips li { font-size: 18px; line-height: 1.4; }
-#desktop .layer-bsod .bsod-stats { font-size: 17px; color: #b9c2f2; margin-top: 20px; }
+/* 위계: 제목(46px, 위 .bsod-title) > 스탯(아래, 32px) > 꿀팁(26px) > 버튼(24px).
+   ★ 2026-08-22: 스탯이 17px라 잘 안 보인다는 피드백 — 1.5~2배(17→32px, 1.9배)로
+   키우고 흐린 라벤더색(#b9c2f2) 대신 순백으로 바꿔 파란 배경 대비를 최대로 냈다.
+   DGM은 .layer-bsod 기본 font-family에서 이미 물려받는다. */
+#desktop .layer-bsod .bsod-stats { font-size: 32px; font-weight: 700; color: #fff; margin-top: 20px; }
+
+/* 꿀팁 — 예전엔 <ul> 5줄을 한꺼번에 보여줬지만, 이제 실패마다 하나만 골라
+   크게 보여준다(ui/bsodScreen.js의 TIPS 풀+랜덤 선택). "TIP:" 라벨은 작고
+   노랗게(기존 .bsod-tips-title의 강조색 #ffe14d를 그대로 재활용), 본문은
+   크게 흰 글씨로 — 라벨이 본문을 압도하면 안 되므로 라벨은 작게 유지한다. */
+#desktop .layer-bsod .bsod-tips { margin-top: 18px; }
+#desktop .layer-bsod .bsod-tip-label {
+  font-size: 18px; font-weight: 700; color: #ffe14d; letter-spacing: 2px; margin-bottom: 6px;
+}
+#desktop .layer-bsod .bsod-tip-text { font-size: 26px; line-height: 1.4; color: #fff; }
+
 #desktop .layer-bsod .bsod-buttons { display: flex; gap: 18px; margin-top: 26px; }
 /* pointer-events는 실제 클릭 대상(버튼)에만 열어준다 — .layer-bsod 자체는
-   상위 규칙(z-index 목록 근처)에서 pointer-events:none이라, 이 버튼들만 예외로 연다. */
+   상위 규칙(z-index 목록 근처)에서 pointer-events:none이라, 이 버튼들만 예외로 연다.
+   버튼도 20→24px로 키우고 패딩을 넉넉히 늘렸다("버튼도 크게" 요구사항). */
 #desktop .layer-bsod .bsod-btn {
   pointer-events: auto;
   font-family: inherit;
-  font-size: 20px;
-  padding: 12px 32px;
+  font-size: 24px;
+  padding: 14px 38px;
   background: transparent;
   color: #fff;
   border: 2px solid #fff;

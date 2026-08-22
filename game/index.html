@@ -220,17 +220,16 @@
             *** STOP: 제한시간 초과 · <span id="bsod-progress">0</span>/<span id="bsod-quota">0</span> MB
           </div>
           <hr class="bsod-hr" />
-          <div class="bsod-tips">
-            <div class="bsod-tips-title">다음엔 이렇게 해보세요</div>
-            <ul>
-              <li>폭탄은 시간 지나면 터져 -20%! 우선 처치</li>
-              <li>확인창은 커서를 따라와요. 실수로 누르지 마세요</li>
-              <li>시선강탈은 눌러도 안 죽어요. 무시하고 진짜를 치세요</li>
-              <li>자물쇠는 여러 번 쳐야 깨집니다</li>
-              <li>콘센트 손이 나오면 업데이트가 잠깐 멈춰요</li>
-            </ul>
-          </div>
           <div class="bsod-stats" id="bsod-stats">완료 파일 0 · 제거 0 · 정확도 0%</div>
+          <!-- 꿀팁 — 방해꾼 10종 + 시스템/전략 4개, 총 14개 풀에서 실패마다 하나만
+               랜덤으로 뽑는다(ui/bsodScreen.js의 TIPS/updateBsodScreen). 예전엔
+               5개를 <ul>로 한꺼번에 다 보여줬는데, 그러면 매번 똑같은 목록이라
+               "이번엔 뭘 놓쳤지"에 집중이 안 된다 — 하나만 크게 보여줘야 그 판에서
+               당한 것과 맞아떨어질 확률도, 눈에 들어올 확률도 높다. -->
+          <div class="bsod-tips">
+            <div class="bsod-tip-label">TIP:</div>
+            <div class="bsod-tip-text" id="bsod-tip-text">폭탄은 시간이 지나면 터져 -20%! 보이는 즉시 우선 처치하세요.</div>
+          </div>
           <div class="bsod-buttons">
             <button type="button" class="bsod-btn bsod-btn-primary" id="bsod-retry">재도전</button>
             <button type="button" class="bsod-btn" id="bsod-lobby">로비</button>
