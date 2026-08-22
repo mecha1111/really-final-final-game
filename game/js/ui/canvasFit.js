@@ -1,20 +1,6 @@
-// 이 파일 역할: #desktop(1920x1080 고정 좌표계)의 화면 배율을 정한다.
+// 이 파일 역할: #desktop(1920x1080 고정 좌표계)을 창 크기에 맞춰 통째로 확대/축소한다(비율 유지 + 레터박스).
 //
-// ★ 2026-08-22부터 배율을 항상 1로 고정한다(SCALE_TO_FIT = false). 창 크기에 맞춰
-//   zoom을 거는 방식이 일부 사용자 크롬에서 getBoundingClientRect()가 zoom을 반영
-//   안 하는 문제와 맞물려 클릭 좌표가 어긋나는 사고가 반복됐다(ui/canvasGeometry.js가
-//   그 대응 코드). 자동 테스트(스크린샷 픽셀 실측, real mouse 이벤트)로는 여러 번
-//   재현·수정·검증했는데도 사용자 실기에서 계속 재현된다는 보고가 이어져, 이번엔
-//   "zoom이 아예 안 걸리면 애초에 어긋날 여지가 없다" 쪽으로 원인을 회피한다.
-//   zoom=1이면 rect.width가 항상 1920(레이아웃=화면 크기 구분이 없어짐)이라
-//   canvasGeometry의 dispW 계산이 자동으로 rect.width와 일치하게 수렴한다.
-//
-//   화면이 1920x1080보다 작으면 #stage가 스크롤(overflow:auto)로 넘긴다 — 레터박스
-//   대신 스크롤을 택한 건 "잘려서 안 보임"보다 "스크롤해서라도 다 보임"이 나아서다.
-//   되돌리고 싶으면 SCALE_TO_FIT을 true로 바꾸면 이전 동작(zoom으로 화면에 맞춤)이
-//   그대로 돌아온다 — 아래 로직을 지우지 않고 분기로 남겨뒀다.
-//
-// 캔버스만 늘리지 않고 #desktop 전체를 스케일하는 이유(SCALE_TO_FIT=true일 때):
+// 캔버스만 늘리지 않고 #desktop 전체를 스케일하는 이유:
 // HTML 창·개그요소와 캔버스(방해꾼)가 같은 좌표계 위에 얹혀 있어야 서로 위치가
 // 안 어긋난다. #desktop 하나만 스케일하면 그 안의 모든 것이 함께 움직인다.
 //
@@ -28,9 +14,6 @@
 // 반영되므로 systems/input.js의 역변환((clientX-rect.left) * 논리폭/rect.width)이
 // 그대로 맞는다(왕복 오차 0.000000px 실측). 가운데 정렬은 #stage의 flex가 하므로
 // 예전처럼 여백을 계산해 translate로 밀어줄 필요도 없다.
-
-// true로 바꾸면 이전 동작(창 크기에 맞춰 zoom으로 축소/확대)으로 되돌아간다.
-const SCALE_TO_FIT = false;
 
 import { config, getUiReferenceCanvas } from '../config.js';
 import { state } from '../core/state.js';
@@ -66,10 +49,8 @@ export function fitCanvasToViewport(canvas) {
   canvas.style.width = `${baseW}px`;
   canvas.style.height = `${baseH}px`;
 
-  // 두 축 중 더 좁게 맞춰야 하는 쪽에 맞춘다 → 비율 유지 + 반대쪽에 레터박스.
-  // SCALE_TO_FIT=false(지금 기본값)면 항상 1 — zoom이 안 걸리므로 클릭 좌표 변환에
-  // zoom 보정이 개입할 여지 자체가 없어진다(위 파일 상단 주석 참고).
-  const scale = SCALE_TO_FIT ? Math.min(viewportW / baseW, viewportH / baseH) : 1;
+  // 두 축 중 더 좁게 맞춰야 하는 쪽에 맞춘다 → 비율 유지 + 반대쪽에 레터박스
+  const scale = Math.min(viewportW / baseW, viewportH / baseH);
   const shownW = baseW * scale;
   const shownH = baseH * scale;
 
