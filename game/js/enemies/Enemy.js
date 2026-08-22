@@ -7,6 +7,11 @@ import { initEntrance, updateEntrance } from './entrance.js';
 import { burstOnKill } from '../systems/juice.js';
 import { pickBasicVariant, pickAbVariant, FRAME_SETS } from '../sprite/animator.js';
 
+// 시트의 stops_upload를 무시하고 "절대 업로드를 멈추지 않는다"고 못박는 id들.
+// 왜 필요한지는 아래 Enemy.stopsUpload 게터 주석 참고 — 시트 쪽 분류가 고쳐지면
+// 여기서 그 id를 빼면 된다(비면 이 Set째로 지워도 된다).
+const NEVER_BLOCKS = new Set(['bomb']);
+
 export class Enemy {
   /**
    * @param {object} spec enemies 시트의 한 행
@@ -146,8 +151,21 @@ export class Enemy {
     return this.h * this.entScaleY;
   }
 
-  /** 업로드를 완전히 멈추는 A타입인가 */
+  /**
+   * 업로드를 완전히 멈추는 A타입인가 — "업데이트 중단됨!" 배지(index.html의
+   * pause-badge)와 진행 정지가 전부 이 한 값에서 갈린다(systems/upload.js).
+   *
+   * ★ bomb 예외: 시트가 bomb을 stops_upload=TRUE로 분류해 놨는데, 이건 bomb의
+   *   실제 역할과 안 맞는다. bomb은 dps=0이고 special_effect가 "수명만료시 -20%"인
+   *   손실형 — 터지면서 한 방 깎는 놈이지 업로드를 멈춰 세우는 놈이 아니다.
+   *   그런데 그 컬럼 때문에 bomb이 떠 있는 4초 내내 업로드가 멈추고 중단 배지까지
+   *   떠서, 정작 진짜 정지형인 unplug와 구분이 안 됐다(둘 다 "중단됨!"만 보임).
+   *   근본 해결은 시트에서 bomb의 stops_upload를 FALSE로 고치는 것이고, 그러면
+   *   아래 NEVER_BLOCKS는 지워도 그대로 동작한다. 시트 값이 그대로인 동안에도
+   *   게임이 의도대로 돌게 여기서 바로잡는다.
+   */
   get stopsUpload() {
+    if (NEVER_BLOCKS.has(this.id)) return false;
     return this.spec.stops_upload === true;
   }
 
