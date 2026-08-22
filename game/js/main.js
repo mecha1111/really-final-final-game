@@ -16,6 +16,7 @@ import { initTitleScreen } from './ui/titleScreen.js';
 import { initBsodScreen, updateBsodScreen } from './ui/bsodScreen.js';
 import { initCrtTransition, syncCrtTransition } from './ui/crtTransition.js';
 import { initSettingsPanel } from './ui/settingsPanel.js';
+import { initCursor } from './ui/cursor.js';
 import { updateStatusWindows } from './ui/statusWindow.js';
 import { initUploadPicture, updateUploadPicture } from './ui/uploadPicture.js';
 import { initDebugPanel, bindRules, updateDebugStats } from './debug.js';
@@ -95,6 +96,7 @@ function exposeDebugHandle() {
 async function main() {
   // 백킹스토어 크기까지 여기서 함께 정해진다 — 최초 1회 맞추고, 이후 창 크기 변경에 자동으로 반응한다
   initCanvasFit(canvas);
+  initCursor(); // 게임 영역 커서(config.cursor) — hotspot이 클릭 좌표와 어긋나면 안 되므로 최대한 일찍
 
   initInput(canvas);
   initDesktop(); // HTML 바탕화면(창 드래그·개그 팝업·시계)

@@ -158,6 +158,11 @@ body {
   font-family: 'DGM', 'Galmuri11', monospace;
   -webkit-font-smoothing: none;
   image-rendering: pixelated;
+  /* 게임 영역 커서 — ui/cursor.js가 config.cursor(이미지 경로+hotspot)로 조립해
+     흘려보낸 변수 하나만 참조한다(값의 유일한 출처는 config.js). 버튼(.btn 등)처럼
+     더 구체적인 셀렉터가 자기 cursor:pointer를 따로 갖고 있으면 그쪽이 정상적으로
+     우선한다 — 여기는 "그 외 전부"의 기본값일 뿐이다. */
+  cursor: var(--game-cursor, auto);
   /* Bliss 배경 (하늘 → 잔디) */
   background: linear-gradient(
     180deg,

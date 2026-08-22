@@ -38,6 +38,30 @@ export const config = {
     maxDt: 0.05,
   },
 
+  // 게임 영역 마우스 커서(ui/cursor.js가 이 값들로 CSS cursor를 조립해 #desktop에
+  // 건다). assets/enemies/cursor/cursor.png(copier가 안착 시 뿌리는 가짜 커서와
+  // 같은 그림)를 그대로 재활용했다 — 새 그림을 안 만들어도 이미 "이 게임의
+  // 커서 어휘"로 화면에 있던 그림이라 톤이 저절로 맞는다.
+  // ★ 이름이 mouseCursor인 이유: 아래(더 밑에) config.cursor가 이미 있는데, 그건
+  //   완전히 다른 것이다(copier 안착 시 뿌리는 "가짜 커서 떼"의 개수·배치 설정,
+  //   fakeCursorCount 등) — 둘 다 "cursor"라 부르고 싶었지만 같은 이름을 쓰면
+  //   객체 리터럴에서 뒤에 나온 쪽이 앞을 조용히 덮어써 버린다(실제로 처음엔
+  //   그렇게 짰다가 이 블록이 통째로 사라진 걸 실측으로 잡았다 — 커서가 계속
+  //   OS 기본 화살표로 나와서 config.cursor를 찍어보니 fakeCursorCount 객체가
+  //   나왔다). 그래서 "진짜 마우스 커서"는 이름 자체를 다르게 뗐다.
+  mouseCursor: {
+    url: './assets/cursor/cursor-44.png',
+    // ★ hotspot(클릭이 실제로 찍히는 화소) — CSS는 `cursor: url(...) X Y, auto`에서
+    //   이 X,Y를 그대로 "이미지 안에서 몇 번째 픽셀이 커서 좌표냐"로 쓴다. 틀리면
+    //   화면에 보이는 촉끝과 실제 클릭 지점이 어긋나는, 눈에는 안 보이고 "왜
+    //   안 눌리지"로만 나타나는 판정 버그가 된다(이 프로젝트가 반복해서 겪은
+    //   "그리기와 판정이 다른 좌표" 부류와 같은 함정). cursor-44.png의 화살표
+    //   촉끝을 알파 채널로 직접 스캔해서 잰 실측값이다(그림을 갈아끼우면 다시
+    //   재야 한다 — config.enemy.artHitbox 주석과 같은 원칙).
+    hotspotX: 7,
+    hotspotY: 1,
+  },
+
   // 구간(스테이지) 자동 상승 공식의 상수. 실제 정의와 상세 주석은
   // balance/progression.js에 있다(순환참조를 피하려고 잎 모듈로 뺐다).
   // 바깥에서는 지금처럼 config.progression 으로 그대로 읽으면 된다.
