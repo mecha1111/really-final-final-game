@@ -332,6 +332,69 @@ body {
 .layer-title .btn.shake { animation: title-quit-shake 0.35s ease-in-out; }
 
 /* ---------------------------------------------------------------------------
+   ===== 실패 화면 = XP 블루스크린(BSOD) 패러디 (레이어6) =====
+   .layer-title과 완전히 같은 방식(phase 배타적이라 z-index도 6 그대로 공유) —
+   차이는 배경/글씨뿐이다. 가독성이 최우선이라(실제 유저가 읽어야 하는 화면)
+   장식은 절제했다 — 밈은 ":(" 아이콘과 STOP 코드 문구 정도로만 살짝. */
+#desktop .layer-bsod {
+  display: none; /* .phase-failed일 때만 style.css 위쪽 규칙이 block으로 바꾼다 */
+  background: #0000aa;
+  color: #fff;
+  font-family: 'DGM', 'Galmuri11', monospace;
+  -webkit-font-smoothing: none;
+}
+#desktop .layer-bsod .bsod-inner {
+  position: relative;
+  z-index: 1; /* 아래 주사선(.bsod-scanlines)보다 위 */
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 14px;
+  padding: 0 220px;
+  box-sizing: border-box;
+}
+#desktop .layer-bsod .bsod-face { font-size: 96px; line-height: 1; margin-bottom: 4px; }
+#desktop .layer-bsod .bsod-title { font-size: 46px; font-weight: 700; }
+#desktop .layer-bsod .bsod-sub { font-size: 22px; color: #dfe4ff; }
+#desktop .layer-bsod .bsod-stop { font-size: 17px; color: #b9c2f2; margin-top: 6px; }
+#desktop .layer-bsod .bsod-hr { border: none; border-top: 2px solid #4d5ecf; margin: 18px 0; }
+#desktop .layer-bsod .bsod-tips-title { font-size: 22px; font-weight: 700; color: #ffe14d; margin-bottom: 10px; }
+#desktop .layer-bsod .bsod-tips ul { margin: 0; padding-left: 26px; display: flex; flex-direction: column; gap: 7px; }
+#desktop .layer-bsod .bsod-tips li { font-size: 18px; line-height: 1.4; }
+#desktop .layer-bsod .bsod-stats { font-size: 17px; color: #b9c2f2; margin-top: 20px; }
+#desktop .layer-bsod .bsod-buttons { display: flex; gap: 18px; margin-top: 26px; }
+/* pointer-events는 실제 클릭 대상(버튼)에만 열어준다 — .layer-bsod 자체는
+   상위 규칙(z-index 목록 근처)에서 pointer-events:none이라, 이 버튼들만 예외로 연다. */
+#desktop .layer-bsod .bsod-btn {
+  pointer-events: auto;
+  font-family: inherit;
+  font-size: 20px;
+  padding: 12px 32px;
+  background: transparent;
+  color: #fff;
+  border: 2px solid #fff;
+  cursor: pointer;
+  transition: transform 0.1s, background 0.1s, color 0.1s;
+  -webkit-font-smoothing: none;
+}
+#desktop .layer-bsod .bsod-btn:hover { background: rgba(255, 255, 255, 0.15); }
+#desktop .layer-bsod .bsod-btn:active { transform: scale(0.96); }
+/* 재도전만 강조(흰 배경) — 나머지 둘은 테두리만(투명 배경), 톤은 padding/border/
+   font-size를 셋이 그대로 공유해 통일한다. */
+#desktop .layer-bsod .bsod-btn-primary { background: #fff; color: #0000aa; }
+#desktop .layer-bsod .bsod-btn-primary:hover { background: #dfe4ff; }
+
+/* 아주 연한 주사선만 — 상시 CRT(.layer-crt-steady)의 비네트·곡률·블룸은 일부러
+   안 얹는다("가독성 해치지 않는 선", 사용자 요구사항). 독립적인 정적 CSS라
+   .layer-crt-steady와 서로 간섭하지 않는다(어차피 phase가 배타적이라 동시에
+   보일 일도 없다 — playing≠failed). */
+#desktop .layer-bsod .bsod-scanlines {
+  position: absolute; inset: 0; z-index: 0; pointer-events: none;
+  background: repeating-linear-gradient(to bottom, rgba(0, 0, 0, 0.08) 0px, rgba(0, 0, 0, 0.08) 1px, transparent 1px, transparent 3px);
+}
+
+/* ---------------------------------------------------------------------------
    ===== 상시 CRT 모니터 질감 (레이어9, playing 내내 계속) =====
    위 화면 전환 "킥"(레이어10)과는 완전히 다른 것 — 킥은 phase가 바뀌는 순간에만
    반짝 재생되는 연출이고, 이건 플레이 중 항상 떠 있는 은은한 배경 질감이다.

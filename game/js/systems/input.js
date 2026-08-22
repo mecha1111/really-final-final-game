@@ -57,9 +57,10 @@ export function initInput(canvas) {
  * 캔버스 아래(HTML 창 → 개그팝업 → 장식 → 배경) 있는 실제 엘리먼트로 클릭을 그대로
  * 넘겨서 창 드래그·닫기 버튼·개그팝업이 예전처럼 동작하게 한다.
  *
- *  (1) 캔버스 층 — 위 가드. select/cleared/failed 단계에서는 화면 전체가
- *      캔버스 오버레이(UI)라, 방해꾼이 배열에 남아 그려지고 있어도 클릭 대상이
- *      아니다. 이 return을 지우면 "버튼 눌렀는데 뒤 방해꾼도 맞는" 버그가 된다.
+ *  (1) 캔버스 층 — 위 가드. select/cleared 단계에서는 화면 전체가 캔버스
+ *      오버레이(UI)라, 방해꾼이 배열에 남아 그려지고 있어도 클릭 대상이 아니다.
+ *      이 return을 지우면 "버튼 눌렀는데 뒤 방해꾼도 맞는" 버그가 된다.
+ *      title/failed는 아예 이 함수까지 안 온다(HTML 오버레이가 캔버스보다 위).
  *
  *  (2) HTML 층 — 캔버스가 못 맞혔을 때만 내려간다. 개그아이콘·작업표시줄(.layer-deco)은
  *      pointer-events:none이라 애초에 캔버스 자체가 클릭을 계속 받으므로(=방해꾼에게 감),
@@ -113,18 +114,20 @@ function onPointerDown(canvas, pt, evt) {
     if (state.debugClicks.length > 6) state.debugClicks.shift();
   }
 
-  // [가드 0] title 단계는 캔버스가 아무 것도 안 그리고(ui/render.js) 클릭도 안 받는다
-  // — 타이틀 버튼은 HTML(.layer-title, z-index 6)이 캔버스보다 위라 애초에 이
-  // 핸들러까지 안 온다(브라우저가 버튼에서 이벤트를 끝낸다). 이 return이 없어도
-  // 아래 [가드 1]엔 안 걸리고 그다음 `phase !== 'playing'` return에서 결국 막히긴
-  // 하지만, "title엔 캔버스가 할 일이 없다"를 명시적으로 남겨서 나중에
-  // select/cleared/failed 분기가 늘어나도 title이 실수로 거기 묶여 들어가는 걸 막는다.
-  if (state.phase === 'title') return;
+  // [가드 0] title/failed 단계는 캔버스가 아무 것도 안 그리고(ui/render.js) 클릭도
+  // 안 받는다 — 그 버튼들은 HTML(.layer-title/.layer-bsod, z-index 6)이 캔버스보다
+  // 위라 애초에 이 핸들러까지 안 온다(브라우저가 버튼에서 이벤트를 끝낸다). 이
+  // return이 없어도 아래 [가드 1]엔 안 걸리고 그다음 `phase !== 'playing'` return에서
+  // 결국 막히긴 하지만, "이 단계엔 캔버스가 할 일이 없다"를 명시적으로 남겨서
+  // 나중에 select/cleared 분기가 늘어나도 여기가 실수로 거기 묶여 들어가는 걸 막는다.
+  if (state.phase === 'title' || state.phase === 'failed') return;
 
   // [가드 1] 시작/다음구간 버튼은 ui/render.js가 1920 기준(getUiReferenceCanvas)으로
   // 그리고 ctx.scale(getUiScaleFactor())로 실제 캔버스에 맞춰 줄이거나 키운다.
   // 클릭 판정도 같은 기준 공간으로 좌표를 옮겨야 그리기와 어긋나지 않는다.
-  if (state.phase === 'select' || state.phase === 'cleared' || state.phase === 'failed') {
+  // ★ failed는 더 이상 여기 없다 — BSOD(.layer-bsod)가 진짜 <button> 3개로
+  // 전담한다(ui/bsodScreen.js). cleared(클리어 축하 화면)만 캔버스에 남아있다.
+  if (state.phase === 'select' || state.phase === 'cleared') {
     const uiScale = getUiScaleFactor();
     const refPt = { x: pt.x / uiScale, y: pt.y / uiScale };
     const refCanvas = getUiReferenceCanvas();
@@ -133,7 +136,7 @@ function onPointerDown(canvas, pt, evt) {
       // 대기 화면의 시작 버튼 — state.stageIndex 구간으로 들어간다
       if (pointInRect(refPt, getStartButton(refCanvas))) startGame(state.stageIndex);
     } else if (pointInRect(refPt, getRestartButton(refCanvas))) {
-      // 결과 화면 — 클리어면 다음 구간, 실패면 처음부터(판단은 stageManager가 한다)
+      // 결과 화면(클리어) — 다음 구간으로
       advanceStage();
     }
     return;

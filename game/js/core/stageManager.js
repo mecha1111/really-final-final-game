@@ -157,5 +157,21 @@ function checkWinLose(rules) {
   } else if (state.timeLeft <= 0) {
     state.timeLeft = 0;
     state.phase = 'failed';
+  } else {
+    return; // 판이 안 끝났다 — 아래 정리는 phase가 실제로 바뀔 때만 필요하다
   }
+
+  // ★ phase가 방금 바뀌는 이 프레임에, 아직 안 가라앉은 피해 피드백 타이머를
+  // 강제로 끈다. updateUpload()는 phase가 'playing'을 벗어나면 더는 호출되지
+  // 않으므로(update() 맨 위의 가드), 여기서 안 끄면 그 순간의 값이 그대로
+  // 얼어붙어 다음 화면(cleared 캔버스, failed의 HTML BSOD) 위에 계속 남는다 —
+  // 비네트(.layer-vignette, z8)는 title/failed의 HTML 오버레이(z6)보다도 위라
+  // 특히 눈에 띈다. 실제로 벌어지려면 "제한시간이 다 됨 == 마침 그 프레임에
+  // 공격을 맞음"이 겹쳐야 해서 드물지만, 새 화면 첫인상에 남는 빨간 잔광이라
+  // 눈에 띄면 어색하다.
+  state.hitFlash = 0;
+  state.vignetteMs = 0;
+  state.dmgFloatMs = 0;
+  state.dmgFloatText = null;
+  state.fileBarGhostMs = 0;
 }

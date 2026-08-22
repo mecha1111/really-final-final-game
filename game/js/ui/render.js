@@ -128,7 +128,9 @@ export function render({ ctx, canvas, state, gameData, now }) {
     // 같은 createRules를 써야 표시와 실제가 갈라지지 않는다(공식 이중구현 금지).
     drawSelectScreen(ctx, refCanvas, state.stageIndex, createRules(state.stageIndex), refPointer);
   }
-  if (state.phase === 'cleared' || state.phase === 'failed') {
+  // failed는 이제 캔버스가 아니라 HTML 오버레이(.layer-bsod, ui/bsodScreen.js)가
+  // 전담한다 — title과 같은 방식. cleared(클리어 축하 화면)는 그대로 캔버스에 남는다.
+  if (state.phase === 'cleared') {
     drawResultScreen(ctx, refCanvas, state, refPointer);
   }
   if (gameData.loading) drawLoadingOverlay(ctx, refCanvas);

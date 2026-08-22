@@ -195,6 +195,44 @@
         </div>
       </div>
 
+      <!-- 실패 화면(HTML 오버레이, XP 블루스크린 패러디). style.css의 .phase-failed
+           규칙으로 phase==='failed'일 때만 보인다(ui/desktop.js의 syncDesktopPhase가
+           토글) — .layer-title과 완전히 같은 방식이다. 수치는 전부
+           ui/bsodScreen.js의 updateBsodScreen()이 매 프레임(failed일 때만) 채운다.
+           버튼 3개는 진짜 <button>이라 클릭 판정에 캔버스 좌표 변환이 전혀 관여하지
+           않는다 — 이 프로젝트의 클릭 버그 이력을 생각하면 캔버스 판정보다 훨씬
+           안전하다. -->
+      <div class="layer-bsod" id="layer-bsod">
+        <div class="bsod-inner">
+          <div class="bsod-face">:(</div>
+          <div class="bsod-title">업데이트에 실패했습니다</div>
+          <div class="bsod-sub">제한시간 내에 할당량을 채우지 못했어요.</div>
+          <div class="bsod-stop">
+            *** STOP: 제한시간 초과 · <span id="bsod-progress">0</span>/<span id="bsod-quota">0</span> MB
+          </div>
+          <hr class="bsod-hr" />
+          <div class="bsod-tips">
+            <div class="bsod-tips-title">다음엔 이렇게 해보세요</div>
+            <ul>
+              <li>폭탄은 시간 지나면 터져 -20%! 우선 처치</li>
+              <li>확인창은 커서를 따라와요. 실수로 누르지 마세요</li>
+              <li>시선강탈은 눌러도 안 죽어요. 무시하고 진짜를 치세요</li>
+              <li>자물쇠는 여러 번 쳐야 깨집니다</li>
+              <li>콘센트 손이 나오면 업데이트가 잠깐 멈춰요</li>
+            </ul>
+          </div>
+          <div class="bsod-stats" id="bsod-stats">완료 파일 0 · 제거 0 · 정확도 0%</div>
+          <div class="bsod-buttons">
+            <button type="button" class="bsod-btn bsod-btn-primary" id="bsod-retry">재도전</button>
+            <button type="button" class="bsod-btn" id="bsod-lobby">로비</button>
+            <button type="button" class="bsod-btn" id="bsod-quit">나가기</button>
+          </div>
+        </div>
+        <!-- 아주 연한 주사선만(비네트·곡률·블룸 없음) — 상시 CRT(.layer-crt-steady)와
+             별개다. 이 화면은 "가독성 우선"이라 진하기를 크게 낮췄다. -->
+        <div class="bsod-scanlines"></div>
+      </div>
+
       <!-- 방해꾼 과밀 시 화면 전체 지지직(레이어7). systems/overload.js가 CSS 변수
            --ovl-level/--ovl-split로 강도만 흘려보내고, 임계 밑이면 0이라 안 보인다.
            캔버스의 "형제"라 여기 transform을 걸어도 캔버스 좌표에 영향이 없다. -->

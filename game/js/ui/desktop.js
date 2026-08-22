@@ -189,10 +189,12 @@ export function initDesktop() {
  * 대기·결과 화면에서는 캔버스가 전체 오버레이를 그리므로, 그 위에 뜨는
  * 창·팝업을 숨겨야 화면이 안 겹친다(style.css의 .phase-playing 규칙).
  * title 화면도 같은 방식 — .phase-title일 때만 .layer-title이 보인다.
+ * failed(BSOD) 화면도 마찬가지 — .phase-failed일 때만 .layer-bsod가 보인다.
  */
 export function syncDesktopPhase(phase) {
   const desktop = document.getElementById('desktop');
   if (!desktop) return;
   desktop.classList.toggle('phase-playing', phase === 'playing');
   desktop.classList.toggle('phase-title', phase === 'title');
+  desktop.classList.toggle('phase-failed', phase === 'failed');
 }
