@@ -29,20 +29,62 @@ let clickThroughTarget = null;
  *   960/1920 조합이 정확히 그 비율(0.8 → 0.4)을 만든다.
  *   캔버스는 DOM 노드 하나뿐이라, 렌더가 거기 적어둔 값을 읽으면 항상 같은 배율이 보장된다.
  */
+/**
+ * 캔버스가 화면에서 실제로 차지하는 크기(CSS px)를, 조상 체인의 배율을 직접 곱해서 구한다.
+ *
+ * ★ 왜 getBoundingClientRect().width를 안 쓰는가 — 그 값이 신뢰할 수 없다는 걸 실측으로
+ *   확인했다. 어떤 크롬에서는 조상의 CSS zoom을 반영한 "화면 크기"를 주는데, 다른 크롬에서는
+ *   zoom을 뺀 "레이아웃 크기"를 준다. 게다가 left/top은 화면 좌표인데 width/height만
+ *   레이아웃 좌표인 뒤섞인 상태로 나오기도 한다:
+ *     사용자 실측(zoom 0.897, dpr 1.6): rect = 1920x1080 @89,0  ← width는 레이아웃(1920),
+ *       left는 화면(89, 레터박스 여백). 실제 화면 표시폭은 1920*0.897=1722.7이어야 한다.
+ *     같은 조건 내 크롬:              rect = 1722.7x969 @89,0  ← 둘 다 화면 좌표(정상)
+ *   width만 좌표계가 다르면 클릭이 위치에 비례해 어긋난다(원점 근처는 멀쩡하고 멀수록 커짐).
+ *   그림은 브라우저가 백킹스토어를 알아서 얹으니 멀쩡해서, "그리기는 맞는데 클릭만 밀리는"
+ *   형태로만 나타난다 — 원인을 찾기가 아주 어려웠다.
+ *
+ *   그래서 화면 크기를 rect에 묻지 않고 직접 계산한다: 캔버스의 레이아웃 크기(clientWidth,
+ *   canvasFit이 지정한 값이라 우리가 정확히 아는 숫자)에 조상들의 zoom·transform 배율을
+ *   곱한다. 이 둘은 어느 크롬에서도 같은 뜻이라 결과가 갈리지 않는다.
+ *   (zoom 미지원 브라우저용 transform 폴백 경로도 같은 식으로 함께 잡힌다.)
+ */
+function canvasDisplaySize(canvas) {
+  let sx = 1;
+  let sy = 1;
+  for (let el = canvas; el && el.nodeType === 1; el = el.parentElement) {
+    const cs = getComputedStyle(el);
+    const z = parseFloat(cs.zoom);
+    if (Number.isFinite(z) && z > 0) {
+      sx *= z;
+      sy *= z;
+    }
+    if (cs.transform && cs.transform !== 'none') {
+      try {
+        const m = new DOMMatrix(cs.transform);
+        if (m.a) sx *= Math.abs(m.a);
+        if (m.d) sy *= Math.abs(m.d);
+      } catch {
+        /* 파싱 못 하면 그냥 배율 1로 둔다 — 아래 폴백이 받아준다 */
+      }
+    }
+  }
+  return { w: canvas.clientWidth * sx, h: canvas.clientHeight * sy };
+}
+
 function canvasPoint(canvas, evt) {
   // 첫 프레임이 그려지기 전에 클릭이 들어오는 극단적인 경우만 config로 폴백한다.
   const worldToBacking = canvas.__worldToBacking || canvas.width / config.canvas.width;
   const rect = canvas.getBoundingClientRect();
 
-  // ★ offsetX/Y로 rect를 피해보려 했지만 안 된다 — 실측으로 확인했다:
-  //   zoom 0.625가 걸린 상태에서 offsetX와 (clientX - rect.left)가 정확히 같은 값(900)이고,
-  //   둘 다 "화면에 보이는 크기" 기준이다. 반면 clientWidth는 레이아웃 크기(1920, zoom 이전)라
-  //   스케일이 다르다. offsetX를 clientWidth로 나누면 딱 zoom배(0.625)만큼 틀린다.
-  //   즉 offsetX는 (clientX - rect.left)와 같은 값이라 rect 없이 갈 수 있는 길이 아니다.
-  //   → 여기서는 rect를 쓰되, 어떤 값이 쓰였는지는 H키 디버그 표시로 항상 확인할 수 있게 했다
-  //     (state.debugClicks의 env: 두 방식의 결과를 나란히 찍어 갈리는지 바로 보인다).
-  const backingX = (evt.clientX - rect.left) * (canvas.width / rect.width);
-  const backingY = (evt.clientY - rect.top) * (canvas.height / rect.height);
+  // 원점(left/top)은 rect에서 받는다 — 이 둘은 어느 크롬에서도 화면 좌표로 일치했다.
+  // 크기만 위 함수로 직접 구한다(rect.width/height를 못 믿는 이유는 그쪽 주석 참고).
+  // 계산이 안 되는 이상한 상황(크기 0 등)에서는 rect 값으로 되돌아간다.
+  const disp = canvasDisplaySize(canvas);
+  const dispW = disp.w > 0 ? disp.w : rect.width;
+  const dispH = disp.h > 0 ? disp.h : rect.height;
+
+  const backingX = (evt.clientX - rect.left) * (canvas.width / dispW);
+  const backingY = (evt.clientY - rect.top) * (canvas.height / dispH);
   return { x: backingX / worldToBacking, y: backingY / worldToBacking };
 }
 
@@ -103,6 +145,7 @@ function onPointerDown(canvas, pt, evt) {
   //   있고, 어느 것이 rect에 반영되고 어느 것이 안 되는지가 브라우저/버전마다 다르다.
   if (debugState.showHitbox) {
     const rect = canvas.getBoundingClientRect();
+    const disp = canvasDisplaySize(canvas);
     const vv = window.visualViewport;
     state.debugClicks.push({
       x: pt.x,
@@ -112,6 +155,9 @@ function onPointerDown(canvas, pt, evt) {
         client: [Math.round(evt.clientX), Math.round(evt.clientY)],
         offset: [Math.round(evt.offsetX), Math.round(evt.offsetY)],
         rect: [Math.round(rect.left), Math.round(rect.top), Math.round(rect.width), Math.round(rect.height)],
+        // 판정에 실제로 쓰는 표시 크기(레이아웃 크기 × 조상 배율). rect.width와 갈리면
+        // 그 브라우저의 rect가 zoom을 반영하지 않는다는 뜻이고, 그래도 판정은 이 값으로 맞는다.
+        disp: [Math.round(disp.w), Math.round(disp.h)],
         box: [canvas.clientWidth, canvas.clientHeight],
         backing: [canvas.width, canvas.height],
         cfg: [config.canvas.width, config.canvas.height],

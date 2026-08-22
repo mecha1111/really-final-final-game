@@ -207,12 +207,16 @@ function drawClickEnv(ctx, c) {
   // 갈리면 rect가 조상의 zoom을 잘못 반영하고 있다는 뜻 = 클릭만 밀리는 원인.
   const offVsRect = Math.round(Math.abs(e.offset[0] - (e.client[0] - e.rect[0])));
 
+  // 판정에 쓰는 표시 크기(disp)와 rect.width가 갈리면, 그 브라우저의 rect가 조상의 zoom을
+  // 반영하지 않는다는 뜻이다. 갈려도 판정은 disp로 하므로 커서와 맞는다 — 정보용 표시.
+  const rectVsDisp = e.disp ? Math.round(Math.abs(e.rect[2] - e.disp[0])) : 0;
+
   const lines = [
     `client ${e.client[0]},${e.client[1]}  →  world ${Math.round(c.x)},${Math.round(c.y)}  [판정에 쓰는 값]`,
-    `rect ${e.rect[2]}x${e.rect[3]} @${e.rect[0]},${e.rect[1]}   box ${e.box[0]}x${e.box[1]}   backing ${e.backing[0]}x${e.backing[1]}`,
-    `offsetX ${e.offset[0]} vs clientX-rect.left ${e.client[0] - e.rect[0]}  차이 ${offVsRect}px ${offVsRect > 3 ? '★ rect 이상' : '(정상)'}`,
-    `cfg ${e.cfg[0]}x${e.cfg[1]}   w2b ${e.w2b}   zoom ${e.zoom}   dpr ${e.dpr}`,
-    `visualViewport ${e.vv ? e.vv[0] + ' @' + e.vv[1] + ',' + e.vv[2] : '-'}`,
+    `disp ${e.disp ? e.disp.join('x') : '-'} (판정 기준)   rect ${e.rect[2]}x${e.rect[3]} @${e.rect[0]},${e.rect[1]}   차이 ${rectVsDisp}px${rectVsDisp > 3 ? ' ← rect가 zoom 미반영(무해)' : ''}`,
+    `box ${e.box[0]}x${e.box[1]}   backing ${e.backing[0]}x${e.backing[1]}   cfg ${e.cfg[0]}x${e.cfg[1]}   w2b ${e.w2b}`,
+    `offsetX ${e.offset[0]} vs clientX-rect.left ${e.client[0] - e.rect[0]}  차이 ${offVsRect}px`,
+    `zoom ${e.zoom}   dpr ${e.dpr}   visualViewport ${e.vv ? e.vv[0] + ' @' + e.vv[1] + ',' + e.vv[2] : '-'}`,
   ];
 
   const size = 11;
