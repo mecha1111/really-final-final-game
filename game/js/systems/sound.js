@@ -178,16 +178,47 @@ const pools = {};
 //   체감이 묻히거나 끊기는 것처럼 들릴 수 있다 — 그 부담 자체를 상한으로 없앤다.
 //   중요한 소리는 이 상한 풀에 아예 들어가지 않으므로 그 영향을 원천적으로 안 받는다.
 const IMPORTANT_SFX = new Set(); // initSound 이후 SFX 값으로 채운다(아래)
-const MAX_ACTIVE_MINOR = 16; // 평범한 플레이에선 절대 안 걸리고, 진짜 몰릴 때만 작동하는 넉넉한 상한
+// 2026-08-24 상향(16→28): 몬스터가 몰린 상태에서 연타로 여러 마리를 빠르게 처치하면
+// 짧은 시간 안에 처치음·콤보·피격음이 한꺼번에 겹쳐 16개를 순식간에 채웠다 — 그러면
+// 정작 "지금 막 잡았다"는 처치음 자체가 상한에 걸려 먹히는 게 체감됐다("연타 처치
+// 시 소리가 한 번씩 안 남"). 28은 평범한 플레이에선 여전히 절대 안 걸리는 값이면서,
+// 실제 폭주 상황(콤보 연속킬+과밀 글리치가 겹치는 극단)에도 처치음이 밀려나기 전에
+// 훨씬 더 많은 여유를 준다.
+const MAX_ACTIVE_MINOR = 28;
+
+// 그래도 상한에 닿는 진짜 극단적인 순간엔 "처치음(kill 계열)"부터 지켜야 한다 —
+// 처치했다는 확인음이 안 들리면 손맛 자체가 흔들린다. 등장음·경고음처럼 덜
+// 치명적인 것들을 먼저 내주고, 처치음은 최후의 보루로 남긴다(evictOldestMinor 참고).
+// enemies/Enemy.js의 KILL_SFX 표(종류별 고유 처치음)와 정확히 같은 집합이어야
+// 한다 — 표에 새 종류가 늘면 여기도 같이 늘려야 그 처치음도 보호받는다.
+// POPUP_WRONG은 처치가 아니라 "틀렸다" 오답음이라 여기 안 넣는다.
+const PRIORITY_MINOR_SFX = new Set([
+  SFX.KILL_SOFT,
+  SFX.KILL_HARD,
+  SFX.KILL_CLONE,
+  SFX.KILL_POPUP,
+  SFX.KILL_UNPLUG,
+  SFX.KILL_HIDDEN,
+  SFX.KILL_BOMB,
+]);
 
 /** 지금 재생 중인 "중요하지 않은" 소리들 — 오래된 순서(push만 하고 앞에서 뺀다).
- *  {src, gain} — evict할 때 gain을 짧게 0으로 내린 뒤 멈춰야 "뚝" 끊기는 클릭음이
- *  안 난다(끝까지 놔둔 채 그냥 stop()하면 그 순간 파형이 갑자기 잘려 클릭이 난다). */
+ *  {src, gain, priority} — evict할 때 gain을 짧게 0으로 내린 뒤 멈춰야 "뚝" 끊기는
+ *  클릭음이 안 난다(끝까지 놔둔 채 그냥 stop()하면 그 순간 파형이 갑자기 잘려
+ *  클릭이 난다). priority(=처치음 계열)는 아래 evictOldestMinor가 최대한 건너뛴다. */
 const activeMinor = [];
 
-/** 상한을 넘겼을 때 가장 오래된 minor 소리 하나를 짧게 페이드아웃하며 정리한다. */
+/**
+ * 상한을 넘겼을 때 하나를 짧게 페이드아웃하며 정리한다.
+ * "가장 오래된 것"이 아니라 "가장 오래된 비-처치음"을 먼저 고른다 — 처치음이
+ * 배열 앞쪽(=먼저 시작한 쪽)에 몰려 있어도 뒤쪽 등장음·경고음이 대신 정리된다.
+ * 전부 처치음뿐인 극단(=이미 처치음만으로 28개를 채운 경우)에는 그때는 정말
+ * 가장 오래된 처치음 하나를 정리한다 — 안 그러면 상한 자체가 무의미해진다.
+ */
 function evictOldestMinor() {
-  const oldest = activeMinor.shift();
+  let idx = activeMinor.findIndex((e) => !e.priority);
+  if (idx === -1) idx = 0;
+  const [oldest] = activeMinor.splice(idx, 1);
   if (!oldest) return;
   const now = ctx.currentTime;
   try {
@@ -348,6 +379,7 @@ export function initSound() {
       volume: sfxVolume,
       activeMinorCount: () => activeMinor.length,
       isImportant: (name) => IMPORTANT_SFX.has(name),
+      isPriorityMinor: (name) => PRIORITY_MINOR_SFX.has(name),
     };
   }
 }
@@ -422,7 +454,7 @@ export function playSfx(name, opts) {
 
   if (activeMinor.length >= MAX_ACTIVE_MINOR) evictOldestMinor();
 
-  const entry = { src, gain: g };
+  const entry = { src, gain: g, priority: PRIORITY_MINOR_SFX.has(name) };
   activeMinor.push(entry);
   src.onended = () => {
     const i = activeMinor.indexOf(entry);
