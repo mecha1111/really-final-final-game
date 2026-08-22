@@ -105,6 +105,13 @@ const VARIANT_COUNTS = {
 //     읽힌다), 경고·긴장 계열(atk_warning/time_tick/overload_end — 정보 전달이
 //     본분인 소리가 안 들리면 그 역할을 못한다), bait_exit(짝인 bait_appear
 //     0.5보다 너무 처져 있었다), ransom_crack_1(첫 타격에 반응이 있어야 한다).
+//   - 2026-08-25 copier 재조정: "copier 소리가 다른 것보다 크다"는 피드백을 실측
+//     (raw PCM RMS/peak, 같은 게인 등급끼리 비교)으로 확인 — sfx_copier_selfdestruct는
+//     같은 0.55 등급(clone_split/combo_tier/unplug_stop)보다 실효 RMS가 약 2배
+//     높았다(원본 mp3 자체가 더 크게 마스터링됨). entrance_print는 또래 등장음
+//     대비 실측상 튀지 않았지만, copier는 등장(print) 직후 거의 바로 자폭하는
+//     구조라 두 소리가 짧은 시간에 겹쳐 "copier가 시끄럽다"는 인상을 더한다 —
+//     그래서 같이 한 단계 낮췄다.
 const SFX_GAIN = {
   // === 자주 나는 소리 — 작게 ===
   [SFX.COMBO]: 0.3, // 이제 5콤보마다 1회로 빈도도 줄임
@@ -115,7 +122,7 @@ const SFX_GAIN = {
   [SFX.UI_CLICK]: 0.4,
   [SFX.CRT_KICK]: 0.45,
   [SFX.CLONE_SPLIT]: 0.55,
-  [SFX.COPIER_SELFDESTRUCT]: 0.55,
+  [SFX.COPIER_SELFDESTRUCT]: 0.3, // 실측 실효 RMS가 같은 등급보다 2배 커서 대폭 하향: 0.55→0.3
   [SFX.COMBO_TIER]: 0.55,
   [SFX.BAIT_APPEAR]: 0.5,
   [SFX.UNPLUG_STOP]: 0.55,
@@ -138,7 +145,7 @@ const SFX_GAIN = {
   [SFX.ENTRANCE_POP]: 0.3, // 0.2→0.3
   [SFX.ENTRANCE_SLAM]: 0.4, // 0.3→0.4
   [SFX.ENTRANCE_WINDOW]: 0.35, // 0.25→0.35
-  [SFX.ENTRANCE_PRINT]: 0.35, // 0.25→0.35
+  [SFX.ENTRANCE_PRINT]: 0.3, // copier 등장 — 자폭음과 짧게 겹쳐 체감이 커서 한 단계 하향: 0.35→0.3
 
   // === 기타 ===
   [SFX.BAIT_EXIT]: 0.4, // 등장(0.5)과 짝인데 너무 처져 있었다: 0.35→0.4
