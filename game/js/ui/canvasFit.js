@@ -4,23 +4,40 @@
 // HTML 창·개그요소와 캔버스(방해꾼)가 같은 좌표계 위에 얹혀 있어야 서로 위치가
 // 안 어긋난다. #desktop 하나만 스케일하면 그 안의 모든 것이 함께 움직인다.
 //
-// ★ 배율은 transform:scale이 아니라 zoom으로 건다 — 픽셀폰트가 뭉개지는 걸 막으려는 것.
-//   transform은 원래 크기로 래스터라이즈한 비트맵을 나중에 다시 샘플링하므로 비정수
-//   배율에서 글자에 회색 번짐이 남는다. zoom은 레이아웃 크기 자체를 바꿔서 글리프를
-//   최종 크기로 직접 래스터라이즈한다 → 같은 배율에서도 획이 단단하다.
-//   (style.css의 #stage/#desktop 주석에 근거와 실측 내용을 같이 적어뒀다.)
+// ★ 배율은 CSS zoom이 아니라 transform: scale로 건다 (2026-08-22 전환).
 //
-// 클릭 좌표는 손댈 필요가 없다 — zoom도 transform과 똑같이 getBoundingClientRect()에
-// 반영되므로 systems/input.js의 역변환((clientX-rect.left) * 논리폭/rect.width)이
-// 그대로 맞는다(왕복 오차 0.000000px 실측). 가운데 정렬은 #stage의 flex가 하므로
-// 예전처럼 여백을 계산해 translate로 밀어줄 필요도 없다.
+//   원래는 zoom이었다. 이유는 픽셀폰트였다 — transform은 원래 크기로 한 번
+//   래스터라이즈한 비트맵을 나중에 다시 샘플링해서 비정수 배율에서 글자에 회색
+//   번짐이 남고, zoom은 레이아웃 크기 자체를 바꿔 글리프를 최종 크기로 직접
+//   래스터라이즈하므로 획이 단단했다(8배 확대 비교로 확인했던 내용).
+//
+//   그런데 zoom에는 좌표 쪽 함정이 있었다: 일부 크롬에서 getBoundingClientRect()가
+//   조상의 CSS zoom을 크기에 반영하지 않는다. 사용자 실기에서 zoom 0.525인데
+//   rect가 1920x1080(레이아웃 크기)으로 나오고 rect.left만 화면 좌표(65)라,
+//   크기와 위치가 서로 다른 좌표계로 섞여 나왔다. 그러면 클릭 지점이 화면 위치에
+//   비례해서 어긋난다. rect를 안 쓰고 표시 크기를 따로 계산하는 우회를 여러 번
+//   시도했지만(ui/canvasGeometry.js) 사용자 실기에서 계속 어긋난다는 보고가 이어졌다.
+//
+//   transform: scale은 어느 브라우저에서나 getBoundingClientRect()에 정확히
+//   반영된다 — rect.width가 곧 실제 표시 폭이다. 그래서 표준 역변환
+//   (clientX - rect.left) * 논리폭 / rect.width 가 우회 없이 그대로 맞는다.
+//   창 드래그(ui/desktop.js)도 rect.width / 1920 으로 배율을 역산하는데, zoom일
+//   때는 이 값이 1로 나와 틀렸고 transform이면 제대로 나온다 — 같이 고쳐진다.
+//
+//   대가: 픽셀폰트가 비정수 배율에서 예전처럼 다소 뭉개진다. 좌표가 맞는 것이
+//   글자가 또렷한 것보다 우선이라 이쪽을 택했다.
+//
+// transform 사용 시 주의점 둘 (아래 코드와 style.css의 .no-zoom 규칙이 처리한다):
+//   · transform-origin을 top left로 고정해야 배율과 위치 계산이 단순해진다.
+//   · transform은 레이아웃 공간을 안 먹는다(줄여도 원래 1920x1080 자리를 차지).
+//     그래서 flex 가운데 정렬이 안 통하고, 여백을 직접 계산해 translate로 민다.
 
 import { config, getUiReferenceCanvas } from '../config.js';
 import { state } from '../core/state.js';
 
-// zoom을 못 쓰는 브라우저(구형 파이어폭스 등)에서는 예전 방식(transform)으로 돌아간다.
-// 폰트는 다시 뭉개지지만 게임 자체는 똑같이 동작한다.
-const SUPPORTS_ZOOM = typeof CSS !== 'undefined' && CSS.supports?.('zoom', '1');
+// true로 되돌리면 예전 방식(CSS zoom)으로 복귀한다. 폰트는 또렷해지지만 위 주석의
+// rect 문제가 같이 돌아온다.
+const USE_CSS_ZOOM = false;
 
 /** 지금 창 크기에 맞춰 #desktop의 배율(과 폴백일 때의 위치)을 다시 계산한다. */
 export function fitCanvasToViewport(canvas) {
@@ -80,10 +97,13 @@ export function fitCanvasToViewport(canvas) {
     canvas.height = targetH;
   }
 
-  if (SUPPORTS_ZOOM) {
+  if (USE_CSS_ZOOM) {
+    stage?.classList.remove('no-zoom');
+    desktop.style.transform = '';
     desktop.style.zoom = String(scale);
   } else {
-    // 폴백: 예전처럼 transform으로 줄이고 여백을 직접 계산해 가운데로 민다.
+    // transform으로 줄이고, 남는 여백을 직접 계산해 가운데로 민다.
+    // (transform은 레이아웃 공간을 안 먹어서 #stage의 flex 가운데 정렬이 안 통한다)
     stage?.classList.add('no-zoom');
     desktop.style.zoom = '';
     const offsetX = (viewportW - shownW) / 2;
@@ -92,13 +112,20 @@ export function fitCanvasToViewport(canvas) {
   }
 
   if (config.debug.enabled) {
+    // rect가 실제 표시 크기를 주는지 여기서 바로 확인할 수 있게 같이 찍는다.
+    // transform이면 rect.width ≈ shownW 여야 하고, 어긋나면 그 브라우저가
+    // 배율을 rect에 반영 안 한다는 뜻이다(예전 zoom에서 겪은 그 문제).
+    const rect = canvas.getBoundingClientRect();
     console.log('[canvasFit]', {
-      mode: SUPPORTS_ZOOM ? 'zoom' : 'transform(폴백)',
+      mode: USE_CSS_ZOOM ? 'zoom' : 'transform: scale',
       canvasInternal: `${canvas.width}x${canvas.height}`, // 시트의 canvas_w/h
       desktopBase: `${baseW}x${baseH}`, // UI 좌표계(uiBaseWidth 기준)
       viewport: `${viewportW}x${viewportH}`,
       scale: scale.toFixed(4),
       shown: `${shownW.toFixed(1)}x${shownH.toFixed(1)}`,
+      rect: `${rect.width.toFixed(1)}x${rect.height.toFixed(1)} @${rect.left.toFixed(1)},${rect.top.toFixed(1)}`,
+      rectMatchesShown:
+        Math.abs(rect.width - shownW) < 1 ? 'OK (rect가 실제 표시폭)' : '★ 어긋남 — rect가 배율 미반영',
       ratioCheck: `내부=${(canvas.width / canvas.height).toFixed(4)} 표시=${(shownW / shownH).toFixed(4)}`,
     });
   }
