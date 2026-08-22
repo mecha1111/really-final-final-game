@@ -16,13 +16,31 @@ function setText(el, value) {
 /**
  * xpbar를 칸(i) 개수로 채운다. 시안이 "칸이 늘어나는" 픽셀 게이지라
  * width %가 아니라 칸 수로 표현한다.
+ *
+ * ★ 칸 사이 간격(gap)·안쪽 여백(padding)을 여기서 다시 숫자로 안 박고
+ *   getComputedStyle로 CSS에서 직접 읽는다. 예전엔 "padding 6px, gap 2px"를
+ *   가정한 매직넘버였는데, .xpbar.big의 실제 CSS는 padding 3px×2(=6, 이건
+ *   우연히 맞았다)·gap **3px**(2px 아님!)라 총 칸수(total)가 실제보다 많게
+ *   잡혔다 — 칸 하나하나는 CSS가 정한 실제 폭(19px)+간격(3px)대로 그려지는데
+ *   JS는 "간격 2px"로 셈해서 칸이 실제로 다 안 들어가는 걸 몰랐던 것이다.
+ *   그 결과 진행률이 꽉 차도(또는 손실 잔상이 커도) 칸들이 바 오른쪽 끝까지
+ *   못 닿고 빈 여백이 남았다(실측: 80% 표시에서 79px짜리 여백 확인 — 사용자가
+ *   본 "정렬 안 맞음/삐져나옴"의 정체). CSS 값을 직접 읽으면 .xpbar(비-big,
+ *   gap 2px)에도 그대로 맞는 함수가 된다 — 어느 변형을 쓰든 다시 안 어긋난다.
  * @returns {{filled:number, total:number}} 손실 잔상(setGhostBar)이 같은 슬롯
  *   칸수 기준으로 계산해야 두 바가 정확히 겹치므로, 계산값을 돌려준다.
  */
 function setBar(el, ratio, slotWidth) {
   if (!el) return { filled: 0, total: 1 };
-  const inner = el.clientWidth - 6; // padding 제외 대략치
-  const total = Math.max(1, Math.floor(inner / (slotWidth + 2)));
+  const cs = getComputedStyle(el);
+  const gap = parseFloat(cs.columnGap || cs.gap) || 0;
+  const padX = (parseFloat(cs.paddingLeft) || 0) + (parseFloat(cs.paddingRight) || 0);
+  const inner = el.clientWidth - padX;
+  // N칸의 총 폭 = N*slotWidth + (N-1)*gap이므로, inner에 맞는 N은
+  // floor((inner+gap) / (slotWidth+gap))이다(칸 사이에만 gap이 끼고 마지막 칸
+  // 뒤엔 안 낀다는 걸 식에 반영 — 그냥 inner/(slotWidth+gap)만 하면 마지막 한
+  // 칸분의 gap을 이미 빼놓고 나눈 셈이라 실제보다 살짝 적게 잡힌다).
+  const total = Math.max(1, Math.floor((inner + gap) / (slotWidth + gap)));
   const filled = Math.max(0, Math.min(total, Math.round(total * ratio)));
   if (last[el.id + ':n'] !== filled || last[el.id + ':t'] !== total) {
     last[el.id + ':n'] = filled;
