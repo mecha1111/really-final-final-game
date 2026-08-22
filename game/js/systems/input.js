@@ -211,10 +211,11 @@ function hitTestEnemies(pt) {
     if (enemy.isTrap) {
       // 누르면 안 되는 버튼을 눌렀다
       state.stats.trapClicks += 1;
-      // damageUpload()가 안에서 공통 피격음(HIT)을 내므로, 이건 그 위에 겹치는
-      // "속았다" 전용 소리다(bomb 폭발과 같은 구성 — enemies/effects.js 주석 참고).
+      // 함정음(FAKEBTN_PENALTY)이 곧 "속았다+당했다"는 신호라, damageUpload의 공통
+      // 피격음(HIT)은 silent로 꺼서 겹치지 않게 한다 — 공통음까지 얹으면 함정음이 묻힌다.
+      // 시각 피드백(번쩍임·비네트·수치)은 damageUpload가 그대로 켠다.
       playSfx(SFX.FAKEBTN_PENALTY);
-      damageUpload(enemy.effect.wrongClickPct, enemy.x, enemy.y);
+      damageUpload(enemy.effect.wrongClickPct, enemy.x, enemy.y, { silent: true });
       enemy.hitFlash = config.enemy.hitFlashSec;
       return 'trap';
     }

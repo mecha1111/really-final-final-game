@@ -304,7 +304,8 @@ export class Enemy {
       // 타격감(히트스톱+흔들림+조각)을 켜는 바로 그 자리에서 같이 낸다 — 눈에 보이는
       // 타격과 소리가 갈라질 수 없게. 수명만료(expired)나 copier 자폭(triggered)은
       // 이 분기에 안 들어오므로 "잡았다" 소리가 거기 섞이지 않는다.
-      playSfx(KILL_SFX[this.id] ?? SFX.KILL_SOFT);
+      // varyCents: 처치 연타 때 같은 소리가 딱딱 겹치지 않게 피치를 살짝 흩는다.
+      playSfx(KILL_SFX[this.id] ?? SFX.KILL_SOFT, { varyCents: 130 });
     } else {
       this.corpseTimer = basicLinger;
     }

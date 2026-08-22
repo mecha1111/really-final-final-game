@@ -4,6 +4,7 @@
 
 import { config } from '../config.js';
 import { FRAME_SETS } from '../sprite/animator.js';
+import { playSfx, SFX } from '../systems/sound.js';
 
 const rand = (min, max) => min + Math.random() * (max - min);
 const easeOut = (t) => 1 - (1 - t) ** 3;
@@ -152,6 +153,10 @@ export function initBait(enemy, rules, playArea) {
   // 글리치 연출이 "이번 틱의 흔들림 값"을 결정적으로 뽑을 때 쓰는 씨앗.
   // 완전한 진짜 난수 대신 이걸 쓰는 이유는 ui/baitRender.js 상단 주석 참고.
   enemy.baitGlitchSeed = Math.floor(rand(0, 1e6));
+
+  // bait는 "시선 강탈"이 존재 이유다 — 등장 순간 소리로도 확 튀어서 눈을 끌어당긴다.
+  // 나머지 방해꾼과 달리 등장 연출이 화려하니, 그 연출이 시작되는 이 시점에 맞춘다.
+  playSfx(SFX.BAIT_APPEAR);
 }
 
 /**

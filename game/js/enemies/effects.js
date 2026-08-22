@@ -82,11 +82,11 @@ export function applyExpiryEffect(enemy) {
   const fx = enemy.effect;
 
   if (fx.expirePct > 0) {
-    // bomb이 터졌다. damageUpload()가 안에서 triggerHitFeedback()을 거치며 공통
-    // 피격음(HIT)도 같이 내므로, 폭발은 그 위에 겹쳐 나는 전용 소리다
-    // ("맞았다"는 공통 신호 + "폭탄이었다"는 정체를 두 겹으로 알린다).
+    // bomb이 터졌다. 폭발음(BOMB_EXPLODE)이 곧 "당했다"는 신호라, damageUpload의
+    // 공통 피격음(HIT)은 silent로 꺼서 겹치지 않게 한다 — 공통음까지 얹으면 폭발음이
+    // 묻힌다. 시각 피드백(번쩍임·비네트·"-20%")은 damageUpload가 그대로 켠다.
     playSfx(SFX.BOMB_EXPLODE);
-    damageUpload(fx.expirePct, enemy.x, enemy.y);
+    damageUpload(fx.expirePct, enemy.x, enemy.y, { silent: true });
   }
   if (fx.expireNextFileMb > 0) {
     state.nextFilePenaltyMb += fx.expireNextFileMb;

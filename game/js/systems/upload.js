@@ -55,12 +55,16 @@ function setAttackWarning(next) {
  * 이 함수 하나만 부른다 — "당했다"는 신호를 한 곳에서만 켜야 종류가 늘어도
  * 빠뜨릴 일이 없다.
  * @param {string} text 바 옆에 띄울 텍스트(예: "-20%", "-15MB")
+ * @param {{silent?: boolean}} [opts] silent:true면 공통 피격음(HIT)을 안 낸다.
+ *   피해의 "정체"를 알리는 전용 소리를 이미 내는 이벤트(bomb 폭발, fake_btn 오클릭)가
+ *   쓴다 — 그 위에 공통음까지 겹치면 전용 소리가 묻힌다. 시각 피드백(번쩍임·비네트·수치)은
+ *   그대로 남는다.
  */
-export function triggerHitFeedback(text) {
+export function triggerHitFeedback(text, opts) {
   // "당했다"를 켜는 단 하나의 자리라, 공통 피격음도 여기 하나만 걸면 종류가 늘어도
-  // 자동으로 따라온다(피해 종류별 전용 소리는 부르는 쪽에서 이 위에 겹쳐 낸다 —
-  // bomb 폭발/함정 오클릭이 그렇다).
-  playSfx(SFX.HIT);
+  // 자동으로 따라온다. 다만 전용 소리를 이미 내는 이벤트(bomb/fake_btn)는 silent로
+  // 와서 공통음을 얹지 않는다 — 겹치면 탁해지고 전용 소리가 묻히기 때문.
+  if (!opts?.silent) playSfx(SFX.HIT);
   state.hitFlash = config.hud.hitFlashSec;
   state.vignetteMs = config.hud.vignettePulseSec * 1000;
   state.dmgFloatText = text;
@@ -74,8 +78,9 @@ export function triggerHitFeedback(text) {
 /**
  * 업로드 바를 즉시 깎는다. 주기 공격, bomb 폭발, 함정 오클릭이 모두 이걸 쓴다.
  * @param {number} pct 깎을 퍼센트 포인트
+ * @param {{silent?: boolean}} [opts] triggerHitFeedback로 그대로 넘긴다(silent 참고).
  */
-export function damageUpload(pct, x, y) {
+export function damageUpload(pct, x, y, opts) {
   if (!state.file) return;
 
   const before = state.file.progress;
@@ -83,7 +88,7 @@ export function damageUpload(pct, x, y) {
   state.stats.drainedPct += before - state.file.progress;
 
   addFloat(`-${Math.round(pct)}%`, x, y, false);
-  triggerHitFeedback(`-${Math.round(pct)}%`);
+  triggerHitFeedback(`-${Math.round(pct)}%`, opts);
 
   // 방금 깎이기 직전 값을 "손실분" 빨간 잔상으로 잠깐 남긴다(ui/statusWindow.js가
   // 그린다). 이미 더 큰 손실분이 표시 중이면(짧은 시간에 연타로 맞은 경우) 안

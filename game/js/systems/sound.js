@@ -47,7 +47,38 @@ export const SFX = Object.freeze({
 
   CRT_KICK: 'sfx_crt_kick',
   UI_CLICK: 'sfx_ui_click',
+
+  // bait(시선 강탈) 등장음. "화려하고 정신없게" 시선을 끌어당기는 놈이라, 등장 순간에
+  // 소리로도 확 튀어야 그 역할이 산다(enemies/bait.js의 initBait에서 낸다).
+  BAIT_APPEAR: 'sfx_bait_appear',
 });
+
+// 소리별 상대 볼륨(0~1, masterGain 위에 곱해진다). 생성된 mp3의 절대 음량이
+// 제각각이라 "체감 크기"를 여기 한 곳에서 맞춘다. 원칙:
+//   - 자주 나는 소리(처치·콤보·클릭)는 작게, 드물고 중요한 소리(시작·클리어·게임오버)는
+//     존재감 있게.
+//   - 여기 값은 "서로 간의 상대"만 정하면 된다. 최종 볼륨은 masterGain(마스터×효과음
+//     슬라이더)이 한 번 더 곱해 누른다.
+const SFX_GAIN = {
+  [SFX.COMBO]: 0.45, // 처치마다 나서 가장 잦음
+  [SFX.UI_CLICK]: 0.5,
+  [SFX.CRT_KICK]: 0.5,
+  [SFX.ATK_WARNING]: 0.6,
+  [SFX.HIT]: 0.65,
+  [SFX.KILL_SOFT]: 0.7,
+  [SFX.CLONE_SPLIT]: 0.7,
+  [SFX.COPIER_SELFDESTRUCT]: 0.7,
+  [SFX.COMPLETE]: 0.7,
+  [SFX.COMBO_TIER]: 0.7,
+  [SFX.BAIT_APPEAR]: 0.7,
+  [SFX.UNPLUG_STOP]: 0.75,
+  [SFX.KILL_HARD]: 0.8,
+  [SFX.FAKEBTN_PENALTY]: 0.8,
+  [SFX.BOMB_EXPLODE]: 0.85,
+  [SFX.START]: 0.9,
+  [SFX.STAGE_CLEAR]: 0.9,
+  [SFX.GAMEOVER]: 1.0,
+};
 
 let ctx = null; // AudioContext. null이면 이 브라우저에서 사운드를 못 쓴다는 뜻(아래 initSound)
 let masterGain = null;
@@ -172,9 +203,11 @@ export function initSound() {
  * (재생마다 BufferSource를 새로 만들어 붙였다가 끝나면 브라우저가 알아서 치운다).
  *
  * @param {string} name SFX 상수 중 하나
- * @param {{ui?: boolean}} [opts] ui:true면 일시정지(설정 팝업) 중에도 난다 —
- *   설정창 버튼·닫기음처럼 "멈춰 있는 동안 사용자가 직접 누른 것"이 여기 해당한다.
- *   게임 쪽 소리는 기본값(false)이라 일시정지 중엔 안 난다.
+ * @param {{ui?: boolean, varyCents?: number}} [opts]
+ *   ui:true면 일시정지(설정 팝업) 중에도 난다 — 설정창 버튼·닫기음처럼 "멈춰 있는
+ *   동안 사용자가 직접 누른 것"이 여기 해당한다. 게임 쪽 소리는 기본값(false)이라
+ *   일시정지 중엔 안 난다.
+ *   varyCents: 이 값(센트)만큼 피치를 무작위로 비껴 연타 시 딱딱 겹치는 걸 흩는다.
  */
 export function playSfx(name, opts) {
   if (!ctx || !masterGain) return;
@@ -202,6 +235,17 @@ export function playSfx(name, opts) {
 
   const src = ctx.createBufferSource();
   src.buffer = buf;
-  src.connect(masterGain);
+
+  // 연타로 같은 소리를 겹쳐 틀 때 피치를 살짝 비껴서 "딱딱 겹치는" 기계적인 느낌을
+  // 없앤다. opts.varyCents(센트) 범위 안에서 무작위로 올리거나 내린다 — detune은
+  // 길이를 안 바꾸므로 리듬이 밀리지 않는다.
+  if (opts?.varyCents) src.detune.value = (Math.random() * 2 - 1) * opts.varyCents;
+
+  // 소리별 상대 볼륨을 곱해 준다(SFX_GAIN). 소스별 게인 노드를 하나 끼우는 이유는
+  // masterGain은 슬라이더가 공유하는 노드라 소리마다 다르게 곱할 수 없기 때문이다.
+  const g = ctx.createGain();
+  g.gain.value = SFX_GAIN[name] ?? 1;
+  src.connect(g);
+  g.connect(masterGain);
   src.start(0);
 }
