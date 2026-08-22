@@ -188,6 +188,7 @@ body {
 #desktop .layer-win { position: absolute; inset: 0; z-index: 4; pointer-events: none; }
 #desktop #game-canvas { position: absolute; inset: 0; z-index: 5; pointer-events: auto; }
 #desktop .layer-title { position: absolute; inset: 0; z-index: 6; pointer-events: none; display: none; }
+#desktop .layer-overload { position: absolute; inset: 0; z-index: 7; pointer-events: none; overflow: hidden; }
 #desktop .layer-crt { position: absolute; inset: 0; z-index: 10; pointer-events: none; overflow: hidden; }
 /* 레이어 자체는 클릭을 통과시키고, 그 안의 "실제" 것만 클릭을 받는다 —
    빈 공간을 눌렀을 때(그리고 캔버스가 방해꾼을 못 맞혔을 때) 아래로 통과되게 하려는 것. */
@@ -441,6 +442,42 @@ body {
   45%  { opacity: 0.18; transform: translateX(1px); }
   60%  { opacity: 0.08; transform: translateX(0); }
   100% { opacity: 0;    transform: translateX(0); }
+}
+
+/* ---------------------------------------------------------------------------
+   ===== 방해꾼 과밀 지지직 (레이어7) =====
+   systems/overload.js가 매 프레임 --ovl-level(전체 세기)과 --ovl-split(색수차 폭)만
+   흘려보낸다. 임계 밑이면 --ovl-level이 0이라 통째로 안 보이고, 애니메이션도 없다.
+
+   색수차를 어떻게 내나: 빨강/시안 "주사선"을 각각 깔고 좌우로 서로 반대 방향으로
+   어긋나게 민다. 단색 판을 겹치면 화면만 밝아질 뿐 색이 갈라져 보이지 않는데,
+   줄무늬로 만들어 어긋내면 빨강/시안 줄이 엇갈리며 실제로 색이 분리돼 보인다.
+   mix-blend-mode:screen이라 어두운 곳은 그대로 두고 밝은 쪽만 물든다.
+
+   ★ transform은 이 레이어(캔버스의 형제)에만 건다. 캔버스의 "조상"에 transform
+   애니를 걸면 크롬이 canvas의 getBoundingClientRect()를 영구히 망가뜨리는 실측
+   버그가 있다(ui/crtTransition.js 상단 주석). 화면 내용 자체의 미세 떨림은 그래서
+   DOM이 아니라 그리기 원점으로 처리한다(systems/overload.js의 getOverloadJitter).
+   --------------------------------------------------------------------------- */
+#desktop .layer-overload { opacity: var(--ovl-level, 0); }
+/* inset을 음수로 줘서 좌우로 밀어도 가장자리에 빈틈이 안 생기게 한다 */
+#desktop .layer-overload > div { position: absolute; inset: -12px; }
+
+#desktop .layer-overload .ovl-scan {
+  background: repeating-linear-gradient(to bottom, rgba(0, 0, 0, 0.42) 0 2px, transparent 2px 5px);
+}
+#desktop .layer-overload .ovl-r,
+#desktop .layer-overload .ovl-c {
+  mix-blend-mode: screen;
+}
+#desktop .layer-overload .ovl-r {
+  background: repeating-linear-gradient(to bottom, rgba(255, 40, 90, 0.55) 0 2px, transparent 2px 6px);
+  transform: translateX(calc(var(--ovl-split, 0px) * -1));
+}
+#desktop .layer-overload .ovl-c {
+  /* 시안 줄은 1px 내려서 깔아 빨강 줄과 안 겹치게 한다 — 겹치면 흰색이 돼 색이 사라진다 */
+  background: repeating-linear-gradient(to bottom, transparent 0 1px, rgba(0, 225, 255, 0.55) 1px 3px, transparent 3px 6px);
+  transform: translateX(var(--ovl-split, 0px));
 }
 
 /* ===== 배경(하늘 격자 · 언덕 · 구름) — 시안 그대로 ===== */

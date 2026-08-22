@@ -186,6 +186,21 @@ export const config = {
     },
   },
 
+  // 방해꾼이 너무 많아졌을 때 화면 전체가 지지직거리는 과부하 연출(systems/overload.js).
+  // "지금 감당이 안 되고 있다"를 숫자(살아있음 n/m)가 아니라 화면 자체로 알리는 장치다.
+  overload: {
+    // 이번 판의 동시 최대(rules.maxAlive) 대비 이 비율을 넘으면 시작된다.
+    startRatio: 0.8,
+    // 이 비율에서 강도가 최대(1)가 된다. startRatio~fullRatio 사이는 비례해서 올라간다.
+    fullRatio: 1.15,
+    // 최대 강도일 때의 값들. 강도가 낮으면 전부 비례해서 약해지고, 임계 밑으로
+    // 내려가면 0이 되어 완전히 사라진다.
+    maxOpacity: 0.42, // 지지직 오버레이 전체 불투명도
+    maxSplitPx: 9, // 빨강/시안 주사선이 좌우로 어긋나는 최대 거리(색수차)
+    maxJitterPx: 2.4, // 화면(그리기 원점)이 미세하게 떠는 폭
+    jitterHz: 19, // 그 떨림의 진동수
+  },
+
   // 방해꾼별 등장 연출. 스폰 직후 durSec 동안만 재생되고 그 뒤엔 완전히 무해해진다
   // (enemies/entrance.js). kind가 실제 움직임 종류, durSec이 재생 시간(초).
   //

@@ -160,6 +160,15 @@
         </div>
       </div>
 
+      <!-- 방해꾼 과밀 시 화면 전체 지지직(레이어7). systems/overload.js가 CSS 변수
+           --ovl-level/--ovl-split로 강도만 흘려보내고, 임계 밑이면 0이라 안 보인다.
+           캔버스의 "형제"라 여기 transform을 걸어도 캔버스 좌표에 영향이 없다. -->
+      <div class="layer-overload" id="layer-overload">
+        <div class="ovl-scan"></div>
+        <div class="ovl-r"></div>
+        <div class="ovl-c"></div>
+      </div>
+
       <!-- 화면 전환 CRT 킥(레이어10, 항상 최상단). phase가 바뀌는 순간에만
            ui/crtTransition.js가 애니를 1회 재시작시킨다 — 평소엔(재생 안 할 땐)
            투명해서 아무 것도 안 보이고 클릭도 pointer-events:none이라 절대 안 먹는다. -->

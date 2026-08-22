@@ -3,10 +3,11 @@
 
 import { config, getUiScaleFactor, getUiReferenceCanvas, getRenderScale, createRules } from '../config.js';
 import { debugState } from '../debug.js';
-import { drawEnemy, drawCursorGlyph, drawFloats, drawClickMarkers } from './renderEnemies.js';
+import { drawEnemy, drawCursorGlyph, drawFloats, drawClickMarkers, drawKillParticles } from './renderEnemies.js';
 import { drawSelectScreen, drawResultScreen, drawLoadingOverlay } from './screens.js';
 import { getCrtShakeOffset } from './crtTransition.js';
 import { getShakeOffset } from '../systems/screenShake.js';
+import { updateOverload, getOverloadJitter } from '../systems/overload.js';
 
 /**
  * 캔버스를 비운다. 배경(Bliss·언덕·구름)은 이제 캔버스가 아니라 그 아래 깔린
@@ -55,9 +56,19 @@ export function render({ ctx, canvas, state, gameData, now }) {
   // 만든다(이 프로젝트가 그런 자체 오진단으로 여러 번 헛짚었다).
   // 화면 전환 CRT 흔들림 + 게임 중 흔들림(ransom 착지·처치 타격감)을 합친다.
   // 둘 다 DOM이 아니라 그리기 원점만 미는 방식이라 그냥 더하면 된다.
+  // 과밀 지지직: 강도를 갱신하고(오버레이 CSS 변수) 그 미세 떨림도 같이 받는다.
+  // 살아있는 놈만 센다 — 시체(corpseTimer로 잠깐 남는 것)까지 세면 처치할수록
+  // 과부하가 심해지는 거꾸로 된 신호가 된다.
+  const aliveCount = state.enemies.reduce((n, e) => n + (e.alive ? 1 : 0), 0);
+  updateOverload(aliveCount, state.rules ? state.rules.maxAlive : 0);
+  const overloadJitter = getOverloadJitter();
+
   const crtShake = getCrtShakeOffset(now);
   const gameShake = getShakeOffset();
-  const shake = { x: crtShake.x + gameShake.x, y: crtShake.y + gameShake.y };
+  const shake = {
+    x: crtShake.x + gameShake.x + overloadJitter.x,
+    y: crtShake.y + gameShake.y + overloadJitter.y,
+  };
 
   // 방해꾼/가짜커서/뜬 글씨는 물리(실제) 캔버스 좌표 그대로 그린다 — 이미
   // getScaleFactor()(baseWidth=1280)로 스케일된 값들이라 여기서 또 손대면 안 된다.
@@ -74,6 +85,8 @@ export function render({ ctx, canvas, state, gameData, now }) {
     // 위장 중이면 진짜 커서도 가짜와 똑같이 그린다
     if (state.cursorDisguise > 0) drawCursorGlyph(ctx, state.pointer.x, state.pointer.y);
 
+    // 조각은 방해꾼 위에 그린다 — 터진 파편이 스프라이트에 가리면 안 보인다.
+    drawKillParticles(ctx, state.particles);
     drawFloats(ctx, state.floats);
 
     ctx.restore();
