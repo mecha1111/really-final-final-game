@@ -90,13 +90,20 @@ const VARIANT_COUNTS = {
 //   - 드물고 중요한 소리(완료·시작·클리어·게임오버)만 존재감 있게.
 //   - 2026-08-22 톤다운: "너무 자주·날카로워 귀에 거슬린다"는 피드백 반영 — 자주 나는
 //     소리 전부 한 단계씩 내리고, 등장음은 거의 깔리는 수준으로.
+//   - 2026-08-23 부분 상향: 위 톤다운 이후 "일부가 너무 작아 안 들린다"는 피드백.
+//     그때 낮춘 게 잘못은 아니었다 — 처치·콤보처럼 "날카롭다"고 지적받은 것들은
+//     그대로 두고, 애초에 그런 지적을 받은 적 없는데 그냥 낮게 시작한 것들만 골라
+//     한두 단계 올렸다: 등장음(너무 작아 안 들리면 "때렸는데 반응이 없다"로
+//     읽힌다), 경고·긴장 계열(atk_warning/time_tick/overload_end — 정보 전달이
+//     본분인 소리가 안 들리면 그 역할을 못한다), bait_exit(짝인 bait_appear
+//     0.5보다 너무 처져 있었다), ransom_crack_1(첫 타격에 반응이 있어야 한다).
 const SFX_GAIN = {
   // === 자주 나는 소리 — 작게 ===
   [SFX.COMBO]: 0.3, // 이제 5콤보마다 1회로 빈도도 줄임
   [SFX.KILL_SOFT]: 0.5, // 처치음(연타) — 짧고 은은하게
   [SFX.KILL_HARD]: 0.6,
   [SFX.HIT]: 0.5,
-  [SFX.ATK_WARNING]: 0.5,
+  [SFX.ATK_WARNING]: 0.6, // 경고는 안 들리면 역할을 못한다 — 0.5→0.6
   [SFX.UI_CLICK]: 0.4,
   [SFX.CRT_KICK]: 0.45,
   [SFX.CLONE_SPLIT]: 0.55,
@@ -108,20 +115,20 @@ const SFX_GAIN = {
   [SFX.BOMB_EXPLODE]: 0.7,
 
   // === 다단계 타격 ===
-  [SFX.RANSOM_CRACK_1]: 0.4, // 첫 균열 — 약하게
+  [SFX.RANSOM_CRACK_1]: 0.45, // 첫 균열 — 반응은 있어야 한다: 0.4→0.45
   [SFX.RANSOM_CRACK_2]: 0.5, // 갈라짐 — 중간
 
-  // === 등장음(스폰 잦아 거의 깔리는 수준) ===
-  [SFX.ENTRANCE_POP]: 0.2,
-  [SFX.ENTRANCE_SLAM]: 0.3,
-  [SFX.ENTRANCE_WINDOW]: 0.25,
-  [SFX.ENTRANCE_PRINT]: 0.25,
+  // === 등장음(스폰 잦아 존재감은 낮게 유지하되, 아예 안 들리진 않게 한 단계씩) ===
+  [SFX.ENTRANCE_POP]: 0.3, // 0.2→0.3
+  [SFX.ENTRANCE_SLAM]: 0.4, // 0.3→0.4
+  [SFX.ENTRANCE_WINDOW]: 0.35, // 0.25→0.35
+  [SFX.ENTRANCE_PRINT]: 0.35, // 0.25→0.35
 
   // === 기타 ===
-  [SFX.BAIT_EXIT]: 0.35,
+  [SFX.BAIT_EXIT]: 0.4, // 등장(0.5)과 짝인데 너무 처져 있었다: 0.35→0.4
   [SFX.OVERLOAD_START]: 0.45,
-  [SFX.OVERLOAD_END]: 0.35,
-  [SFX.TIME_TICK]: 0.3, // 마지막 5초만 똑딱
+  [SFX.OVERLOAD_END]: 0.4, // 진입(0.45)과 짝이 안 맞았다: 0.35→0.4
+  [SFX.TIME_TICK]: 0.4, // 마지막 5초 긴장감용인데 너무 작았다: 0.3→0.4
   [SFX.UI_OPEN]: 0.4,
   [SFX.UI_CLOSE]: 0.4,
   [SFX.SKIP]: 0.4,
