@@ -163,10 +163,15 @@ export class Enemy {
    *   근본 해결은 시트에서 bomb의 stops_upload를 FALSE로 고치는 것이고, 그러면
    *   아래 NEVER_BLOCKS는 지워도 그대로 동작한다. 시트 값이 그대로인 동안에도
    *   게임이 의도대로 돌게 여기서 바로잡는다.
+   *
+   * ★ 스폰 직후 config.enemy.blockDelaySec만큼은 A타입이어도 false다 — 유예를
+   *   두는 이유는 그 상수 주석 참고. 이 게터가 age를 같이 보므로 "정지 중인가"를
+   *   묻는 모든 곳이 자동으로 유예를 존중한다(판정과 표시가 갈릴 여지를 안 만든다).
    */
   get stopsUpload() {
     if (NEVER_BLOCKS.has(this.id)) return false;
-    return this.spec.stops_upload === true;
+    if (this.spec.stops_upload !== true) return false;
+    return this.age >= config.enemy.blockDelaySec;
   }
 
   /** 다음 공격까지 남은 시간 대비 예비동작 진행도(0~1, 1이 발동 직전) */
