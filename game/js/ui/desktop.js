@@ -174,10 +174,6 @@ export function initDesktop() {
     m.title = '이 창은 최소화할 수 없습니다';
   });
 
-  // 건너뛰기 버튼 — 일부러 클릭 핸들러를 안 붙인다. S키로만 동작해야 실수로
-  // 눌리는 걸 막을 수 있다(systems/input.js의 KeyS → skipFile()). <button> 모양은
-  // 유지하되(index.html의 skip-btn 주석 참고) 마우스로는 절대 발동 안 된다.
-
   for (let i = 0; i < config.desktop.initialGagPopups; i++) spawnGagPopup();
   startClock();
 }

@@ -51,7 +51,6 @@ export function createRules(stageIndex = 0) {
 
     // 아래는 stage 시트에서 오는 판 전체 규칙(구간과 무관)
     timeLimit: getStageValue('time_limit', 180),
-    skipLimit: getStageValue('skip_limit', 3),
     minGap: getStageValue('min_gap', 20),
     minHitbox: getStageValue('min_hitbox', 60),
     dirChangeMin: getStageValue('direction_change_min', 2),

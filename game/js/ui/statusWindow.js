@@ -118,14 +118,6 @@ export function updateStatusWindows(state) {
   setText(timeEl, mmss(state.timeLeft));
   if (timeEl) timeEl.style.color = state.timeLeft <= config.desktop.timeWarnSec ? '#c0281a' : '#111';
 
-  // 건너뛰기 — S키 전용(ui/desktop.js에 클릭 핸들러가 없다, systems/input.js가
-  // KeyS를 처리). 잔여 횟수를 "· N회 남음"으로 이어 붙여 보여주고, 다 썼으면
-  // 비활성 스타일만 남긴다.
-  const skipBtn = document.getElementById('skip-btn');
-  const skipCount = document.getElementById('skip-count');
-  setText(skipCount, state.skipsLeft > 0 ? `· ${state.skipsLeft}회 남음` : '· 다 썼음');
-  if (skipBtn) skipBtn.disabled = state.skipsLeft <= 0;
-
   // ── 진짜_최종…exe (업로드 창) ──
   // 2026-08-24: 예전엔 이 자리에 파일 목표 용량만 고정 텍스트로 떠 있었다
   // ("60MB") — 그림·진행바에 눈이 안 간다는 피드백이라, "지금까지 올라간 MB"를

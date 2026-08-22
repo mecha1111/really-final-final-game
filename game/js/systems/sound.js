@@ -79,7 +79,6 @@ export const SFX = Object.freeze({
   TIME_TICK: 'sfx_time_tick',
   UI_OPEN: 'sfx_ui_open',
   UI_CLOSE: 'sfx_ui_close',
-  SKIP: 'sfx_skip',
 });
 
 // 변주(바리에이션) 개수. 이 표에 있는 소리는 프리로드/재생 시 `이름_1.mp3`~`이름_N.mp3`
@@ -148,7 +147,6 @@ const SFX_GAIN = {
   [SFX.TIME_TICK]: 0.4, // 마지막 5초 긴장감용인데 너무 작았다: 0.3→0.4
   [SFX.UI_OPEN]: 0.4,
   [SFX.UI_CLOSE]: 0.4,
-  [SFX.SKIP]: 0.4,
 
   // === 드물고 중요한 소리 — 존재감 유지 ===
   [SFX.COMPLETE]: 0.65, // 파일 완료

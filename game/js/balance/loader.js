@@ -68,7 +68,6 @@ const HARDCODED_DATA = {
   stage: {
     time_limit: { value: 180, unit: 'sec' },
     quota: { value: 300, unit: 'MB' },
-    skip_limit: { value: 3, unit: '회' },
     canvas_w: { value: 1920, unit: 'px' },
     canvas_h: { value: 1080, unit: 'px' },
     min_hitbox: { value: 60, unit: 'px' },

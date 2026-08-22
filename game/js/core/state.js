@@ -36,7 +36,6 @@ export const state = {
   reward: 0, // 크레딧
   file: null, // 지금 올리는 중인 파일
   nextFilePenaltyMb: 0, // hidden이 남긴 "다음 파일 -15MB" 빚
-  skipsLeft: 0,
 
   enemies: [],
   fakeCursors: [],

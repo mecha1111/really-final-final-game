@@ -3,7 +3,6 @@
 import { config, getUiScaleFactor, getUiReferenceCanvas } from '../config.js';
 import { state } from '../core/state.js';
 import { startGame, advanceStage } from '../core/stageManager.js';
-import { skipFile } from './file.js';
 import { damageUpload } from './upload.js';
 import { registerKill, registerMiss } from './combo.js';
 import { playSfx, SFX } from './sound.js';
@@ -295,17 +294,15 @@ function onKeyDown(evt) {
     return;
   }
   // 설정 팝업이 열린 동안은 일시정지 중이다 — D/H 같은 디버그 키까지 포함해서
-  // 나머지 단축키를 전부 막는다(특히 S: 열어놓은 채로 건너뛰기가 몰래 발동하면
-  // 안 된다). 캔버스 클릭은 이미 .layer-settings(z11)가 캔버스(z5)보다 물리적으로
-  // 위에서 가로채므로(ui/settingsPanel.js 상단 주석) 여기 키보드 쪽만 막아주면 된다.
+  // 나머지 단축키를 전부 막는다. 캔버스 클릭은 이미 .layer-settings(z11)가
+  // 캔버스(z5)보다 물리적으로 위에서 가로채므로(ui/settingsPanel.js 상단 주석)
+  // 여기 키보드 쪽만 막아주면 된다.
   if (state.settingsOpen) return;
 
   if (handleDebugKey(evt.code)) {
     evt.preventDefault();
     return;
   }
-
-  if (evt.code === 'KeyS') skipFile();
 
   // 결과 화면: R = 다음 구간(클리어) / 처음부터(실패). 화면 버튼과 같은 동작.
   if (evt.code === 'KeyR' && (state.phase === 'cleared' || state.phase === 'failed')) {

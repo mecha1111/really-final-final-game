@@ -85,14 +85,3 @@ export function completeFile() {
   state.fileCompleteHoldMs = config.fileComplete.holdMs;
   state.fileCompleteSeq += 1;
 }
-
-/** S키. 지금 파일을 버리고 새로 받는다(진행도는 0부터). 하루 skip_limit 회. */
-export function skipFile() {
-  if (state.phase !== 'playing' || state.skipsLeft <= 0) return;
-  state.skipsLeft -= 1;
-  playSfx(SFX.SKIP);
-
-  const at = playAreaCenterTop();
-  addFloat('스킵!', at.x, at.y, false);
-  grantFile();
-}

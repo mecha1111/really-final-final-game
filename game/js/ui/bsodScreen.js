@@ -23,7 +23,7 @@ function setText(el, value) {
  *     clone cloneSplitMaxTierByStage(config.enemy, 3구간=n>=2부터 스몰까지),
  *     copier maxConcurrentById=1(config.enemy), hidden 수명만료 -15MB(시트),
  *     bait는 hit_w/h=0이라 클릭 무반응+콤보 끊김(systems/combo.js),
- *     combo.tiers 최대 배율 1.5(config.combo), skip_limit=3(시트).
+ *     combo.tiers 최대 배율 1.5(config.combo).
  */
 const TIPS = [
   // 방해꾼별
@@ -40,7 +40,7 @@ const TIPS = [
   // 시스템/전략
   '콤보를 유지하면 처치당 업데이트 MB가 최대 1.5배!',
   '허공을 클릭하면 콤보가 끊겨요. 정확하게 노리세요.',
-  '건너뛰기(S)는 하루 3번뿐이에요. 아껴서 쓰세요.',
+  '상태.dat의 할당량 진행률을 자주 확인하세요 — 지금 얼마나 왔는지 한눈에 보여요.',
   '구간이 올라갈수록 할당량과 방해꾼이 늘어납니다.',
 ];
 
