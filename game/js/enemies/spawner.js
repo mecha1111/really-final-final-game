@@ -39,7 +39,14 @@ export class Spawner {
     // 살아있는 수가 상한이면 이번 차례는 건너뛴다.
     if (enemies.length >= rules.maxAlive) return [];
 
-    const spec = pickWeighted(pool);
+    // 종류별 동시 등장 상한(config.enemy.maxConcurrentById) — 이번 차례에 뽑을
+    // 후보에서 이미 상한에 닿은 종류를 미리 걸러낸다. 그러니까 "대체"다: copier가
+    // 상한(1마리)에 걸려 있으면 이번 굴림은 나머지 pool 중에서만 골라지고, 굴릴
+    // 후보가 아예 없으면(전부 상한) 스폰 자체를 건너뛴다.
+    const spawnable = filterByConcurrencyCap(pool, enemies);
+    if (spawnable.length === 0) return [];
+
+    const spec = pickWeighted(spawnable);
     if (!spec) return [];
 
     return [this.spawnOne(spec, world)];
@@ -61,6 +68,26 @@ export class Spawner {
 export function buildPool(specs, stage) {
   const disabled = config.enemy.disabledIds;
   return specs.filter((s) => (s.min_stage ?? 1) <= stage && !disabled.includes(s.id));
+}
+
+/**
+ * config.enemy.maxConcurrentById에 상한이 걸린 종류는, 지금 살아있는 수가 그
+ * 상한에 이미 닿았으면 이번 굴림 후보에서 뺀다. 표에 없는 종류는 무제한(기존과
+ * 동일) — copier처럼 "한 번에 하나만 쫓아와야 압박이 산다" 싶은 종류만 여기 올린다.
+ * ★ corpseTimer로 잠깐 화면에 남는 시체는 안 센다(.alive만) — "지금 실제로
+ *   쫓아오는 놈"이 몇 마리인지가 기준이지, 막 죽어가는 잔상까지 포함하면 다음
+ *   한 마리가 나올 타이밍이 부당하게 늦어진다.
+ */
+function filterByConcurrencyCap(pool, enemies) {
+  const limits = config.enemy.maxConcurrentById;
+  if (!limits) return pool;
+
+  return pool.filter((spec) => {
+    const cap = limits[spec.id];
+    if (cap == null) return true;
+    const aliveCount = enemies.reduce((n, e) => n + (e.alive && e.id === spec.id ? 1 : 0), 0);
+    return aliveCount < cap;
+  });
 }
 
 /** weight 칸을 가중치로 써서 하나 고른다. weight가 클수록 자주 나온다. */
