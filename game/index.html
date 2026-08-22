@@ -275,10 +275,19 @@
 
       <!-- 화면 전환 CRT 킥(레이어10, 항상 최상단). phase가 바뀌는 순간에만
            ui/crtTransition.js가 애니를 1회 재시작시킨다 — 평소엔(재생 안 할 땐)
-           투명해서 아무 것도 안 보이고 클릭도 pointer-events:none이라 절대 안 먹는다. -->
+           투명해서 아무 것도 안 보이고 클릭도 pointer-events:none이라 절대 안 먹는다.
+
+           ★ 2026-08-22 "브라운관 켜짐" 재구성: 순서가 그림 순서(= DOM 순서, 나중에
+           오는 게 위에 그려진다)와 정확히 일치해야 한다 — 커튼(crt-curtain-*)이
+           화면 아래쪽 내용을 실제로 가려야 "닫혀있다"가 성립하고, 그 위에 밝은
+           선(crt-line)이 커튼 이음매(정중앙)에서 새어나오듯 보여야 "그 틈에서
+           불이 들어온다"가 성립한다. 그래서 커튼을 scanlines/flash보다 뒤에,
+           line/jitter보다는 앞에 둔다(자세한 타이밍은 style.css 쪽 큰 주석). -->
       <div class="layer-crt" id="layer-crt">
         <div class="crt-scanlines"></div>
         <div class="crt-flash"></div>
+        <div class="crt-curtain-top"></div>
+        <div class="crt-curtain-bottom"></div>
         <div class="crt-line"></div>
         <div class="crt-jitter"></div>
       </div>

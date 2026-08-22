@@ -501,7 +501,18 @@ body {
    --------------------------------------------------------------------------- */
 #desktop .layer-crt > div { position: absolute; inset: 0; }
 
-/* 스캔라인: 반복 gradient가 서서히 옅어지며 사라진다(오버슛 없이 그냥 fade). */
+/* ── 순서(전체 재생 흐름, var(--crt-duration) 대비 %) ──────────────────────
+   0~10%   화면이 이미 "닫혀있다" — 커튼(위/아래 검정)이 맞닿아 화면을 덮고,
+           그 이음매(정중앙)에서만 밝은 선(crt-line)이 새어나온다.
+   10~45%  커튼이 위/아래로 걷히며(scaleY 1→0) 화면이 "살아난다". 밝은 선도
+           같은 구간에서 세로로 펴지며(오버슛 포함) 두꺼워진다.
+   45~55%  화면이 열리자마자 순간 지직(crt-jitter)과 밝기 번쩍(crt-flash).
+   55~100% 지직·번쩍·밝은 선이 가라앉으며 상시 CRT(레이어9)로 자연스럽게 인계.
+   ────────────────────────────────────────────────────────────────────── */
+
+/* 스캔라인: 반복 gradient가 서서히 옅어지며 사라진다(오버슛 없이 그냥 fade) —
+   "켜진 뒤 잔광이 가라앉는다"는 이 재생 내내 걸쳐 있어도 자연스러운 배경 결이라
+   커튼과 별개로 처음부터 그대로 둔다. */
 #desktop .layer-crt .crt-scanlines {
   background: repeating-linear-gradient(
     to bottom,
@@ -513,30 +524,60 @@ body {
   opacity: 0;
 }
 #desktop .layer-crt.crt-playing .crt-scanlines {
-  animation: crt-scanlines-fade var(--crt-duration, 900ms) linear;
+  animation: crt-scanlines-fade var(--crt-duration, 1600ms) linear;
 }
 @keyframes crt-scanlines-fade {
   0% { opacity: 0.5; }
   100% { opacity: 0; }
 }
 
-/* 흰 플래시: 화면 전체가 순간 밝아졌다 가라앉는다. */
+/* 커튼 — 위/아래에서 화면을 덮는 검정 판. transform-origin이 각자 바깥쪽 모서리라
+   scaleY(1)→scaleY(0)이 "안쪽(화면 중앙)에서부터 걷힌다"가 아니라 "바깥쪽으로
+   접히며 걷힌다"로 보인다(실제 CRT가 중앙 한 점에서 위아래로 뻗어나가는 인상과
+   더 가깝다 — 반대로 하면 마치 블라인드가 말려 올라가는 것처럼 보여 어색하다).
+   기본(재생 안 할 때)은 scaleY(0) = 완전히 걷힌 상태라 평소엔 아무것도 안 가린다.
+   ★ 캔버스의 "형제"일 뿐 조상이 아니라서 transform을 걸어도
+   canvas.getBoundingClientRect()에는 영향이 없다(이 파일 상단 큰 주석과 같은 이유). */
+#desktop .layer-crt .crt-curtain-top,
+#desktop .layer-crt .crt-curtain-bottom {
+  height: 50%;
+  background: #000;
+  transform: scaleY(0);
+}
+#desktop .layer-crt .crt-curtain-top { top: 0; bottom: auto; transform-origin: top; }
+#desktop .layer-crt .crt-curtain-bottom { bottom: 0; top: auto; transform-origin: bottom; }
+#desktop .layer-crt.crt-playing .crt-curtain-top,
+#desktop .layer-crt.crt-playing .crt-curtain-bottom {
+  animation: crt-curtain-open var(--crt-duration, 1600ms) ease-out;
+}
+@keyframes crt-curtain-open {
+  0%   { transform: scaleY(1); } /* 닫힘 — 위/아래가 정중앙에서 맞닿는다 */
+  10%  { transform: scaleY(1); } /* 잠깐 그대로 — "선 하나로 수축한" 순간을 보여준다 */
+  45%  { transform: scaleY(0); } /* 확 걷힌다 */
+  100% { transform: scaleY(0); }
+}
+
+/* 흰 플래시: 커튼이 다 걷힌 직후 화면 전체가 순간 밝아졌다 가라앉는다
+   ("밝기 번쩍" — 화면이 열리기 전이 아니라 열린 다음이라야 "켜졌다"로 읽힌다). */
 #desktop .layer-crt .crt-flash {
   background: #fff;
   opacity: 0;
 }
 #desktop .layer-crt.crt-playing .crt-flash {
-  animation: crt-flash-pulse var(--crt-duration, 900ms) ease-out;
+  animation: crt-flash-pulse var(--crt-duration, 1600ms) ease-out;
 }
 @keyframes crt-flash-pulse {
-  0% { opacity: 0; }
-  22% { opacity: 0.55; }
+  0%   { opacity: 0; }
+  44%  { opacity: 0; }
+  50%  { opacity: 0.6; }
+  70%  { opacity: 0; }
   100% { opacity: 0; }
 }
 
-/* 흰 가로선: 중앙에서 얇은 줄로 번쩍 나타났다가(scaleY≈0) 위아래로 펴지며(0→1,
-   1.04→0.99→1 오버슛으로 통통하게) 사라진다. transform-origin이 정중앙이라 위/
-   아래로 똑같이 펴진다. */
+/* 밝은 가로선 — 커튼 이음매에서 새어나오는 빛. 커튼과 같은 구간(0~10% 대기,
+   10~45% 확장)에서 함께 두꺼워지고, 오버슛(1.05→0.99→1)으로 "훅 들어왔다 살짝
+   가라앉는" 통통함을 준 뒤 화면이 자리잡는 55%부터 옅어져 사라진다.
+   transform-origin이 정중앙이라 위/아래로 커튼과 정확히 같은 속도로 펴진다. */
 #desktop .layer-crt .crt-line {
   background: linear-gradient(to bottom, transparent 0%, #fff 45%, #fff 55%, transparent 100%);
   transform-origin: center center;
@@ -544,21 +585,23 @@ body {
   opacity: 0;
 }
 #desktop .layer-crt.crt-playing .crt-line {
-  animation: crt-line-unfurl var(--crt-duration, 900ms) ease-out;
+  animation: crt-line-unfurl var(--crt-duration, 1600ms) ease-out;
 }
 @keyframes crt-line-unfurl {
   0%   { transform: scaleX(1) scaleY(0.002); opacity: 1; }
-  35%  { transform: scaleX(1) scaleY(1);     opacity: 1; }
-  50%  { transform: scaleX(1) scaleY(1.04);  opacity: 1; }   /* 오버슛 */
-  65%  { transform: scaleX(1) scaleY(0.99);  opacity: 0.9; } /* 살짝 되튐 */
-  80%  { transform: scaleX(1) scaleY(1);     opacity: 0.4; }
+  10%  { transform: scaleX(1) scaleY(0.006); opacity: 1; } /* 커튼과 같이 "선"으로 대기 */
+  45%  { transform: scaleX(1) scaleY(1);     opacity: 1; }
+  52%  { transform: scaleX(1) scaleY(1.05);  opacity: 1; } /* 오버슛 */
+  62%  { transform: scaleX(1) scaleY(0.99);  opacity: 0.9; } /* 살짝 되튐 */
+  78%  { transform: scaleX(1) scaleY(1);     opacity: 0.35; }
   100% { transform: scaleX(1) scaleY(1);     opacity: 0; }
 }
 
-/* 가로 주사선 밀림(jitter): 크고 성긴 가로 띠가 좌우로 튀듯 어긋났다가 잦아든다.
-   기존 .crt-scanlines(가는 1px 줄, 그냥 fade)와는 별개 레이어 — 저건 "CRT를 켠 순간의
-   잔광", 이건 "화면이 순간 삐끗하는" 왜곡 쪽이라 서로 안 섞고 얹기만 한다.
-   ★ 이 레이어(.crt-jitter)는 #game-canvas의 형제(.layer-crt 안)일 뿐 조상이 아니라서,
+/* 가로 주사선 밀림(jitter): 화면이 열리고 번쩍인 직후에만 짧게 튄다("순간 지직").
+   기존 .crt-scanlines(가는 1px 줄, 그냥 fade)와는 별개 레이어 — 저건 "켜진 뒤
+   잔광이 가라앉는" 배경 결이고, 이건 "화면이 순간 삐끗하는" 왜곡이라 서로 안
+   섞고 얹기만 한다.
+   ★ 이 레이어도 #game-canvas의 형제(.layer-crt 안)일 뿐 조상이 아니라서,
    transform을 걸어도 canvas.getBoundingClientRect()에는 영향이 없다 — 화면 흔들림을
    여기가 아니라 ui/crtTransition.js(getCrtShakeOffset)로 옮긴 이유(canvas 조상에
    transform 애니를 걸면 안 되는 실측 버그)와는 무관하게 안전하다. */
@@ -573,22 +616,23 @@ body {
   opacity: 0;
 }
 #desktop .layer-crt.crt-playing .crt-jitter {
-  animation: crt-jitter var(--crt-duration, 900ms) steps(1, end);
+  animation: crt-jitter var(--crt-duration, 1600ms) steps(1, end);
 }
 /* steps(1,end)로 프레임 사이를 보간하지 않는다 — 부드럽게 미끄러지면 "밀림"이 아니라
    그냥 스크롤로 보인다. 각 단계가 툭툭 끊겨 튀어야 화면이 삐끗하는 느낌이 산다.
-   진폭은 왼쪽부터 크게 튀었다가 갈수록 잦아든다(감쇠) — 화면 흔들림
-   (ui/crtTransition.js의 getCrtShakeOffset)과 같은 모양의 감쇠 곡선을 쓴다. */
+   45%까지는 조용히 대기(커튼이 걷히는 중엔 아직 안 튄다)하다가, 열리자마자
+   확 튀었다 갈수록 잦아든다(감쇠) — 화면 흔들림(ui/crtTransition.js의
+   getCrtShakeOffset)과 같은 모양의 감쇠 곡선을 쓴다. */
 @keyframes crt-jitter {
   0%   { opacity: 0;    transform: translateX(0); }
-  3%   { opacity: 0.9;  transform: translateX(14px); }
-  7%   { opacity: 0.8;  transform: translateX(-11px); }
-  12%  { opacity: 0.7;  transform: translateX(8px); }
-  18%  { opacity: 0.55; transform: translateX(-6px); }
-  25%  { opacity: 0.4;  transform: translateX(4px); }
-  34%  { opacity: 0.3;  transform: translateX(-2px); }
-  45%  { opacity: 0.18; transform: translateX(1px); }
-  60%  { opacity: 0.08; transform: translateX(0); }
+  45%  { opacity: 0;    transform: translateX(0); }
+  48%  { opacity: 0.9;  transform: translateX(14px); }
+  52%  { opacity: 0.8;  transform: translateX(-11px); }
+  57%  { opacity: 0.65; transform: translateX(8px); }
+  63%  { opacity: 0.5;  transform: translateX(-6px); }
+  70%  { opacity: 0.3;  transform: translateX(3px); }
+  80%  { opacity: 0.12; transform: translateX(-1px); }
+  92%  { opacity: 0.03; transform: translateX(0); }
   100% { opacity: 0;    transform: translateX(0); }
 }
 
