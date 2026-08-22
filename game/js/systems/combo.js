@@ -65,8 +65,9 @@ export function registerKill(x, y) {
   const mult = comboMultiplier();
   // 처치할 때마다 나는 소리 + 계단을 올라선 그 한 번만 나는 승급음. 승급 프레임엔
   // 둘 다 나서 "잡았다" 위에 "강해졌다"가 겹친다.
-  // varyCents: 처치 연타 때 같은 소리가 딱딱 겹치지 않게 피치를 살짝 흩는다.
-  playSfx(SFX.COMBO, { varyCents: 110 });
+  // varyCents(연타 흩음) + detune(콤보가 오를수록 음정↑) — 콤보가 쌓일수록 틱이
+  // 점점 높아져 "연속 처치가 이어지고 있다"를 귀로도 느끼게 한다. 700센트(7반음) 상한.
+  playSfx(SFX.COMBO, { varyCents: 60, detune: Math.min((state.combo - 1) * 25, 700) });
   if (mult > prevMult) playSfx(SFX.COMBO_TIER);
 
   const mb = config.combo.killMb * mult;

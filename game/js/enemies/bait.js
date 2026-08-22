@@ -165,10 +165,19 @@ export function initBait(enemy, rules, playArea) {
  * 그리기 쪽에서 투명도/노이즈로 표현하므로 위치를 건드릴 필요가 없다).
  */
 export function updateBait(enemy) {
-  if (enemy.baitEffect !== 'slideHuge') return; // 나머지는 위치 고정 — 매 프레임 할 일 없음
-
   const p = enemy.baitPhases;
   const age = enemy.age;
+
+  // 퇴장(dissolve/exit)이 시작되는 순간 1회 — bait가 사라지기 시작함을 소리로도 알린다.
+  // noise/pixelDissolve는 dissolveStart, 나머지(slideHuge/glitchPop/flicker)는 exitStart가
+  // 그 시점이다. _baitExitSfx 빗장으로 연출당 딱 한 번만 낸다.
+  const exitStart = p.dissolveStart ?? p.exitStart;
+  if (exitStart != null && !enemy._baitExitSfx && age >= exitStart) {
+    enemy._baitExitSfx = true;
+    playSfx(SFX.BAIT_EXIT);
+  }
+
+  if (enemy.baitEffect !== 'slideHuge') return; // 나머지는 위치 고정 — 매 프레임 할 일 없음
 
   if (age < p.enterEnd) {
     const t = p.enterEnd > 0 ? easeOut(age / p.enterEnd) : 1;

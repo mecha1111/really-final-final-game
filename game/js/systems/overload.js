@@ -16,8 +16,17 @@
 //   "왜 아직도 지지직거리지?"가 된다.
 
 import { config } from '../config.js';
+import { playSfx, SFX } from './sound.js';
 
 let level = 0; // 0~1. 0이면 완전히 꺼진 상태.
+// 과부하 "진입/해제" 엣지 추적 — 강도는 매 프레임 재계산되므로 그 값만으로는
+// "지금 막 켜졌다"와 "아까부터 켜져 있다"가 구분이 안 돼서, 직전 프레임 상태를 들고 있다.
+let wasOverloaded = false;
+
+/** 새 판이 시작될 때(core/stageManager.js의 startGame). 지난 판의 엣지 기억을 끊는다. */
+export function resetOverloadEdges() {
+  wasOverloaded = false;
+}
 
 /**
  * 지금 살아있는 방해꾼 수로 강도를 정한다. 판마다 다른 rules.maxAlive와 무관하게
@@ -36,6 +45,13 @@ export function updateOverload(aliveCount) {
   level = span > 0
     ? Math.max(0, Math.min(1, (aliveCount - c.startCount + 1) / span))
     : aliveCount >= c.startCount ? 1 : 0;
+
+  // 진입/해제 순간(1회) — 지지직이 켜지는 순간 글리치 버즈, 꺼지는 순간 복구음.
+  // 반복 소리가 아니므로(엣지 1회) 과밀 상태가 길어져도 한 번만 난다.
+  const active = level > 0;
+  if (active && !wasOverloaded) playSfx(SFX.OVERLOAD_START);
+  if (!active && wasOverloaded) playSfx(SFX.OVERLOAD_END);
+  wasOverloaded = active;
 
   const layer = document.getElementById('layer-overload');
   if (!layer) return;

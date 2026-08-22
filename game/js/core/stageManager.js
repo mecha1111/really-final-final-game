@@ -7,6 +7,7 @@ import { splitEnemy, applyExpiryEffect, triggerSelfDestruct, updateFakeCursors }
 import { clearJuice } from '../systems/juice.js';
 import { clearShake } from '../systems/screenShake.js';
 import { updateUpload, resetUploadEdges } from '../systems/upload.js';
+import { resetOverloadEdges } from '../systems/overload.js';
 import { grantFile } from '../systems/file.js';
 import { playSfx, SFX } from '../systems/sound.js';
 import { updateFloats, clearFloats } from '../systems/floats.js';
@@ -15,6 +16,9 @@ import { recordPointer, resetTrail } from '../systems/pointerTrail.js';
 import { bindRules } from '../debug.js';
 
 const spawner = new Spawner();
+
+// 제한시간 임박 똑딱의 "직전 초" 기억. 값이 바뀔 때만(1초에 1회) 내기 위한 빗장이다.
+let lastTickSec = null;
 
 /**
  * 놀이 영역 = 바탕화면 전체. 방해꾼이 화면 어디든 활보한다.
@@ -62,6 +66,10 @@ export function startGame(stageIndex = 0) {
   // 정지·공격예고 소리의 "직전 프레임 기억"을 끊는다 — 정지된 채로 판이 끝났으면
   // 그 기억이 남아 새 판의 첫 정지에서 소리가 안 난다(systems/upload.js 주석 참고).
   resetUploadEdges();
+  // 과밀 지지직(overload) 엣지 기억도 끊는다 — 과밀 상태로 판이 끝났다가 새 판에서
+  // 마리수가 0이 되면 "해제음"이 엉뚱하게 판 시작에 날 수 있다.
+  resetOverloadEdges();
+  lastTickSec = null; // 시간 임박 똑딱 빗장 리셋
 
   spawner.reset(rules);
   grantFile();
@@ -103,6 +111,16 @@ export function update(dt) {
 
   state.timeLeft -= dt;
   recordPointer(state.pointer, dt); // copier의 가짜 커서가 나중에 이 궤적을 따라간다
+
+  // 제한시간 임박(마지막 10초) 똑딱 — 1초에 한 번만(초가 바뀔 때만) 낸다. 긴장감용이라
+  // 짧게·작게(SFX_GAIN에서 낮춤). 10초를 넘는 구간엔 아무 것도 안 난다(안 시끄럽게).
+  if (state.timeLeft > 0 && state.timeLeft <= 10) {
+    const sec = Math.ceil(state.timeLeft);
+    if (sec !== lastTickSec) {
+      lastTickSec = sec;
+      playSfx(SFX.TIME_TICK);
+    }
+  }
 
   // 등장 가능 목록을 매번 다시 만든다 — 디버그에서 일차를 바꾸면 바로 반영된다
   const pool = buildPool(gameData.enemies, rules.stage);

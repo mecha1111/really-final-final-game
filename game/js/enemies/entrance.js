@@ -14,6 +14,20 @@
 
 import { config } from '../config.js';
 import { addShake } from '../systems/screenShake.js';
+import { playSfx, SFX } from '../systems/sound.js';
+
+// 입장 연출(kind) → 등장음. 연출별로 몸집/분위기가 달라 소리도 그 결에 맞춘다.
+// blurIn(hidden)은 일부러 뺐다 — "숨는" 놈이라 등장부터 소리를 내면 위장이 들킨다.
+// unplug/bait는 entrance가 없어(spec=null) 여기 안 온다(각자 전용 소리가 있다).
+const ENTRANCE_SFX = {
+  hop: SFX.ENTRANCE_POP, // basic — 폴짝 뿅
+  pop: SFX.ENTRANCE_POP, // clone — 뿅 증식
+  slam: SFX.ENTRANCE_SLAM, // ransom — 위에서 쿵
+  drop: SFX.ENTRANCE_SLAM, // bomb — 투하 쿵
+  window: SFX.ENTRANCE_WINDOW, // popup — 창 쫙
+  fade: SFX.ENTRANCE_WINDOW, // fake_btn — 시스템 알림처럼(진짜 창인 척)
+  print: SFX.ENTRANCE_PRINT, // copier — 인쇄 지지직
+};
 
 const clamp01 = (t) => Math.max(0, Math.min(1, t));
 const easeOutCubic = (t) => 1 - (1 - t) ** 3;
@@ -40,7 +54,13 @@ export function initEntrance(enemy) {
   // 연출이 없는 종류(unplug/bait 등)는 처음부터 끝난 상태 — 매 프레임 아무 일도 안 한다.
   enemy.entranceDone = !spec;
   enemy.entranceLanded = false; // slam/drop이 착지 흔들림을 딱 한 번만 쏘게 하는 빗장
-  if (spec) updateEntrance(enemy);
+  if (spec) {
+    // 등장 연출이 시작되는 이 순간에 등장음을 낸다 — "뭐가 나타났다"를 귀로도 알려서
+    // 플레이어가 화면을 찾게 한다(소리가 없으면 스폰을 눈치채기 어렵다).
+    const sfx = ENTRANCE_SFX[spec.kind];
+    if (sfx) playSfx(sfx);
+    updateEntrance(enemy);
+  }
 }
 
 /**

@@ -88,7 +88,7 @@ function syncAllControls() {
 //   설정창 조작음은 그 와중에 사용자가 직접 누른 것이므로 나야 한다.
 export function openSettings() {
   if (!layer || !ESC_OPENABLE_PHASES.has(state.phase)) return;
-  playSfx(SFX.UI_CLICK, { ui: true });
+  playSfx(SFX.UI_OPEN, { ui: true });
   syncAllControls();
   state.settingsOpen = true;
   layer.classList.add('open');
@@ -96,7 +96,7 @@ export function openSettings() {
 
 export function closeSettings() {
   if (!layer) return;
-  playSfx(SFX.UI_CLICK, { ui: true });
+  playSfx(SFX.UI_CLOSE, { ui: true });
   state.settingsOpen = false;
   layer.classList.remove('open');
 }

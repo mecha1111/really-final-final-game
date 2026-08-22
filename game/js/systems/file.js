@@ -90,6 +90,7 @@ export function completeFile() {
 export function skipFile() {
   if (state.phase !== 'playing' || state.skipsLeft <= 0) return;
   state.skipsLeft -= 1;
+  playSfx(SFX.SKIP);
 
   const at = playAreaCenterTop();
   addFloat('스킵!', at.x, at.y, false);

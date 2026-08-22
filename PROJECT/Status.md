@@ -14,13 +14,19 @@
 
 ## 최근 작업 (2026-08-22)
 
-- **SFX 18종 생성/연결** (`game/assets/sfx/*.mp3`)
-  - 톤 원칙: 방해꾼=하찮은 카툰/장난감 소리, 시스템/UI/게임상태=Windows XP 계열 레트로음
-  - 밈: 게임시작=XP 부팅음 / 구간클리어=로그온음 / 게임오버=블루스크린 크래시음
-  - `sound.js`에 소리별 상대 볼륨 게인맵(`SFX_GAIN`) + 연타 피치 변주(`opts.varyCents`) 추가
-  - `BAIT_APPEAR`(bait 등장음) 신규 추가 — bait.js의 initBait에서 재생
-  - 레이어링 정리: bomb 폭발·fake_btn 오클릭에서 공통 피격음(HIT) 중복 제거(`silent` 옵션)
-  - 처치/콤보 연타 피치 변주 연결(Enemy.kill, combo.registerKill)
+- **SFX 1차 (18종)** — 톤 원칙·밈·SFX_GAIN·varyCents·레이어링 정리(silent) 확립
+- **SFX 2차 보강 (40개 mp3)** — 변주 시스템 + 신규 지점 추가:
+  - **변주(랜덤 재생) 시스템**: `sound.js`의 `VARIANT_COUNTS` 맵 — `sfx_이름_N.mp3` 풀에서 무작위 선택
+    - kill_soft×4, atk_warning×3(더 다급하게 재제작), combo×3, hit×2, ui_click×2
+  - **다단계 타격 진행감**: ransom hp3 — 1타 균열(`ransom_crack_1`)→2타 갈라짐(`ransom_crack_2`)→최종 KILL_HARD (Enemy.takeHit이 hp 남은 수로 선택, `maxHp>1`에 일반화)
+  - **신규 지점**: 등장음 4종(entrance.js가 kind별: pop/slam/window/print), bait 퇴장음, 과밀 글리치 진입/해제(overload.js 엣지), 시간 임박 똑딱(마지막 10초, stageManager), 설정 열기/닫기(UI_OPEN/CLOSE), 파일 건너뛰기(SKIP)
+  - 콤보 음정 상승: combo.js가 `detune`을 combo 수에 비례(상한 700센트)로 올림
+  - `playSfx`에 `opts.detune`(고정 피치) 추가 — varyCents(무작위)와 병행
+
+## Next steps
+
+- 실기에서 SFX 톤/밸런스 청음 확인 후 `SFX_GAIN` 값 튜닝
+- 출시 전 `config.debug.enabled`(현재 true)를 false로 되돌리기
 
 ## Next steps
 

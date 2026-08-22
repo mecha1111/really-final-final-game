@@ -283,6 +283,15 @@ export class Enemy {
     // 안 죽고 살아남았다(예: ransom 단계 전환) — hit 프레임을 잠깐 끼워 보여준다.
     // 이 프레임을 실제로 쓰는 종류(ransom)가 아니면 sprite/animator.js가 그냥 무시한다.
     this.hitFrameTimer = config.anim.ransomHitFlashSec;
+
+    // 다단계(hp>1) 방해꾼은 때릴 때마다 "점점 부서진다"는 진행감을 준다. 최종타는
+    // kill()이 KILL_HARD(완전히 부서짐)를 내므로, 여기서는 살아남은 중간 타격만 낸다.
+    // hitsTaken = maxHp - hp (1 = 첫 타, 2 = 둘째 타 ...). 균열음은 2종이라 그 이상
+    // 깊이는 두 번째 균열음으로 클램프한다(지금 다단계는 ransom hp3뿐이라 정확히 맞는다).
+    if (this.maxHp > 1) {
+      const hitsTaken = this.maxHp - this.hp;
+      playSfx(hitsTaken === 1 ? SFX.RANSOM_CRACK_1 : SFX.RANSOM_CRACK_2);
+    }
     return false;
   }
 

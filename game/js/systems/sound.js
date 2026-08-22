@@ -51,7 +51,38 @@ export const SFX = Object.freeze({
   // bait(시선 강탈) 등장음. "화려하고 정신없게" 시선을 끌어당기는 놈이라, 등장 순간에
   // 소리로도 확 튀어야 그 역할이 산다(enemies/bait.js의 initBait에서 낸다).
   BAIT_APPEAR: 'sfx_bait_appear',
+
+  // === 다단계 방해꾼(ransom hp3)의 "점점 부서지는" 중간 타격음 ===
+  // Enemy.takeHit()이 hp 남은 수로 골라 낸다(최종타는 KILL_HARD).
+  RANSOM_CRACK_1: 'sfx_ransom_crack_1', // 1타(hp3→2): 가벼운 첫 균열
+  RANSOM_CRACK_2: 'sfx_ransom_crack_2', // 2타(hp2→1): 더 크게 갈라짐
+
+  // === 방해꾼 등장음(입장 연출별 — enemies/entrance.js가 kind로 골라 낸다) ===
+  ENTRANCE_POP: 'sfx_entrance_pop', // hop(basic)/pop(clone) — 뿅
+  ENTRANCE_SLAM: 'sfx_entrance_slam', // slam(ransom)/drop(bomb) — 쿵
+  ENTRANCE_WINDOW: 'sfx_entrance_window', // window(popup)/fade(fake_btn) — XP 창 열림
+  ENTRANCE_PRINT: 'sfx_entrance_print', // print(copier) — 인쇄 지지직
+
+  // === bait 퇴장 / 과밀 글리치 진입·해제 / 시간 임박 / UI·기타 ===
+  BAIT_EXIT: 'sfx_bait_exit',
+  OVERLOAD_START: 'sfx_overload_start',
+  OVERLOAD_END: 'sfx_overload_end',
+  TIME_TICK: 'sfx_time_tick',
+  UI_OPEN: 'sfx_ui_open',
+  UI_CLOSE: 'sfx_ui_close',
+  SKIP: 'sfx_skip',
 });
+
+// 변주(바리에이션) 개수. 이 표에 있는 소리는 프리로드/재생 시 `이름_1.mp3`~`이름_N.mp3`
+// 중 하나를 무작위로 골라 낸다(그 위에 detune 피치 변주가 더해진다). 없는 소리는
+// 단일 파일 `이름.mp3` 하나만 쓴다 — 자주 나서 단조로움이 드러나는 소리만 여기 둔다.
+const VARIANT_COUNTS = {
+  [SFX.KILL_SOFT]: 4, // 처치음 — 제일 자주 남
+  [SFX.ATK_WARNING]: 3, // 공격 임박 경고 — 긴박함 유지
+  [SFX.COMBO]: 3, // 콤보 틱
+  [SFX.HIT]: 2, // 공통 피격음
+  [SFX.UI_CLICK]: 2, // UI 클릭
+};
 
 // 소리별 상대 볼륨(0~1, masterGain 위에 곱해진다). 생성된 mp3의 절대 음량이
 // 제각각이라 "체감 크기"를 여기 한 곳에서 맞춘다. 원칙:
@@ -78,12 +109,33 @@ const SFX_GAIN = {
   [SFX.START]: 0.9,
   [SFX.STAGE_CLEAR]: 0.9,
   [SFX.GAMEOVER]: 1.0,
+
+  // === 다단계 타격 ===
+  [SFX.RANSOM_CRACK_1]: 0.55, // 첫 균열 — 약하게
+  [SFX.RANSOM_CRACK_2]: 0.65, // 갈라짐 — 중간
+
+  // === 등장음(자주 스폰되므로 확 낮게) ===
+  [SFX.ENTRANCE_POP]: 0.35,
+  [SFX.ENTRANCE_SLAM]: 0.45,
+  [SFX.ENTRANCE_WINDOW]: 0.4,
+  [SFX.ENTRANCE_PRINT]: 0.4,
+
+  // === 기타 ===
+  [SFX.BAIT_EXIT]: 0.5,
+  [SFX.OVERLOAD_START]: 0.6,
+  [SFX.OVERLOAD_END]: 0.5,
+  [SFX.TIME_TICK]: 0.45,
+  [SFX.UI_OPEN]: 0.5,
+  [SFX.UI_CLOSE]: 0.5,
+  [SFX.SKIP]: 0.5,
 };
 
 let ctx = null; // AudioContext. null이면 이 브라우저에서 사운드를 못 쓴다는 뜻(아래 initSound)
 let masterGain = null;
-/** 이름 -> AudioBuffer. 로드/디코드에 실패한 이름은 아예 안 들어온다(그 소리만 조용히 빠진다). */
+/** 파일 키(예: 'sfx_kill_soft_2') -> AudioBuffer. 로드/디코드에 실패한 건 아예 안 들어온다. */
 const buffers = {};
+/** SFX 이름 -> 실제로 로드된 파일 키 배열(변주 풀). playSfx가 여기서 하나를 무작위로 고른다. */
+const pools = {};
 
 /** 콘솔로 "이 순간 무슨 소리가 불렸나"를 확인할 때 켠다 — window.__sfx.log = true */
 const sfxDebug = { log: false };
@@ -148,15 +200,27 @@ async function loadBuffer(name) {
   }
 }
 
-/** SFX 전부를 병렬로 미리 읽어둔다. 실패한 것만 모아 한 번 경고한다(assets.js와 같은 결). */
+/** SFX 전부를 병렬로 미리 읽어둔다. 실패한 것만 모아 한 번 경고한다(assets.js와 같은 결).
+ *  변주가 있는 소리는 `이름_N.mp3`를 모두 읽어 그 이름의 풀(pools[name])로 묶는다. */
 async function preloadAll() {
   const names = Object.values(SFX);
-  const results = await Promise.all(names.map(async (name) => ({ name, buf: await loadBuffer(name) })));
+  // 이름 하나 → 실제 파일 키 목록으로 펼친다. 변주 개수가 1이면 그냥 이름 그대로.
+  const files = [];
+  for (const name of names) {
+    const n = VARIANT_COUNTS[name] ?? 1;
+    for (let i = 1; i <= n; i++) files.push({ key: n === 1 ? name : `${name}_${i}`, name });
+  }
+
+  const results = await Promise.all(files.map(async (f) => ({ f, buf: await loadBuffer(f.key) })));
 
   const missing = [];
-  for (const { name, buf } of results) {
-    if (buf) buffers[name] = buf;
-    else missing.push(name);
+  for (const { f, buf } of results) {
+    if (buf) {
+      buffers[f.key] = buf;
+      (pools[f.name] ??= []).push(f.key);
+    } else {
+      missing.push(f.key);
+    }
   }
 
   if (missing.length) {
@@ -195,7 +259,7 @@ export function initSound() {
 
   preloadAll();
 
-  if (config.debug.enabled) window.__sfx = { sfxDebug, buffers, playSfx, volume: sfxVolume };
+  if (config.debug.enabled) window.__sfx = { sfxDebug, buffers, pools, playSfx, volume: sfxVolume };
 }
 
 /**
@@ -203,11 +267,13 @@ export function initSound() {
  * (재생마다 BufferSource를 새로 만들어 붙였다가 끝나면 브라우저가 알아서 치운다).
  *
  * @param {string} name SFX 상수 중 하나
- * @param {{ui?: boolean, varyCents?: number}} [opts]
+ * @param {{ui?: boolean, varyCents?: number, detune?: number}} [opts]
  *   ui:true면 일시정지(설정 팝업) 중에도 난다 — 설정창 버튼·닫기음처럼 "멈춰 있는
  *   동안 사용자가 직접 누른 것"이 여기 해당한다. 게임 쪽 소리는 기본값(false)이라
  *   일시정지 중엔 안 난다.
  *   varyCents: 이 값(센트)만큼 피치를 무작위로 비껴 연타 시 딱딱 겹치는 걸 흩는다.
+ *   detune: 고정 피치 오프셋(센트) — 콤보가 오를수록 음정이 올라가게 하는 등 "상승"
+ *     느낌을 줄 때 쓴다(varyCents와 합쳐진다).
  */
 export function playSfx(name, opts) {
   if (!ctx || !masterGain) return;
@@ -217,8 +283,10 @@ export function playSfx(name, opts) {
   // 부르는 쪽마다 따지지 않고 여기 한 곳에서 막는다.
   if (!opts?.ui && state.settingsOpen) return;
 
-  const buf = buffers[name];
-  if (!buf) return; // 아직 프리로드 전이거나 파일이 없다 — 조용히 넘어간다
+  // 변주 풀에서 하나를 무작위로 고른다(풀에 1개뿐이면 그걸 그대로).
+  const pool = pools[name];
+  if (!pool || pool.length === 0) return; // 아직 프리로드 전이거나 파일이 없다 — 조용히 넘어간다
+  const buf = buffers[pool.length === 1 ? pool[0] : pool[(Math.random() * pool.length) | 0]];
 
   // 무음이면 아예 안 튼다. gain을 0으로 두는 것만으로도 안 들리긴 하지만, 노드를
   // 만들고 디코드된 버퍼를 계속 돌리는 낭비가 없어지고 "마스터 0 = 완전 무음"이
@@ -236,10 +304,11 @@ export function playSfx(name, opts) {
   const src = ctx.createBufferSource();
   src.buffer = buf;
 
-  // 연타로 같은 소리를 겹쳐 틀 때 피치를 살짝 비껴서 "딱딱 겹치는" 기계적인 느낌을
-  // 없앤다. opts.varyCents(센트) 범위 안에서 무작위로 올리거나 내린다 — detune은
-  // 길이를 안 바꾸므로 리듬이 밀리지 않는다.
-  if (opts?.varyCents) src.detune.value = (Math.random() * 2 - 1) * opts.varyCents;
+  // 피치: 고정 오프셋(detune, 콤보 상승 등) + 연타를 흩는 무작위 변주(varyCents).
+  // detune은 길이를 안 바꾸므로 리듬이 밀리지 않는다.
+  const baseDetune = opts?.detune ?? 0;
+  const vary = opts?.varyCents ? (Math.random() * 2 - 1) * opts.varyCents : 0;
+  if (baseDetune || vary) src.detune.value = baseDetune + vary;
 
   // 소리별 상대 볼륨을 곱해 준다(SFX_GAIN). 소스별 게인 노드를 하나 끼우는 이유는
   // masterGain은 슬라이더가 공유하는 노드라 소리마다 다르게 곱할 수 없기 때문이다.
