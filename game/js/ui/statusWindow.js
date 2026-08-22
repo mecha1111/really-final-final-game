@@ -127,8 +127,27 @@ export function updateStatusWindows(state) {
   if (skipBtn) skipBtn.disabled = state.skipsLeft <= 0;
 
   // ── 진짜_최종…exe (업로드 창) ──
+  // 2026-08-24: 예전엔 이 자리에 파일 목표 용량만 고정 텍스트로 떠 있었다
+  // ("60MB") — 그림·진행바에 눈이 안 간다는 피드백이라, "지금까지 올라간 MB"를
+  // 목표와 나란히 보여주는 살아있는 숫자로 바꿨다. progress(0~100)에 비례해서
+  // 매 프레임 계산만 하고 별도 상태는 안 둔다(다른 값들과 같은 원칙 — 진행률이
+  // 이미 유일한 출처다). 정수부가 실제로 바뀐 프레임에만(예: 35→36) 아래
+  // upSizeSeq를 올려 살짝 튀는 펄스를 재생한다 — 소리 없이도 "숫자가 방금
+  // 올랐다"가 눈에 들어오게(요구사항: 화질복구 소리는 뺐으니 시각으로 유도).
   const file = state.file;
-  setText(document.getElementById('up-size'), file ? `${file.sizeMb}MB` : '—');
+  const doneMb = file ? Math.floor((file.progress / 100) * file.sizeMb) : 0;
+  const upSizeEl = document.getElementById('up-size');
+  setText(upSizeEl, file ? `${doneMb} / ${file.sizeMb}MB` : '—');
+  if (upSizeEl && last.upSizeMb !== doneMb) {
+    last.upSizeMb = doneMb;
+    // 새 파일로 넘어가는 첫 프레임(0/…)까지 펄스가 튀면 "방금 올랐다"는 신호가
+    // 파일이 막 배정된 순간에도 오해를 부른다 — 0일 때는 재생하지 않는다.
+    if (doneMb > 0) {
+      upSizeEl.classList.remove('tick');
+      void upSizeEl.offsetWidth;
+      upSizeEl.classList.add('tick');
+    }
+  }
   setText(document.getElementById('up-pct'), `${Math.floor(file ? file.progress : 0)}%`);
   // 그림 자체(#up-thumb)는 이제 캔버스라 텍스트를 안 쓴다 — ui/uploadPicture.js가
   // 매 프레임 진행률에 맞춰 모자이크→원본으로 직접 그린다.

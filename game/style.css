@@ -1027,7 +1027,20 @@ body {
   background: repeating-conic-gradient(#5a5a5a 0 25%, #4c4c4c 0 50%) 0 / 54px 54px;
 }
 #desktop .frame .cap { margin-top: 14px; padding: 0 6px; display: flex; justify-content: space-between; align-items: baseline; font-size: 20px; color: #444; }
-#desktop .frame .cap b { color: #0f5fc8; font-size: 34px; letter-spacing: 4px; }
+/* 2026-08-24: 34px→46px + 살짝 더 진한 색으로 — "사진 쪽에 시선이 안 간다"는
+   피드백. ui/statusWindow.js가 이제 여기 고정된 목표 용량("60MB") 대신 "지금까지
+   / 목표"("36 / 60MB")를 매 프레임 계산해서 넣는다 — 진행되는 동안 숫자가 실제로
+   올라가는 게 보인다. 정수부가 바뀐 프레임마다 .tick 클래스가 remove→reflow→add로
+   재시작되며 아래 upSizeTick이 짧게 튀어 오르게 한다(다른 hitSeq류 트리거와 같은
+   패턴) — 소리 없이 "방금 올랐다"만 시각으로 알린다(화질복구 단계음은 뺐다는
+   전제, ui/statusWindow.js 주석 참고). */
+#desktop .frame .cap b { color: #0956c9; font-size: 46px; letter-spacing: 2px; }
+#desktop .frame .cap b.tick { animation: upSizeTick 260ms ease-out; }
+@keyframes upSizeTick {
+  0% { transform: scale(1); }
+  40% { transform: scale(1.12); color: #2fa8ff; }
+  100% { transform: scale(1); }
+}
 #desktop .up { width: 560px; }
 #desktop .up .lab { display: flex; justify-content: space-between; font-size: 26px; color: #333; margin-bottom: 8px; }
 /* .xpbar.big의 실제 정의는 위 winA 블록에 있다(할당량 바와 공유) — 여기서 또
