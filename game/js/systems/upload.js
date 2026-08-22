@@ -77,10 +77,12 @@ export function updateUpload(dt, rules) {
   let anyTelegraph = false;
 
   for (const enemy of state.enemies) {
-    // 정지 원인 강조 표시(ui/renderEnemies.js)가 읽는 플래그. 매 프레임 다시
-    // 정하므로 그 놈이 죽거나 사라지면 자동으로 꺼진다 — 별도 정리가 필요 없다.
-    enemy.isBlocking = enemy.alive && enemy.stopsUpload;
-    if (enemy.isBlocking) blockers.push(enemy.spec.name_kr || enemy.id);
+    // ★ 예전엔 이 결과를 enemy.isBlocking에 얹어뒀다 — ui/renderEnemies.js가
+    //   그 놈 주위에 빨간 대시 테두리를 그리려고 읽던 값이다. 그 테두리를 없애면서
+    //   읽는 쪽이 사라졌으므로 방해꾼 객체에 플래그를 남길 이유도 없어졌다(매 프레임
+    //   다시 정해지는 값을 굳이 객체에 붙여두면 "누가 이걸 읽나"를 매번 다시
+    //   확인해야 한다). 아래 blockers 목록이 유일한 소비처다.
+    if (enemy.alive && enemy.stopsUpload) blockers.push(enemy.spec.name_kr || enemy.id);
     if (enemy.atkTelegraphRatio > 0) anyTelegraph = true;
 
     if (enemy.pendingAttack > 0) {

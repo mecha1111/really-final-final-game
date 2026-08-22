@@ -66,8 +66,8 @@ export const config = {
     // 있으면 "얼마나 깎였는지"가 눈에 보이고, 그냥 순간이동하듯 줄면 깎인 양이
     // 감이 안 잡힌다.
     barGhostMs: 550,
-    // A타입(정지)이 걸렸을 때 그 원인 방해꾼 테두리가 깜빡이는 속도(Hz).
-    blockHighlightHz: 2.4,
+    // ★ blockHighlightHz(원인 방해꾼 빨간 대시 테두리 깜빡임 속도)를 없앴다 —
+    //   테두리 자체를 걷어냈다(ui/renderEnemies.js 주석 참고).
   },
 
   enemy: {
