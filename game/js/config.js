@@ -254,14 +254,21 @@ export const config = {
     ransomHitFlashSec: 0.15,
   },
 
-  // 화면 전환(phase가 바뀌는 순간) CRT 킥 연출 — ui/crtTransition.js가 "언제"를,
-  // style.css의 .layer-crt가 "어떻게 생겼나"를 담당한다. 재생시간은 여기 하나뿐이다
-  // (crtTransition.js가 부팅 시 이 값을 --crt-duration CSS 변수로 그대로 내려보낸다).
+  // 화면 전환(phase가 바뀌는 순간) CRT 킥 연출 — ui/crtTransition.js가 "언제·얼마나"를
+  // 전부 담당한다. 재생시간은 style.css의 .layer-crt @keyframes에도 CSS 변수로
+  // 내려가고(crtTransition.js의 initCrtTransition), 흔들림 진폭은 CSS가 아니라
+  // getCrtShakeOffset이 이 값을 직접 읽는다(canvas 조상에 transform 애니를 걸면 안
+  // 되는 이유는 crtTransition.js 상단 주석 참고 — 그래서 흔들림만 CSS가 아니라 JS다).
   crt: {
     // 전환마다(대기→플레이, 결과→대기 등) 재생된다. 자주 반복되는 전환(예: "다시하기"를
     // 연타하는 결과→대기)이 길게 느껴지면 이 값부터 줄여라 — 언제 재생하는지의
     // 조건(phase-change 감지)은 안 건드려도 된다.
-    durationMs: 900,
+    // 2026-08-22: 900 → 1600(1.78배) — 흔들림/왜곡을 다 보여주기엔 900ms가 짧았다.
+    durationMs: 1600,
+    // 화면 흔들림(ui/crtTransition.js의 getCrtShakeOffset)의 정점 진폭. 감쇠 곡선은
+    // 이 값에 지수감쇠 배수를 곱해서 정하므로, 여기 하나만 바꾸면 흔들림 세기가
+    // 전체적으로 변한다.
+    shakeAmpPx: 10,
   },
 };
 

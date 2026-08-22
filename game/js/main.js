@@ -109,7 +109,7 @@ async function main() {
       render({ ctx, canvas, state, gameData, now });
       // HUD는 이제 HTML 창이다 — 캔버스를 그린 뒤 같은 프레임에 값만 흘려 넣는다.
       syncDesktopPhase(state.phase);
-      syncCrtTransition(state.phase); // phase가 이번 프레임에 바뀌었을 때만 내부에서 1회 재생
+      syncCrtTransition(state.phase, now); // phase가 이번 프레임에 바뀌었을 때만 내부에서 1회 재생
       updateStatusWindows(state);
     },
     onFrame: (fps) => updateDebugStats(state, gameData, fps),

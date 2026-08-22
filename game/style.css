@@ -315,7 +315,7 @@ body {
 .layer-title .btn.shake { animation: title-quit-shake 0.35s ease-in-out; }
 
 /* ---------------------------------------------------------------------------
-   ===== 화면 전환 CRT 킥 (레이어10, "클래식" 스타일 1종) =====
+   ===== 화면 전환 CRT 킥 (레이어10, "클래식" 스타일 1종 + 흔들림/밀림 보강) =====
    ui/crtTransition.js가 phase-change를 감지해서 .layer-crt에 .crt-playing 클래스를
    리플로우로 재시작시킨다 — 여기 CSS는 "재생되면 어떻게 생겼나"만 담당한다.
 
@@ -399,6 +399,43 @@ body {
   65%  { transform: scaleX(1) scaleY(0.99);  opacity: 0.9; } /* 살짝 되튐 */
   80%  { transform: scaleX(1) scaleY(1);     opacity: 0.4; }
   100% { transform: scaleX(1) scaleY(1);     opacity: 0; }
+}
+
+/* 가로 주사선 밀림(jitter): 크고 성긴 가로 띠가 좌우로 튀듯 어긋났다가 잦아든다.
+   기존 .crt-scanlines(가는 1px 줄, 그냥 fade)와는 별개 레이어 — 저건 "CRT를 켠 순간의
+   잔광", 이건 "화면이 순간 삐끗하는" 왜곡 쪽이라 서로 안 섞고 얹기만 한다.
+   ★ 이 레이어(.crt-jitter)는 #game-canvas의 형제(.layer-crt 안)일 뿐 조상이 아니라서,
+   transform을 걸어도 canvas.getBoundingClientRect()에는 영향이 없다 — 화면 흔들림을
+   여기가 아니라 ui/crtTransition.js(getCrtShakeOffset)로 옮긴 이유(canvas 조상에
+   transform 애니를 걸면 안 되는 실측 버그)와는 무관하게 안전하다. */
+#desktop .layer-crt .crt-jitter {
+  background: repeating-linear-gradient(
+    to bottom,
+    rgba(255, 255, 255, 0.22) 0px,
+    rgba(255, 255, 255, 0.22) 3px,
+    transparent 3px,
+    transparent 9px
+  );
+  opacity: 0;
+}
+#desktop .layer-crt.crt-playing .crt-jitter {
+  animation: crt-jitter var(--crt-duration, 900ms) steps(1, end);
+}
+/* steps(1,end)로 프레임 사이를 보간하지 않는다 — 부드럽게 미끄러지면 "밀림"이 아니라
+   그냥 스크롤로 보인다. 각 단계가 툭툭 끊겨 튀어야 화면이 삐끗하는 느낌이 산다.
+   진폭은 왼쪽부터 크게 튀었다가 갈수록 잦아든다(감쇠) — 화면 흔들림
+   (ui/crtTransition.js의 getCrtShakeOffset)과 같은 모양의 감쇠 곡선을 쓴다. */
+@keyframes crt-jitter {
+  0%   { opacity: 0;    transform: translateX(0); }
+  3%   { opacity: 0.9;  transform: translateX(14px); }
+  7%   { opacity: 0.8;  transform: translateX(-11px); }
+  12%  { opacity: 0.7;  transform: translateX(8px); }
+  18%  { opacity: 0.55; transform: translateX(-6px); }
+  25%  { opacity: 0.4;  transform: translateX(4px); }
+  34%  { opacity: 0.3;  transform: translateX(-2px); }
+  45%  { opacity: 0.18; transform: translateX(1px); }
+  60%  { opacity: 0.08; transform: translateX(0); }
+  100% { opacity: 0;    transform: translateX(0); }
 }
 
 /* ===== 배경(하늘 격자 · 언덕 · 구름) — 시안 그대로 ===== */
