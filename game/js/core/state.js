@@ -62,6 +62,13 @@ export const state = {
   blocked: false, // A타입 때문에 업로드가 멈춰 있나
   blockedBy: [],
   attackWarning: false, // 예비동작 중인 방해꾼이 있나(곧 얻어맞는다)
+
+  // === 긴박 경고(systems/urgency.js, config.urgency) ===
+  // 남은 시간이 얼마 없는데 할당량이 한참 못 미치면 true — ui/statusWindow.js가
+  // 이 값만 보고 화면 전체(비네트·남은시간 깜빡임)의 CSS 클래스를 토글한다.
+  urgent: false,
+  // 반대로 할당량을 거의 다 채웠으면 true(긍정 신호, 선택 요구사항).
+  nearGoal: false,
   hitFlash: 0, // 방금 피해를 입어 업로드 바가 번쩍이는 남은 시간(초) — systems/upload.js의 triggerHitFeedback
   cursorDisguise: 0, // copier 안착 후 진짜 커서가 가짜와 똑같이 위장되는 남은 시간(초)
 

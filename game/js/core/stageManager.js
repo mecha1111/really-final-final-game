@@ -8,6 +8,7 @@ import { clearJuice } from '../systems/juice.js';
 import { clearShake } from '../systems/screenShake.js';
 import { updateUpload, resetUploadEdges } from '../systems/upload.js';
 import { resetOverloadEdges } from '../systems/overload.js';
+import { updateUrgency, resetUrgencyEdges } from '../systems/urgency.js';
 import { grantFile } from '../systems/file.js';
 import { playSfx, SFX } from '../systems/sound.js';
 import { updateFloats, clearFloats } from '../systems/floats.js';
@@ -52,6 +53,8 @@ export function startGame(stageIndex = 0) {
   state.attackWarning = false;
   state.hitFlash = 0;
   state.cursorDisguise = 0;
+  state.urgent = false;
+  state.nearGoal = false;
   // 완료 연출 홀드 중에 재도전 등으로 판이 바로 다시 시작되면, 남은 홀드가
   // 새 판까지 새어 들어가 updateUpload()가 새 판 첫 몇 프레임을 "완료 연출
   // 유지 중"으로 착각해 건너뛸 수 있다 — 여기서 확실히 끊는다.
@@ -68,6 +71,9 @@ export function startGame(stageIndex = 0) {
   // 과밀 지지직(overload) 엣지 기억도 끊는다 — 과밀 상태로 판이 끝났다가 새 판에서
   // 마리수가 0이 되면 "해제음"이 엉뚱하게 판 시작에 날 수 있다.
   resetOverloadEdges();
+  // 긴박 경고 엣지 기억도 끊는다 — 위험 상태로 판이 끝났다가 새 판 첫 프레임에
+  // 엉뚱하게 "위험!" 소리가 다시 나는 걸 막는다(위 두 resetEdges와 같은 이유).
+  resetUrgencyEdges();
   lastTickSec = null; // 시간 임박 똑딱 빗장 리셋
 
   spawner.reset(rules);
@@ -133,6 +139,7 @@ export function update(dt) {
   updateFakeCursors(dt, playArea);
   updateCombo(dt); // 콤보 연출 타이머만 — 콤보 값은 클릭으로만 바뀐다
   updateFloats(dt);
+  updateUrgency(rules); // 남은 시간·할당량으로 "지금 위험한가"를 다시 계산
 
   checkWinLose(rules);
 }
@@ -208,4 +215,8 @@ function checkWinLose(rules) {
   state.dmgFloatMs = 0;
   state.dmgFloatText = null;
   state.fileBarGhostMs = 0;
+  // 긴박 경고도 같은 이유로 강제로 끈다 — 안 그러면 위험한 채로 판이 끝났을 때
+  // 다음 화면(cleared 캔버스, failed의 HTML BSOD) 위에 빨간 펄스가 얼어붙어 남는다.
+  state.urgent = false;
+  state.nearGoal = false;
 }

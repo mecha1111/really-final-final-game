@@ -200,6 +200,7 @@ body {
 #desktop .layer-bsod { position: absolute; inset: 0; z-index: 6; pointer-events: none; display: none; }
 #desktop .layer-overload { position: absolute; inset: 0; z-index: 7; pointer-events: none; overflow: hidden; }
 #desktop .layer-vignette { position: absolute; inset: 0; z-index: 8; pointer-events: none; }
+#desktop .layer-urgent { position: absolute; inset: 0; z-index: 8; pointer-events: none; opacity: 0; }
 #desktop .layer-crt-steady { position: absolute; inset: 0; z-index: 9; pointer-events: none; display: none; overflow: hidden; }
 #desktop .layer-crt { position: absolute; inset: 0; z-index: 10; pointer-events: none; overflow: hidden; }
 /* 레이어 자체는 클릭을 통과시키고, 그 안의 "실제" 것만 클릭을 받는다 —
@@ -241,6 +242,13 @@ body {
 #desktop:not(.phase-playing) .layer-deco {
   display: none;
 }
+/* ★ .layer-urgent만 따로 명시적으로 가린다 — ui/statusWindow.js가 매 프레임
+   .urgent 클래스를 지우는 게 아니라 "playing이 아니면 통째로 return"이라, 판이
+   '위험(urgent) 상태인 채로' 끝나는 그 프레임엔 클래스를 끌 기회 자체가 없다
+   (같은 tick 안에서 core/stageManager.js가 phase를 먼저 바꿔버린다). 하필 그
+   경우가 "시간 부족+할당량 미달로 진짜 실패한" 바로 그 순간이라 제일 자주
+   터진다 — 안 가리면 실패 화면(BSOD) 위에 빨간 펄스가 얼어붙은 채로 남는다. */
+#desktop:not(.phase-playing) .layer-urgent { display: none; }
 
 /* ---------------------------------------------------------------------------
    ===== 타이틀 화면 (레이어6, HTML) =====
@@ -968,6 +976,15 @@ body {
 #desktop .grp .c { padding: 12px 14px; }
 #desktop .grp .big { font-size: 32px; color: #111; line-height: 1; }
 #desktop .grp .big.time { color: #c0281a; }
+/* 2026-08-24: 긴박 경고 진입 시 남은 시간이 색만 빨간 게 아니라 실제로 깜빡인다
+   — 정적인 빨강은 "주의"고, 깜빡임은 "지금 진짜 위험"이라는 급이 다른 신호다.
+   ui/statusWindow.js가 state.urgent를 보고 이 클래스만 토글한다(인라인 색상
+   로직은 그대로 둔 채 애니메이션만 얹는다). */
+#desktop .grp .big.time.urgent { animation: timeBlink 700ms ease-in-out infinite; }
+@keyframes timeBlink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.3; }
+}
 #desktop .grp .unit { font-size: 16px; color: #888; }
 /* 할당량을 세 항목 중 시각적 1순위로 — 숫자를 더 키우고, 진행바도 업로드 창과
    같은 굵기(xpbar.big)로 키워서 "지금 뭐가 제일 중요한지"가 남은 시간보다 먼저
@@ -992,6 +1009,19 @@ body {
    색조 — 위험할 때(임박+미달)는 systems/urgency 쪽에서 별도로 덧씌운다. */
 #desktop .grp-progress .big.progress { font-size: 44px; color: #1a7a3c; }
 #desktop .grp-progress .big.progress.tick { animation: upSizeTick 260ms ease-out; }
+/* 2026-08-24: 긴박 경고/긍정 신호(systems/urgency.js) — 기본 초록을 상황에 맞게
+   덮어쓴다. 두 클래스는 config.urgency의 임계가 안 겹치게 잡혀 있어(quotaRatio
+   0.9 위험 vs 0.95 긍정) 동시에 안 켜진다. */
+#desktop .grp-progress .big.progress.urgent { color: #c0281a; animation: timeBlink 700ms ease-in-out infinite; }
+#desktop .grp-progress .big.progress.near-goal {
+  color: #b8860b;
+  text-shadow: 0 0 10px rgba(255, 200, 40, 0.7);
+  animation: nearGoalGlow 1.1s ease-in-out infinite;
+}
+@keyframes nearGoalGlow {
+  0%, 100% { text-shadow: 0 0 6px rgba(255, 200, 40, 0.45); }
+  50% { text-shadow: 0 0 16px rgba(255, 200, 40, 0.95); }
+}
 #desktop .xpbar { height: 20px; background: #fff; border: 2px solid #7f9db9; margin-top: 10px; padding: 2px; display: flex; gap: 2px; overflow: hidden; }
 #desktop .xpbar i { width: 13px; background: #3fae2a; flex-shrink: 0; }
 #desktop .xpbar.big { height: 34px; padding: 3px; gap: 3px; border: 3px solid #7f9db9; }
@@ -1182,6 +1212,23 @@ body {
     transparent 55%,
     rgba(200, 20, 20, 0.55) 100%
   );
+}
+
+/* 2026-08-24 신설: 긴박 경고 — 피해 비네트(위)보다 살짝 넓고 진하게 잡아서
+   "지금 위험하다"가 순간 피격보다 오래, 뚜렷하게 느껴지게 한다. 참/거짓 상태라
+   opacity를 변수로 안 받고 애니메이션이 직접 오르내린다(꺼지면 클래스 자체가
+   빠져 애니가 멈추고 기본 opacity:0으로 돌아간다 — 별도 정리 코드가 필요 없다). */
+#desktop .layer-urgent.urgent {
+  background: radial-gradient(
+    ellipse at center,
+    transparent 48%,
+    rgba(220, 20, 20, 0.7) 100%
+  );
+  animation: urgentPulse 900ms ease-in-out infinite;
+}
+@keyframes urgentPulse {
+  0%, 100% { opacity: 0.35; }
+  50% { opacity: 0.9; }
 }
 
 /* 토스트 (개그 팝업/아이콘 반응) */

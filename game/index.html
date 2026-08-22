@@ -46,6 +46,7 @@
       떠 있는 방해꾼도 반드시 클릭이 맞아야 한다(systems/input.js가 캔버스에서 방해꾼을
       못 맞히면 클릭을 그대로 아래 레이어로 통과시켜서 창 드래그·팝업 닫기는 그대로 산다):
        10 .layer-crt      화면 전환 CRT 킥          pointer-events:none  ← phase가 바뀐 프레임에만 1회 재생, 그 외엔 투명
+        8 .layer-urgent   긴박 경고(위험할 때)     pointer-events:none  ← state.urgent일 때만, 평소 투명(.layer-vignette 바로 위)
         8 .layer-vignette 피해 비네트 펄스         pointer-events:none  ← triggerHitFeedback 켤 때만, 평소 투명
         7 .layer-overload 방해꾼 과밀 지지직       pointer-events:none  ← 살아있는 수가 임계 넘을 때만, 평소 투명
         6 .layer-title    타이틀 화면(HTML)        pointer-events:none  ← phase==='title'일 때만 보임(캔버스보다 위)
@@ -266,6 +267,15 @@
            갱신). 과밀 지지직(레이어7)보다 위 — 둘이 겹쳐도 "지금 막 맞았다"가 묻히면
            안 되므로. -->
       <div class="layer-vignette" id="layer-vignette"></div>
+
+      <!-- 2026-08-24 신설: 긴박 경고(레이어8, 위 피해 비네트와 같은 층 — DOM 순서상
+           이 뒤에 와서 겹치면 이쪽이 위에 그려진다). systems/urgency.js가 계산한
+           state.urgent를 ui/statusWindow.js가 매 프레임 .urgent 클래스로만 토글한다
+           (피해 비네트처럼 감쇠하는 연속값이 아니라 참/거짓 상태라 CSS 변수가 아닌
+           클래스 토글 — .layer-overload의 상시-지속 패턴과 같다). 남은 시간이 얼마
+           없는데 할당량이 한참 못 미치면 켜진다 — 클리어/게임오버 화면이 떠야
+           비로소 알던 "위험하다"를 미리 알려준다. -->
+      <div class="layer-urgent" id="layer-urgent"></div>
 
       <!-- 상시 CRT 모니터 질감(레이어9). 화면 전환 킥(레이어10, 아래)과 다른 것 —
            이건 phase-change 순간에만 반짝 재생되는 게 아니라 playing 내내 계속

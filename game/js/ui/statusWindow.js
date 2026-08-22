@@ -152,6 +152,18 @@ export function updateStatusWindows(state) {
   setText(timeEl, mmss(state.timeLeft));
   if (timeEl) timeEl.style.color = state.timeLeft <= config.desktop.timeWarnSec ? '#c0281a' : '#111';
 
+  // 긴박 경고(systems/urgency.js가 매 프레임 state.urgent/state.nearGoal을
+  // 다시 계산해둔다) — 여기서는 그 값을 읽어 CSS 클래스만 토글한다. 감쇠하는
+  // 연속값이 아니라 참/거짓 상태라 .frame.blocked 같은 boolean 토글 패턴이지,
+  // hitSeq류의 "한 번만 재생" 트리거가 아니다 — 매 프레임 그대로 다시 토글해도
+  // 값이 안 바뀌면 classList가 알아서 아무 일도 안 한다.
+  document.getElementById('layer-urgent')?.classList.toggle('urgent', state.urgent);
+  if (timeEl) timeEl.classList.toggle('urgent', state.urgent);
+  if (pctEl) {
+    pctEl.classList.toggle('urgent', state.urgent);
+    pctEl.classList.toggle('near-goal', state.nearGoal);
+  }
+
   // ── 진짜_최종…exe (업로드 창) ──
   // 2026-08-24: 예전엔 이 자리에 파일 목표 용량만 고정 텍스트로 떠 있었다
   // ("60MB") — 그림·진행바에 눈이 안 간다는 피드백이라, "지금까지 올라간 MB"를
