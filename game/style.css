@@ -980,6 +980,18 @@ body {
    "288 / 288 MB" 같은 3자리×3자리 최악case도 안 넘친다. */
 #desktop .grp-quota .big-quota { font-size: 66px; }
 #desktop .grp-quota .unit { font-size: 26px; }
+/* 2026-08-24: 진행량(#st-uploaded)도 진행 중 실제로 오르는 숫자라 up-size와
+   같은 펄스(.tick, upSizeTick 키프레임 — 아래 .frame .cap b.tick과 공유)를
+   재사용한다. b가 아니라 span이라 별도 셀렉터가 필요하다. */
+#desktop .grp-quota .big-quota span.tick { display: inline-block; animation: upSizeTick 260ms ease-out; }
+
+/* 2026-08-24: 진행률(%) — "구간 전체 할당량 대비 얼마나 왔나"가 게임 중엔 안
+   보이고 클리어/게임오버 화면이 떠야 비로소 드러난다는 피드백. 현재/목표 MB를
+   암산해야 알던 걸 이 숫자 하나로 바로 준다. 남은 시간(32px)보다 크게(44px)
+   둬서 "제일 중요한 지표"라는 무게감을 준다. 초록은 "잘 가고 있다"는 기본
+   색조 — 위험할 때(임박+미달)는 systems/urgency 쪽에서 별도로 덧씌운다. */
+#desktop .grp-progress .big.progress { font-size: 44px; color: #1a7a3c; }
+#desktop .grp-progress .big.progress.tick { animation: upSizeTick 260ms ease-out; }
 #desktop .xpbar { height: 20px; background: #fff; border: 2px solid #7f9db9; margin-top: 10px; padding: 2px; display: flex; gap: 2px; overflow: hidden; }
 #desktop .xpbar i { width: 13px; background: #3fae2a; flex-shrink: 0; }
 #desktop .xpbar.big { height: 34px; padding: 3px; gap: 3px; border: 3px solid #7f9db9; }

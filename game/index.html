@@ -122,8 +122,17 @@
                 게임이라 애초에 아무도 안 썼다(마우스에서 손을 뗄 여유가 없다).
                 버튼 모양을 지워 키 안내로 바꿔도 근본적으로 안 쓰이는 기능이라는
                 점은 그대로였다. systems/file.js의 skipFile()과 관련 상태
-                (state.skipsLeft, rules.skipLimit)까지 전부 걷어냈다 — 이 자리는
-                할당량 진행률 표시로 넘긴다(다음 리뉴얼).
+                (state.skipsLeft, rules.skipLimit)까지 전부 걷어냈다 — 그 자리는
+                아래 "진행률"로 넘겼다.
+              · 2026-08-24: "지금 이 사진"의 MB만 보여선 유저가 "구간 전체
+                할당량 대비 얼마나 왔나"를 게임 중에 모른다(클리어/게임오버 화면이
+                떠야 비로소 안다) — 그게 제일 중요한 지표인데 정작 없었다. 건너뛰기
+                자리에 진행률(%)을 큼직하게 얹어 "목표까지 얼마 남았나"가 숫자
+                두 개(현재/목표 MB)를 암산하지 않고도 한눈에 들어오게 했다.
+                ui/statusWindow.js가 매 프레임 계산만 하고(state.uploaded /
+                rules.quota) 별도 상태는 안 둔다 — 정수%가 바뀐 프레임에만 진행량
+                MB·진행률 둘 다 .tick 펄스가 튀어 "차오르고 있다"는 게 뿌듯하게
+                느껴지게(위 up-size와 같은 패턴, style.css의 upSizeTick 재사용).
           -->
           <div class="body">
             <div class="dayflag"><span class="d" id="st-stage">1 구간</span></div>
@@ -135,6 +144,10 @@
               </div>
             </div>
             <div class="grp"><div class="h">남은 시간</div><div class="c"><div class="big time" id="st-time">03:00</div></div></div>
+            <div class="grp grp-progress">
+              <div class="h">진행률</div>
+              <div class="c"><div class="big progress" id="st-progress-pct">0%</div></div>
+            </div>
           </div>
         </div>
 

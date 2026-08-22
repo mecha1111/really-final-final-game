@@ -109,10 +109,44 @@ export function updateStatusWindows(state) {
   //   업로드 창의 up-caption + 일시정지 오버레이(아래)가 이미 더 명확하게 보여준다.
   setText(document.getElementById('st-stage'), `${state.stageIndex + 1} 구간`);
 
-  setText(document.getElementById('st-uploaded'), Math.floor(state.uploaded));
+  const uploadedFloor = Math.floor(state.uploaded);
+  const uploadedEl = document.getElementById('st-uploaded');
+  setText(uploadedEl, uploadedFloor);
   setText(document.getElementById('st-quota'), state.rules.quota);
   // xpbar.big(19px 슬롯, style.css)로 키웠으므로 슬롯 폭도 그것과 맞춘다.
-  setBar(document.getElementById('st-quotabar'), state.uploaded / state.rules.quota, 19);
+  const quotaRatio = state.rules.quota > 0 ? state.uploaded / state.rules.quota : 0;
+  setBar(document.getElementById('st-quotabar'), quotaRatio, 19);
+
+  // 2026-08-24: "구간 전체 할당량 대비 얼마나 왔나"가 게임 중엔 안 보이고
+  // 클리어/게임오버 화면이 떠야 비로소 드러난다는 피드백 — 그게 사실 제일 중요한
+  // 지표다. 현재/목표 MB(위 두 숫자)를 암산해야 알던 것을 진행률(%)로 바로
+  // 보여준다. 100을 넘는 프레임(막 완료해 uploaded가 quota를 스쳐 지나가는
+  // 순간)은 100%로 눌러서 "101%" 같은 어색한 숫자가 안 뜨게 한다.
+  const quotaPct = Math.max(0, Math.min(100, Math.floor(quotaRatio * 100)));
+  const pctEl = document.getElementById('st-progress-pct');
+  setText(pctEl, `${quotaPct}%`);
+
+  // 진행량 MB·진행률 둘 다, 정수값이 실제로 오른 프레임에만 짧은 펄스(.tick)를
+  // 튼다 — ui/uploadPicture.js 없이도 "방금 올랐다"가 눈에 들어오게 한다
+  // (style.css의 upSizeTick과 같은 키프레임을 공유— up-size에서 쓴 패턴 재사용).
+  // 판이 막 시작한 0%/0MB에서는 안 튄다(그 순간까지 펄스가 뜨면 "시작하자마자
+  // 뭔가 올랐다"로 오해한다).
+  if (uploadedEl && last.stUploadedFloor !== uploadedFloor) {
+    last.stUploadedFloor = uploadedFloor;
+    if (uploadedFloor > 0) {
+      uploadedEl.classList.remove('tick');
+      void uploadedEl.offsetWidth;
+      uploadedEl.classList.add('tick');
+    }
+  }
+  if (pctEl && last.stQuotaPct !== quotaPct) {
+    last.stQuotaPct = quotaPct;
+    if (quotaPct > 0) {
+      pctEl.classList.remove('tick');
+      void pctEl.offsetWidth;
+      pctEl.classList.add('tick');
+    }
+  }
 
   const timeEl = document.getElementById('st-time');
   setText(timeEl, mmss(state.timeLeft));
