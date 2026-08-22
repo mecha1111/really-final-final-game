@@ -39,7 +39,10 @@ function syncSoundRow(key, inputId, outId) {
   if (out) out.textContent = String(state.settings[key]);
 }
 
-/** CRT 체크박스/현재 config.crt를 화면 컨트롤에 반영한다(열 때, 기본값 복원 시 공용). */
+/** CRT 체크박스/현재 config.crt를 화면 컨트롤에 반영한다(열 때, 기본값 복원 시 공용).
+ * 강도 세그먼트는 라디오의 :checked만으로는 안 보인다 — 라디오 자체가 투명하게
+ * 숨겨져 있고(style.css의 .segset-btn input), 눈에 보이는 건 감싼 label(.segset-btn)
+ * 이므로 그 label에 .active/.disabled를 직접 얹어야 실제로 반영된다. */
 function syncCrtControls() {
   const onBox = document.getElementById('set-crt-on');
   if (onBox) onBox.checked = config.crt.enabled;
@@ -49,6 +52,9 @@ function syncCrtControls() {
     r.checked = r.value === config.crt.intensity;
     // CRT 자체가 꺼져 있으면 강도 선택은 의미가 없다 — 눈으로도 그렇게 보이게.
     r.disabled = !config.crt.enabled;
+    const btn = r.closest('.segset-btn');
+    btn?.classList.toggle('active', r.checked);
+    btn?.classList.toggle('disabled', r.disabled);
   });
 }
 
@@ -140,6 +146,7 @@ export function initSettingsPanel() {
       if (!radio.checked) return;
       config.crt.intensity = radio.value;
       applyCrtSteadyVars();
+      syncCrtControls(); // .segset-btn의 .active를 새로 고른 쪽으로 옮긴다
     });
   });
 

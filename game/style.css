@@ -598,9 +598,12 @@ body {
    ui/settingsPanel.js가 state.settingsOpen을 보고 .open만 토글한다 — phase와
    무관하게 열고 닫힌다(playing 중에는 main.js의 루프가 시뮬레이션을 건너뛰어
    일시정지, title/select/cleared에선 애초에 시뮬레이션이 없어 이 토글만으로 충분).
-   톤은 상태.dat/업로드 창(.win/.tbar/.grp)과 같은 XP Luna 문법을 그대로 쓰되,
-   그 규칙이 "#desktop .win" 식으로 스코프돼 있어 그대로 재사용은 못 하므로(이
-   모달은 클래스가 다르다) 같은 색·굵기를 새 셀렉터로 다시 선언한다.
+
+   ★ 2026-08-22 톤 통일: index.html이 이 모달에 진짜 .win/.tbar/.wb/.grp/.h/.c/
+   .big 클래스를 그대로 붙였다(위 index.html 주석 참고) — 저 규칙들은 전부
+   "#desktop .win" 식으로 #desktop 바로 밑이면 어디서든 먹으므로, 여기서 새
+   회색조를 다시 선언하지 않고 그 결과만 인정한다(position 재정의 한 줄과
+   체크박스/라디오/슬라이더처럼 저 규칙들이 아예 다루지 않는 것만 새로 추가).
    --------------------------------------------------------------------------- */
 #desktop .layer-settings {
   position: absolute; inset: 0; z-index: 11;
@@ -611,63 +614,128 @@ body {
 }
 #desktop .layer-settings.open { display: flex; pointer-events: auto; }
 
-#desktop .settings-modal {
-  width: 640px; max-height: 86vh; overflow-y: auto;
-  background: #ece9d8; border: 1px solid #003c9d; border-radius: 8px;
-  box-shadow: 0 0 0 1px #0054e3, 6px 6px 0 rgba(0, 0, 0, 0.3), 14px 20px 40px rgba(0, 0, 0, 0.45);
-}
-/* 제목바 — win-status/win-upload의 .tbar와 완전히 같은 그라디언트(재사용, 새 선언). */
-#desktop .settings-modal .tbar {
-  height: 48px; background: linear-gradient(180deg, #3c91f2 0, #177bea 6%, #0f66d8 50%, #1a72e0 92%, #0f5fc8 100%);
-  display: flex; align-items: center; gap: 8px; padding: 0 10px 0 14px;
-}
-#desktop .settings-modal .tbar .ico { font-size: 20px; }
-#desktop .settings-modal .tbar .t { color: #fff; font-size: 22px; flex: 1; text-shadow: 1px 1px 0 rgba(0, 0, 0, 0.5); }
-#desktop .settings-modal .tbar .wb .x {
-  width: 32px; height: 28px; border: 1px solid #fff; color: #fff; font-size: 16px; cursor: pointer;
-  display: flex; align-items: center; justify-content: center;
-  background: linear-gradient(180deg, #f2724d, #d1330f); border-radius: 3px;
-}
-#desktop .settings-modal .tbar .wb .x:hover { filter: brightness(1.1); }
+/* .win은 원래 position:absolute(창 좌표는 .winA/.winB가 left/top으로 박는다) —
+   이 레이어 안에서만 relative로 덮어써서 위 flex 가운데 정렬을 따르게 한다.
+   그 외(배경 #ece9d8·테두리·그림자·둥근 위쪽 모서리·.win::after 안쪽 테두리)는
+   전부 원래 .win 규칙 그대로 물려받는다. */
+#desktop .layer-settings .win { position: relative; }
+#desktop .settings-modal { width: 700px; }
+/* 폼 요소(input/output/button)는 브라우저 기본 스타일시트가 조상 font-family를
+   안 물려주고 시스템 폰트로 되돌리는 경우가 있다("매끈한 현대 UI"로 보이던
+   원인 중 하나) — #desktop이 이미 DGM을 걸어뒀으니 여기서 명시적으로
+   상속만 강제하면 된다(폰트를 다시 나열할 필요 없음). */
+#desktop .settings-modal input,
+#desktop .settings-modal output,
+#desktop .settings-modal button,
+#desktop .settings-modal label { font-family: inherit; -webkit-font-smoothing: inherit; }
+/* .tbar는 창 드래그용 cursor:move가 기본인데, 이 모달은 안 끌리므로 되돌린다. */
+#desktop .settings-modal .tbar { cursor: default; }
 
-#desktop .settings-body { padding: 18px 22px; display: flex; flex-direction: column; gap: 18px; }
-#desktop .settings-sec { border: 2px solid #a9a488; background: #fff; padding: 14px 16px; }
-#desktop .settings-sec-h { font-size: 19px; color: #0a327a; margin-bottom: 10px; }
+/* 본문만 스크롤한다(.win 자체는 overflow:hidden이라 둥근 모서리를 지켜야 해서
+   여기가 아니라 .settings-body에 건다). */
+#desktop .settings-body { padding: 18px 22px; display: flex; flex-direction: column; gap: 18px; max-height: 70vh; overflow-y: auto; }
+
+/* .grp .h/.c는 상태.dat와 완전히 같은 규칙을 그대로 쓴다 — 여기선 섹션 사이
+   간격과, 라벨 폭이 이 모달에 맞게 더 넓어야 하는 것만 얹는다. */
+#desktop .settings-body .h { font-size: 22px; }
 
 #desktop .settings-row {
-  display: flex; align-items: center; gap: 10px; font-size: 16px; color: #111; margin-bottom: 8px;
+  display: flex; align-items: center; gap: 14px; font-size: 20px; color: #111; margin-bottom: 12px;
 }
 #desktop .settings-row:last-of-type { margin-bottom: 0; }
-#desktop .settings-row label { width: 92px; flex-shrink: 0; }
-#desktop .settings-row input[type='range'] { flex: 1; accent-color: #0f5fc8; }
-#desktop .settings-row output { width: 34px; text-align: right; color: #0a327a; }
+#desktop .settings-row label { width: 110px; flex-shrink: 0; }
+#desktop .settings-row input[type='range'] { flex: 1; }
+/* 슬라이더 값 — .grp .big(32px, 상태.dat 할당량과 같은 급)을 그대로 쓰되
+   폭만 여기 맞게 좁힌다("시인성 향상": 숫자가 크고 뚜렷해야 한다는 요구). */
+#desktop .settings-row output.big { width: 60px; text-align: right; }
 #desktop .settings-row-check label { width: auto; margin-right: auto; }
-#desktop .settings-row input[type='checkbox'] { width: 20px; height: 20px; accent-color: #0f5fc8; cursor: pointer; }
-#desktop .settings-row input[type='checkbox']:disabled { cursor: not-allowed; opacity: 0.5; }
 
 #desktop .settings-radiorow { gap: 16px; }
-#desktop .settings-radiorow-label { width: 92px; flex-shrink: 0; }
-#desktop .settings-radiorow label { width: auto; display: flex; align-items: center; gap: 4px; cursor: pointer; }
-#desktop .settings-radiorow input[type='radio'] { accent-color: #0f5fc8; cursor: pointer; }
-#desktop .settings-radiorow input:disabled,
-#desktop .settings-radiorow input:disabled + * { cursor: not-allowed; opacity: 0.5; }
+#desktop .settings-radiorow-label { width: 110px; flex-shrink: 0; }
 
-#desktop .settings-hint { font-size: 13px; color: #888; margin-top: 8px; }
+#desktop .settings-hint { font-size: 15px; color: #888; margin-top: 4px; }
 
-#desktop .settings-controls { margin: 0; padding-left: 4px; list-style: none; display: flex; flex-direction: column; gap: 6px; }
-#desktop .settings-controls li { font-size: 16px; color: #333; }
+#desktop .settings-controls { margin: 0; padding-left: 4px; list-style: none; display: flex; flex-direction: column; gap: 10px; }
+#desktop .settings-controls li { font-size: 20px; color: #333; }
 #desktop .settings-controls b { color: #0a327a; }
 
 #desktop .settings-footer {
   display: flex; gap: 12px; padding: 16px 22px; border-top: 2px solid #c9c5b0; justify-content: flex-end;
 }
 #desktop .settings-btn {
-  font-family: 'DGM', 'Galmuri11', monospace; font-size: 16px; padding: 8px 18px;
+  font-family: 'DGM', 'Galmuri11', monospace; font-size: 18px; padding: 9px 20px;
   background: linear-gradient(180deg, #fff, #cfcbb2); border: 2px solid #111; cursor: pointer;
 }
 #desktop .settings-btn:hover { filter: brightness(1.05); }
 #desktop .settings-btn:active { transform: translate(1px, 1px); }
 #desktop .settings-btn-primary { background: linear-gradient(180deg, #ffd966, #ffcf3f); }
+
+/* ── 체크박스 — XP 각진 체크박스(둥근 토글 대신). appearance:none으로 OS
+   기본 그림을 지우고 사각 박스 + 체크 표시만 직접 그린다. 색은 새로 만들지
+   않고 이미 이 파일에 있는 값을 그대로 썼다(#dfe6f2 = .grp .h 배경,
+   #0a327a = .grp .h 글자색, #111 = 이 프로젝트 전역 테두리 검정). */
+#desktop .settings-body input[type='checkbox'] {
+  appearance: none; -webkit-appearance: none;
+  width: 26px; height: 26px; flex-shrink: 0;
+  border: 2px solid #111; background: #fff; cursor: pointer; position: relative;
+}
+#desktop .settings-body input[type='checkbox']:checked { background: #dfe6f2; }
+#desktop .settings-body input[type='checkbox']:checked::after {
+  content: '✓'; position: absolute; inset: 0;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 19px; font-weight: bold; color: #0a327a;
+}
+#desktop .settings-body input[type='checkbox']:disabled { cursor: not-allowed; opacity: 0.5; }
+
+/* ── 강도 세그먼트(약/중/강) — 라디오는 label 안에 넣어 숨기고(클릭은 label
+   전체가 받는다, HTML의 표준 label-wraps-input 규칙), 보이는 건 라벨을 XP
+   탭처럼 그린 것뿐이다. 선택 표시는 ui/settingsPanel.js가 change마다 직접
+   토글하는 .active 클래스로 한다(:checked 셀렉터 체이닝보다 로직이 이미
+   JS에 있어 더 명확하고 확실하다). */
+#desktop .segset { display: flex; gap: 0; border: 2px solid #111; }
+#desktop .segset-btn {
+  font-size: 18px; padding: 6px 18px; cursor: pointer;
+  background: #fff; color: #333;
+  border-right: 2px solid #111;
+}
+#desktop .segset-btn:last-child { border-right: none; }
+#desktop .segset-btn input { position: absolute; opacity: 0; width: 0; height: 0; pointer-events: none; }
+#desktop .segset-btn.active { background: linear-gradient(180deg, #4a9bf5, #1668d4); color: #fff; }
+#desktop .segset-btn.disabled { cursor: not-allowed; opacity: 0.5; }
+
+/* ── 음량 슬라이더 — xpbar(할당량/업로드 바)와 같은 흰 배경 + 파란 테두리
+   톤. appearance:none은 손잡이·트랙의 "그림"만 새로 그릴 뿐, 트랙 아무 데나
+   클릭/드래그하면 그 값으로 점프하는 <input type="range"> 표준 동작은 그대로
+   살아있다(요구사항의 "트랙 클릭 이동"은 커스텀 로직이 아니라 이 표준 동작
+   그 자체 — appearance만 바꿔도 안 깨진다). 트랙을 24px로 두껍게 잡은 것도
+   같은 이유: 클릭 판정 영역 자체가 커져서 더 정확히 눌린다. */
+#desktop .settings-body input[type='range'] {
+  appearance: none; -webkit-appearance: none;
+  height: 28px; background: transparent; cursor: pointer;
+}
+#desktop .settings-body input[type='range']::-webkit-slider-runnable-track {
+  height: 24px; background: #fff; border: 2px solid #7f9db9;
+}
+#desktop .settings-body input[type='range']::-webkit-slider-thumb {
+  appearance: none; -webkit-appearance: none;
+  width: 20px; height: 28px; margin-top: -4px;
+  background: linear-gradient(180deg, #4a9bf5, #1668d4); border: 2px solid #111; cursor: pointer;
+}
+#desktop .settings-body input[type='range']::-moz-range-track {
+  height: 24px; background: #fff; border: 2px solid #7f9db9;
+}
+#desktop .settings-body input[type='range']::-moz-range-thumb {
+  width: 20px; height: 28px; background: linear-gradient(180deg, #4a9bf5, #1668d4);
+  border: 2px solid #111; border-radius: 0; cursor: pointer;
+}
+
+/* CRT를 껐을 때(설정에서 "CRT 효과" 체크 해제) — config.crt.enabled=false를
+   ui/crtTransition.js의 applyCrtSteadyVars()가 이 클래스로 반영한다. 상시
+   오버레이(레이어9)와 블룸 필터 둘 다 여기서 끈다. 두 셀렉터 다 이미 있는
+   규칙(#desktop.phase-playing .layer-crt-steady / #desktop.phase-playing)보다
+   클래스가 하나 더 많아 자동으로 우선한다 — !important 불필요. */
+#desktop.crt-off .layer-crt-steady { display: none; }
+#desktop.crt-off.phase-playing { filter: none; }
 
 /* CRT를 껐을 때(설정에서 "CRT 효과" 체크 해제) — config.crt.enabled=false를
    ui/crtTransition.js의 applyCrtSteadyVars()가 이 클래스로 반영한다. 상시
