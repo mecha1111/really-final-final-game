@@ -83,7 +83,7 @@ function onPointerDown(canvas, pt, evt) {
   if (debugState.showHitbox) {
     const w2b = canvas.__worldToBacking || canvas.width / config.canvas.width;
     const g = getCanvasGeometry(canvas);
-    const c = g.candidates;
+    const d = g.diag;
     // ★ 왕복 자기검사: 방금 구한 월드 좌표를 다시 화면으로 되돌려 원래 클릭 자리와 비교한다.
     //   두 방향이 같은 기하값을 쓰므로 정상이면 0이고, 0이 아니면 변환 쌍이 깨진 것이다.
     const back = worldToClient(canvas, pt.x, pt.y, w2b);
@@ -97,9 +97,10 @@ function onPointerDown(canvas, pt, evt) {
         roundTrip: [Math.round(back.x - evt.clientX), Math.round(back.y - evt.clientY)],
         origin: [Math.round(g.originX), Math.round(g.originY)],
         disp: [Math.round(g.dispW), Math.round(g.dispH)],
-        // 표시 크기 후보 셋. 정상이면 같고, 갈리면 어느 것이 튀었는지 그대로 보인다.
-        candW: [Math.round(c.wRect), Math.round(c.wZoom), Math.round(c.wCenter)],
-        candH: [Math.round(c.hRect), Math.round(c.hZoom), Math.round(c.hCenter)],
+        // 진단용. rect가 disp와 갈리면 이 브라우저의 rect가 zoom을 안 반영한다는 뜻이다
+        // (판정은 rect를 안 쓰므로 갈려도 좌표는 맞다 — 그냥 환경을 알려주는 값이다).
+        rect: [Math.round(d.wRect), Math.round(d.hRect)],
+        zoomChain: Number(d.zoomX.toFixed(4)),
         box: [canvas.clientWidth, canvas.clientHeight],
         backing: [canvas.width, canvas.height],
         cfg: [config.canvas.width, config.canvas.height],

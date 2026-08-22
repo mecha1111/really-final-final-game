@@ -7,19 +7,28 @@
 // 그래서 기하값을 구하는 곳을 한 군데로 못박고, 두 방향 모두 그것만 쓰게 한다.
 //
 // ── 화면 표시 크기를 어떻게 아는가 (여기가 핵심) ─────────────────────────────
-// 캔버스가 화면에서 실제로 몇 CSS px를 차지하는지가 변환의 전부인데, 이 값을 구하는
-// 방법 하나하나가 브라우저에 따라 틀릴 수 있다는 걸 실측으로 겪었다:
-//   · getBoundingClientRect().width — 어떤 크롬은 조상의 CSS zoom을 반영한 "화면 크기"를
-//     주고, 다른 크롬은 zoom을 뺀 "레이아웃 크기"를 준다. 사용자 실측에서는 zoom 0.897인데
-//     rect가 1920x1080 @89,0으로 나왔다 — width는 레이아웃(1920)인데 left는 화면(89)이라
-//     좌표계가 뒤섞인 상태였다. 이러면 클릭이 위치에 비례해 어긋난다.
-//   · clientWidth × 조상 zoom 곱 — zoom을 어떻게 상속해서 보고하는지가 버전마다 달라서
-//     같은 zoom을 두 번 곱해버릴 여지가 있다.
-//   · innerWidth − 2×rect.left — 우리 레이아웃(#stage가 뷰포트를 채우고 #desktop을 가운데
-//     둠)에 기대는 값이라, CSS를 바꾸면 조용히 틀어진다.
-// 어느 하나도 단독으로는 못 믿는다. 그래서 셋을 다 구해 **중앙값**을 쓴다 — 정상
-// 브라우저에서는 셋이 같은 값이라 아무 영향이 없고, 하나가 틀어져도 나머지 둘이
-// 이겨서 옳은 값이 남는다. 어떤 후보가 튀었는지는 H키 진단에 그대로 보여준다.
+// 캔버스가 화면에서 실제로 몇 CSS px를 차지하는지가 변환의 전부다. 이 값을 구하는
+// 방법을 후보별로 "스크린샷 픽셀 실측"과 대조해서 하나로 확정했다. 실측 방법은
+// #desktop을 단색으로 칠하고 스샷에서 그 색 영역의 bbox를 재는 것이다
+// (#game-canvas는 #desktop에 inset:0이라 두 박스가 정확히 같다).
+// zoom 0.50 / 0.60 / 0.70 / 0.80 / 0.90 / 0.99 × dpr 1 / 1.6 / 2 전 구간 결과:
+//
+//   · getBoundingClientRect().width — 크롬에 따라 zoom을 반영한 "화면 크기"를 주기도,
+//     zoom을 뺀 "레이아웃 크기"를 주기도 한다. 사용자 크롬은 후자여서 실측과 최대
+//     960px 어긋났다(zoom이 낮을수록 더 벌어진다). ★ 탈락.
+//   · innerWidth − 2×rect.left — 내 환경에선 1.3px 안에 들었지만, #stage가 뷰포트를
+//     채우고 #desktop을 가운데 둔다는 레이아웃 가정에 기댄다. 사용자 실측에서 세로
+//     후보가 365로 나왔다(진짜 값 564) — 가정이 깨지면 조용히 크게 틀린다. ★ 탈락.
+//   · clientWidth × 조상 배율 누적곱 — 전 구간에서 실측과 1.2px 이내. ★ 채택.
+//
+// 예전엔 이 셋의 중앙값을 썼는데, 그건 "둘 이상이 맞다"에 기대는 방식이라 틀린 후보가
+// 둘일 때(또는 틀린 값이 우연히 가운데일 때) 같이 무너진다. 실제로 사용자 환경에서
+// 세 후보가 1080 / 564 / 365로 전부 갈렸다. 그래서 투표를 버리고, 실측으로 검증된
+// 식 하나만 쓴다. 다른 후보는 계산은 해두되 진단 표시용으로만 남긴다 —
+// 값이 갈리는 순간이 곧 이 브라우저가 뭘 이상하게 주는지 알려주는 신호라서다.
+//
+// 원점(rect.left/top)은 별개다. 크기와 달리 위치는 어느 크롬에서도 화면 좌표로
+// 나왔고 실측과 0.6px 이내였다 — 그래서 원점만은 rect를 그대로 쓴다.
 
 /** 조상 체인의 zoom·transform 배율을 모두 곱한다(레이아웃 크기 → 화면 크기). */
 function ancestorScale(el) {
@@ -45,8 +54,6 @@ function ancestorScale(el) {
   return { sx, sy };
 }
 
-const median3 = (a, b, c) => Math.max(Math.min(a, b), Math.min(Math.max(a, b), c));
-
 /**
  * 지금 이 순간의 캔버스 기하. 매번 새로 잰다 — 창 크기·배율이 언제 바뀌든 따라간다
  * (값을 캐시해두면 리사이즈 타이밍에 옛 값을 쓰는 구멍이 생긴다).
@@ -55,27 +62,23 @@ export function getCanvasGeometry(canvas) {
   const rect = canvas.getBoundingClientRect();
   const { sx, sy } = ancestorScale(canvas);
 
-  // 화면 표시 크기 후보 셋 (위 주석 참고). 정상이면 셋이 같다.
-  const wRect = rect.width;
-  const wZoom = canvas.clientWidth * sx;
-  const wCenter = window.innerWidth - 2 * rect.left;
-  const hRect = rect.height;
-  const hZoom = canvas.clientHeight * sy;
-  const hCenter = window.innerHeight - 2 * rect.top;
+  // ★ 표시 크기는 이 식 하나로만 정한다(위 주석의 실측 근거).
+  //   레이아웃 크기 × 조상 배율 누적곱 = 화면에서 실제 차지하는 CSS px.
+  let dispW = canvas.clientWidth * sx;
+  let dispH = canvas.clientHeight * sy;
 
-  let dispW = median3(wRect, wZoom, wCenter);
-  let dispH = median3(hRect, hZoom, hCenter);
-  // 셋 다 이상한 극단적인 경우의 최후 방어 — 0으로 나누는 것만은 막는다.
-  if (!(dispW > 0)) dispW = rect.width || canvas.clientWidth || 1;
-  if (!(dispH > 0)) dispH = rect.height || canvas.clientHeight || 1;
+  // 레이아웃이 아직 안 잡혔을 때(clientWidth 0 등)의 최후 방어 — 0으로 나누는 것만 막는다.
+  if (!(dispW > 0)) dispW = rect.width || 1;
+  if (!(dispH > 0)) dispH = rect.height || 1;
 
   return {
     originX: rect.left,
     originY: rect.top,
     dispW,
     dispH,
-    // 진단용: 어떤 후보가 튀었는지 H키 표시에서 바로 보인다.
-    candidates: { wRect, wZoom, wCenter, hRect, hZoom, hCenter },
+    // 진단용으로만 쓴다(판정에는 안 들어간다). 채택한 식과 rect가 갈리는 순간이
+    // 곧 "이 브라우저의 rect는 zoom을 안 반영한다"는 신호다.
+    diag: { wRect: rect.width, hRect: rect.height, zoomX: sx, zoomY: sy },
   };
 }
 

@@ -205,18 +205,20 @@ function drawClickEnv(ctx, c) {
   // 왕복 오차 = 화면→월드→화면. 두 방향이 같은 기하값을 쓰므로 정상이면 0이다.
   // 0이 아니면 변환 쌍이 깨진 것이고, 이 숫자가 곧 십자선이 커서에서 벗어난 거리다.
   const rt = e.roundTrip ? Math.max(Math.abs(e.roundTrip[0]), Math.abs(e.roundTrip[1])) : 0;
-  // 표시 크기 후보 셋이 갈리면 그 브라우저가 어떤 값을 이상하게 주는지 그대로 보인다.
-  // 판정은 셋의 중앙값을 쓰므로, 하나가 튀어도 나머지 둘이 이겨서 커서와 맞는다.
-  const cw = e.candW || [];
-  const spreadW = cw.length ? Math.round(Math.max(...cw) - Math.min(...cw)) : 0;
+  // rect는 판정에 안 쓴다(진단용). disp와 갈리면 이 브라우저의 rect가 zoom을
+  // 안 반영한다는 뜻 — 갈려도 좌표는 맞다. 예전엔 이걸 후보로 투표에 넣었다가
+  // 틀린 후보가 이기는 일이 있었다.
+  const rectW = e.rect ? e.rect[0] : null;
+  const dispW = e.disp ? e.disp[0] : null;
+  const rectSplit = rectW != null && dispW != null && Math.abs(rectW - dispW) > 3;
 
   const lines = [
     `client ${e.client[0]},${e.client[1]}  →  world ${Math.round(c.x)},${Math.round(c.y)}`,
     `왕복오차 ${e.roundTrip ? e.roundTrip.join(',') : '-'}px ${rt > 2 ? '★ 변환 쌍이 깨짐' : '(정상 — 십자선이 커서에 얹힘)'}`,
-    `disp ${e.disp ? e.disp.join('x') : '-'} @${e.origin ? e.origin.join(',') : '-'} (판정 기준=후보 중앙값)`,
-    `가로후보 rect/zoom/center = ${cw.join(' / ')}${spreadW > 3 ? '  ★ 갈림(중앙값 채택)' : '  (일치)'}`,
-    `세로후보 ${e.candH ? e.candH.join(' / ') : '-'}   box ${e.box[0]}x${e.box[1]}   backing ${e.backing[0]}x${e.backing[1]}`,
-    `cfg ${e.cfg[0]}x${e.cfg[1]}  w2b ${e.w2b}  zoom ${e.zoom}  dpr ${e.dpr}  vv ${e.vv ? e.vv[0] : '-'}`,
+    `disp ${e.disp ? e.disp.join('x') : '-'} @${e.origin ? e.origin.join(',') : '-'}  = box × zoom누적 ${e.zoomChain ?? '-'}`,
+    `rect ${e.rect ? e.rect.join('x') : '-'} ${rectSplit ? '★ disp와 갈림 = 이 크롬의 rect는 zoom 미반영(판정엔 안 씀)' : '(disp와 일치)'}`,
+    `box ${e.box[0]}x${e.box[1]}   backing ${e.backing[0]}x${e.backing[1]}   cfg ${e.cfg[0]}x${e.cfg[1]}`,
+    `w2b ${e.w2b}  zoom ${e.zoom}  dpr ${e.dpr}  vv ${e.vv ? e.vv[0] : '-'}`,
   ];
 
   const size = 11;
