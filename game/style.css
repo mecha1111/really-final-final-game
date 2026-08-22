@@ -189,6 +189,7 @@ body {
 #desktop #game-canvas { position: absolute; inset: 0; z-index: 5; pointer-events: auto; }
 #desktop .layer-title { position: absolute; inset: 0; z-index: 6; pointer-events: none; display: none; }
 #desktop .layer-overload { position: absolute; inset: 0; z-index: 7; pointer-events: none; overflow: hidden; }
+#desktop .layer-vignette { position: absolute; inset: 0; z-index: 8; pointer-events: none; }
 #desktop .layer-crt { position: absolute; inset: 0; z-index: 10; pointer-events: none; overflow: hidden; }
 /* 레이어 자체는 클릭을 통과시키고, 그 안의 "실제" 것만 클릭을 받는다 —
    빈 공간을 눌렀을 때(그리고 캔버스가 방해꾼을 못 맞혔을 때) 아래로 통과되게 하려는 것. */
@@ -624,7 +625,7 @@ body {
   display: flex; align-items: center; gap: 18px; padding: 0 14px; font-size: 15px; color: #333;
 }
 #desktop .winB .body { padding: 20px; display: flex; flex-direction: column; align-items: center; gap: 18px; }
-#desktop .frame { background: #fff; border: 3px solid #111; padding: 10px; box-shadow: 4px 4px 0 #999; }
+#desktop .frame { position: relative; background: #fff; border: 3px solid #111; padding: 10px; box-shadow: 4px 4px 0 #999; }
 #desktop .frame .img {
   width: 540px; height: 540px;
   background: repeating-conic-gradient(#5a5a5a 0 25%, #4c4c4c 0 50%) 0 / 54px 54px;
@@ -634,8 +635,87 @@ body {
 #desktop .frame .cap b { color: #0f5fc8; font-size: 34px; letter-spacing: 4px; }
 #desktop .up { width: 560px; }
 #desktop .up .lab { display: flex; justify-content: space-between; font-size: 26px; color: #333; margin-bottom: 8px; }
-#desktop .xpbar.big { height: 34px; padding: 3px; gap: 3px; border: 3px solid #7f9db9; }
-#desktop .xpbar.big i { width: 19px; }
+/* .xpbar.big의 실제 정의는 위 winA 블록에 있다(할당량 바와 공유) — 여기서 또
+   선언하면 완전히 같은 규칙이 중복된다. */
+
+/* ---------------------------------------------------------------------------
+   ===== 피해 피드백 (2026-08-22) =====
+   systems/upload.js의 triggerHitFeedback() 한 곳이 state.hitFlash/vignetteMs/
+   dmgFloatText/fileBarGhostRatio를 켜고, ui/statusWindow.js가 그걸 읽어 아래
+   클래스·텍스트·CSS 변수를 매 프레임 갱신한다.
+   --------------------------------------------------------------------------- */
+
+/* A타입 정지 라벨. 기본은 숨김(display:none) — ui/statusWindow.js가 state.blocked일
+   때만 보이게 한다. .frame이 position:relative라 여기 기준으로 가운데 얹힌다. */
+#desktop .pause-badge {
+  display: none;
+  position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%);
+  background: rgba(20, 20, 20, 0.82); color: #fff; border: 2px solid #ffcf3f;
+  padding: 10px 20px; font-size: 22px; white-space: nowrap;
+  animation: pauseBadgePulse 1s ease-in-out infinite;
+}
+#desktop .frame.blocked .pause-badge { display: block; }
+/* 진행 중인 파일 썸네일도 "정지됐다"는 걸 회색조로 보여준다 — 색이 있으면
+   그림이 그냥 로딩 중인 건지 멈춘 건지 구분이 안 간다. */
+#desktop .frame.blocked .img { filter: grayscale(0.85) brightness(0.75); }
+@keyframes pauseBadgePulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.55; }
+}
+
+/* 업로드 바 + 손실 잔상 + 피해 수치를 겹쳐 쌓는 자리. */
+#desktop .xpbar-stack { position: relative; }
+/* 잔상(ghost) — 진짜 바(#up-bar) 위에 겹친다(z-index 아래가 아니라 위!). 진짜
+   바 자체가 흰 배경이 불투명해서(빈 칸 자리까지 하얗게 칠해져 있다), ghost를
+   진짜 바 "밑"에 깔면 진짜 바의 흰 배경에 완전히 가려 안 보인다(실측으로 확인 —
+   빨간 칸이 세그먼트 사이 2px 틈으로만 실낱같이 비쳤다). 그래서 ghost를 위에
+   얹고, ghost 자신은 배경이 투명(칸이 없는 자리는 투명이라 밑의 진짜 바가
+   그대로 비친다)이라 서로 안 가린다. */
+#desktop .xpbar.ghost {
+  position: absolute; inset: 0; z-index: 1; background: transparent; border-color: transparent;
+}
+#desktop .xpbar.ghost i { background: #e0413a; animation: ghostFade 0.5s ease-out forwards; }
+/* 진짜 바가 이미 채운 자리를 밀어내기만 하는 투명 칸(ui/statusWindow.js) —
+   빨간 칸이 진짜 바 뒤(오른쪽)에서 시작하게 하는 자리맞춤용이라 안 보여야 한다. */
+#desktop .xpbar.ghost i.spacer { background: transparent; animation: none; }
+@keyframes ghostFade {
+  0% { opacity: 1; }
+  100% { opacity: 0; }
+}
+#desktop .xpbar-stack .xpbar.big:not(.ghost) { position: relative; z-index: 0; }
+
+/* 피해 수치("-20%") 텍스트 — 바 오른쪽 위에서 살짝 떠오르며 사라진다. */
+#desktop .dmg-float {
+  position: absolute; right: 4px; bottom: 100%; margin-bottom: 4px;
+  font-size: 20px; color: #ff4d4d; text-shadow: 1px 1px 0 #000, -1px -1px 0 #000;
+  opacity: 0; pointer-events: none;
+}
+#desktop .dmg-float.show { animation: dmgFloatRise 0.9s ease-out forwards; }
+@keyframes dmgFloatRise {
+  0% { opacity: 0; transform: translateY(6px) scale(0.9); }
+  15% { opacity: 1; transform: translateY(0) scale(1.15); }
+  30% { transform: translateY(-2px) scale(1); }
+  100% { opacity: 0; transform: translateY(-22px) scale(1); }
+}
+
+/* 업로드 창 전체가 순간 빨갛게 번쩍 — 방금 맞았다는 걸 창째로 알린다. */
+#desktop .winB.hit-flash { animation: winHitFlash 0.25s ease-out; }
+@keyframes winHitFlash {
+  0% { box-shadow: 0 0 0 4px rgba(255, 40, 40, 0.9), 0 0 0 1px #0054e3, 4px 4px 0 rgba(0, 0, 0, 0.25), 10px 14px 30px rgba(0, 0, 0, 0.35); }
+  100% { box-shadow: 0 0 0 1px #0054e3, 4px 4px 0 rgba(0, 0, 0, 0.25), 10px 14px 30px rgba(0, 0, 0, 0.35); }
+}
+
+/* 화면 가장자리 빨간 비네트. radial-gradient로 중앙은 투명, 가장자리만 붉게 —
+   opacity 자체를 --vig-level로 건다(0이면 완전히 없음, 레이어7 과밀 지지직과
+   같은 패턴). */
+#desktop .layer-vignette {
+  opacity: var(--vig-level, 0);
+  background: radial-gradient(
+    ellipse at center,
+    transparent 55%,
+    rgba(200, 20, 20, 0.55) 100%
+  );
+}
 
 /* 토스트 (개그 팝업/아이콘 반응) */
 #desktop .toast {

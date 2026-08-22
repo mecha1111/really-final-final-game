@@ -81,6 +81,11 @@ export function drawEnemy(ctx, e, showHitbox, now) {
   // 이미 죽은 놈의 수명 바/hp 점이 잠깐 더 보이면 헷갈린다.
   if (e.alive) drawEnemyGauges(ctx, e);
 
+  // A타입이 업로드를 막고 있는 동안 — "정지시킨 게 이놈이다"를 알리는 깜빡이는
+  // 테두리. systems/upload.js가 매 프레임 isBlocking을 다시 정하므로(그 놈이
+  // 죽거나 화면에서 사라지면 자동으로 꺼진다) 여기는 그리기만 한다.
+  if (e.isBlocking) drawBlockHighlight(ctx, e, now);
+
   if (showHitbox) {
     // popup류는 X 버튼이 실제 판정이므로 그걸 보여준다
     const r = e.closeButton ? e.closeButtonRect() : e.hitRect();
@@ -90,6 +95,27 @@ export function drawEnemy(ctx, e, showHitbox, now) {
       ctx.strokeRect(r.x + 0.5, r.y + 0.5, r.w, r.h);
     }
   }
+}
+
+/**
+ * "이놈이 업로드를 막고 있다" 강조 테두리. config.hud.blockHighlightHz로 깜빡인다.
+ * now(ms, 렌더루프 단일 시계)로 위상을 잡아서 여러 마리가 동시에 막고 있어도
+ * 전부 같은 박자로 깜빡인다 — 각자 다른 시계(e.age 등)를 쓰면 서로 어긋나서
+ * "지금 뭘 봐야 하는지"가 오히려 산만해진다.
+ */
+function drawBlockHighlight(ctx, e, now) {
+  const hz = config.hud.blockHighlightHz;
+  const pulse = 0.5 + 0.5 * Math.sin((now / 1000) * Math.PI * 2 * hz);
+  const pad = Math.max(6, e.drawW * 0.08);
+
+  ctx.save();
+  ctx.globalAlpha = 0.55 + 0.45 * pulse;
+  ctx.strokeStyle = cssColor('--color-danger');
+  ctx.lineWidth = 3;
+  ctx.setLineDash([8, 6]);
+  roundRect(ctx, e.drawX - e.drawW / 2 - pad, e.drawY - e.drawH / 2 - pad, e.drawW + pad * 2, e.drawH + pad * 2, 10);
+  ctx.stroke();
+  ctx.restore();
 }
 
 /** 남은 수명 바 + 남은 클릭 수(hp) 점 */

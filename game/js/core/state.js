@@ -44,8 +44,19 @@ export const state = {
   blocked: false, // A타입 때문에 업로드가 멈춰 있나
   blockedBy: [],
   attackWarning: false, // 예비동작 중인 방해꾼이 있나(곧 얻어맞는다)
-  hitFlash: 0, // 방금 주기 공격을 맞아 업로드 바가 번쩍이는 남은 시간
+  hitFlash: 0, // 방금 피해를 입어 업로드 바가 번쩍이는 남은 시간(초) — systems/upload.js의 triggerHitFeedback
   cursorDisguise: 0, // copier 안착 후 진짜 커서가 가짜와 똑같이 위장되는 남은 시간(초)
+
+  // === 피해 피드백(systems/upload.js의 triggerHitFeedback, config.hud) ===
+  vignetteMs: 0, // 화면 가장자리 빨간 비네트가 남아있는 시간(ms)
+  dmgFloatText: null, // 업로드 바 옆에 뜨는 "-20%" 같은 텍스트. null이면 안 뜬다
+  dmgFloatMs: 0, // 그 텍스트가 남아있는 시간(ms)
+  // 매번 triggerHitFeedback()이 켤 때마다 1씩 증가. ui/statusWindow.js가 이 값이
+  // "바뀌었는지"만 보고 CSS 애니를 재시작한다(remove→reflow→add) — dmgFloatMs
+  // 숫자 자체는 매 프레임 감쇠하므로 "새로 켜졌다"를 값 크기로는 구분 못 한다.
+  hitSeq: 0,
+  fileBarGhostRatio: 0, // 방금 깎이기 직전 진행률(0~1) — 빨간 손실분으로 잠깐 남는다
+  fileBarGhostMs: 0,
 
   // H키 히트박스 오버레이가 켜져 있을 때만 쌓이는 "최근 클릭 자리"({x, y, t}, 월드 좌표).
   // systems/input.js가 클릭을 월드 좌표로 바꾼 그 값을 그대로 넣고, ui/renderEnemies.js가

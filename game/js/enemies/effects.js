@@ -3,7 +3,7 @@
 import { config } from '../config.js';
 import { state } from '../core/state.js';
 import { addFloat } from '../systems/floats.js';
-import { damageUpload } from '../systems/upload.js';
+import { damageUpload, triggerHitFeedback } from '../systems/upload.js';
 import { trailPositionAt } from '../systems/pointerTrail.js';
 import { Enemy } from './Enemy.js';
 
@@ -59,6 +59,11 @@ export function applyExpiryEffect(enemy) {
   if (fx.expireNextFileMb > 0) {
     state.nextFilePenaltyMb += fx.expireNextFileMb;
     addFloat(`다음 파일 -${fx.expireNextFileMb}MB`, enemy.x, enemy.y, false);
+    // damageUpload()를 안 거친다 — 지금 파일의 진행률(state.file.progress)이
+    // 아니라 "다음 파일"의 예약 페널티라 지금 바가 안 줄어든다. 그래도 "당했다"
+    // 자체는 알려야 하므로 피드백만 따로 켠다(번쩍임+비네트+수치 텍스트,
+    // 바 손실 잔상만 빠진다 — 지금 바가 실제로 안 줄었으니 당연하다).
+    triggerHitFeedback(`-${fx.expireNextFileMb}MB`);
   }
 }
 

@@ -45,13 +45,15 @@
       레이어 z순서(위 → 아래). 방해꾼이 창보다 위다 — 정보를 가려도 되고, 창 위에
       떠 있는 방해꾼도 반드시 클릭이 맞아야 한다(systems/input.js가 캔버스에서 방해꾼을
       못 맞히면 클릭을 그대로 아래 레이어로 통과시켜서 창 드래그·팝업 닫기는 그대로 산다):
-       10 .layer-crt   화면 전환 CRT 킥            pointer-events:none  ← phase가 바뀐 프레임에만 1회 재생, 그 외엔 투명
-        6 .layer-title 타이틀 화면(HTML)          pointer-events:none  ← phase==='title'일 때만 보임(캔버스보다 위)
-        5 #game-canvas 방해꾼                    pointer-events:auto  ← 못 맞히면 아래로 통과
-        4 .layer-win   HTML 창(상태.dat/.exe)    pointer-events:auto
-        3 .layer-gag   HTML 개그팝업             pointer-events:auto
-        2 .layer-deco  개그아이콘·작업표시줄      pointer-events:none  ← 클릭 통과(장식)
-        1 .layer-bg    Bliss 배경                pointer-events:none
+       10 .layer-crt      화면 전환 CRT 킥          pointer-events:none  ← phase가 바뀐 프레임에만 1회 재생, 그 외엔 투명
+        8 .layer-vignette 피해 비네트 펄스         pointer-events:none  ← triggerHitFeedback 켤 때만, 평소 투명
+        7 .layer-overload 방해꾼 과밀 지지직       pointer-events:none  ← 살아있는 수가 임계 넘을 때만, 평소 투명
+        6 .layer-title    타이틀 화면(HTML)        pointer-events:none  ← phase==='title'일 때만 보임(캔버스보다 위)
+        5 #game-canvas    방해꾼                  pointer-events:auto  ← 못 맞히면 아래로 통과
+        4 .layer-win      HTML 창(상태.dat/.exe)  pointer-events:auto
+        3 .layer-gag      HTML 개그팝업           pointer-events:auto
+        2 .layer-deco     개그아이콘·작업표시줄    pointer-events:none  ← 클릭 통과(장식)
+        1 .layer-bg       Bliss 배경              pointer-events:none
 
       .layer-title이 캔버스보다 위지만 pointer-events:none 컨테이너라, 로고/버튼이
       아닌 빈 자리를 누르면 그대로 캔버스까지 뚫고 내려간다 — 다만 title 단계에선
@@ -134,10 +136,19 @@
             <div class="frame">
               <div class="img" id="up-thumb">그림</div>
               <div class="cap"><span id="up-caption">업데이트 중…</span><b id="up-size">60MB</b></div>
+              <!-- A타입(정지) 피드백 라벨. state.blocked일 때만 보인다(ui/statusWindow.js).
+                   피해(damageUpload) 피드백과는 다른 것 — 이건 "안 깎이는데 안 올라간다". -->
+              <div class="pause-badge" id="pause-badge">⏸ 업데이트 중단됨!</div>
             </div>
-            <div class="up">
+            <div class="up" id="up-wrap">
               <div class="lab"><span>업데이트</span><span id="up-pct">0%</span></div>
-              <div class="xpbar big" id="up-bar"></div>
+              <!-- 바 자체는 여전히 xpbar(칸 채우기)지만, 뒤에 손실 잔상(ghost)과
+                   옆에 뜨는 피해 수치(dmg-float)를 겹쳐 그린다(ui/statusWindow.js). -->
+              <div class="xpbar-stack">
+                <div class="xpbar big ghost" id="up-bar-ghost"></div>
+                <div class="xpbar big" id="up-bar"></div>
+                <div class="dmg-float" id="dmg-float"></div>
+              </div>
             </div>
           </div>
         </div>
@@ -168,6 +179,12 @@
         <div class="ovl-r"></div>
         <div class="ovl-c"></div>
       </div>
+
+      <!-- 피해를 입은 순간 화면 가장자리가 빨갛게 펄스(레이어8). systems/upload.js의
+           triggerHitFeedback가 --vig-level만 흘려보낸다(ui/statusWindow.js가 매 프레임
+           갱신). 과밀 지지직(레이어7)보다 위 — 둘이 겹쳐도 "지금 막 맞았다"가 묻히면
+           안 되므로. -->
+      <div class="layer-vignette" id="layer-vignette"></div>
 
       <!-- 화면 전환 CRT 킥(레이어10, 항상 최상단). phase가 바뀌는 순간에만
            ui/crtTransition.js가 애니를 1회 재시작시킨다 — 평소엔(재생 안 할 땐)
