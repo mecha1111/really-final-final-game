@@ -6,7 +6,8 @@
   "scripts": {
     "dev": "vite",
     "build": "bash -c 'rm -rf dist && cp -R game dist' _",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "serve": "node tools/serve.mjs dist 8877"
   },
   "devDependencies": {
     "vite": "^6.4.3"
