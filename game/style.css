@@ -1188,6 +1188,21 @@ body {
 #desktop .xpbar.big { height: 34px; padding: 3px; gap: 3px; border: 3px solid #7f9db9; }
 #desktop .xpbar.big i { width: 19px; }
 
+/* 2026-08-23 VFX: 업로드 진행바(#up-bar) 맨 앞칸 반짝임 — "차오르는 선두가
+   빛난다" 요구사항. ui/statusWindow.js의 markLeadSegment()가 매 프레임 마지막
+   칸에만 이 클래스를 건다(config.fx.progressShine로 켜고 끌 수 있다). 다른
+   xpbar(퀘스트 진행률 등)엔 이 클래스가 안 붙으므로 영향이 없다. */
+#desktop .xpbar i.lead {
+  position: relative;
+  z-index: 1;
+  box-shadow: 0 0 10px 3px rgba(255, 245, 190, 0.9);
+  animation: leadShine 0.9s ease-in-out infinite;
+}
+@keyframes leadShine {
+  0%, 100% { filter: brightness(1); }
+  50% { filter: brightness(1.6); }
+}
+
 /* 2026-08-24: 건너뛰기(.skipbtn) 기능을 통째로 제거하면서 여기 있던 스타일도
    같이 지웠다 — 클릭이 바쁜 게임이라 애초에 아무도 안 썼다(index.html 상단
    주석 참고). */

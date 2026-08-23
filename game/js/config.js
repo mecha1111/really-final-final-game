@@ -520,6 +520,16 @@ export const config = {
       color: '#ffffff', // 허공 클릭 기본색 — 처치는 콤보 tier 색으로 덮어쓴다(systems/input.js)
       maxRipples: 40, // ★ 성능 상한(동시 개수, 오래된 것부터 잘라낸다)
     },
+
+    // 업로드 진행바(#up-bar) 선두 반짝임 on/off. 강도는 style.css의 leadShine
+    // 애니메이션에 있다(색·범위까지 config화하면 오히려 CSS 쪽에서 한눈에 안
+    // 보여서, 켜고 끄는 스위치만 여기 둔다).
+    progressShine: { enabled: true },
+
+    // 업로드 MB가 오를 때(정수부가 바뀌는 프레임) 숫자 옆에 뜨는 "+N" 플로팅
+    // 팝. 기존 floats 시스템(systems/floats.js)을 그대로 재사용한다 — 새 텍스트
+    // 연출을 또 안 만든다.
+    mbPop: { enabled: true },
   },
 
   // HTML 바탕화면 껍데기(ui/desktop.js) 전용. 전부 1920x1080 좌표 기준.

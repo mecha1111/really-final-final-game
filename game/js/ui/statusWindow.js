@@ -2,6 +2,8 @@
 // 캔버스에 그리던 HUD를 대체한다 — 캔버스는 이제 방해꾼만 그린다.
 
 import { config } from '../config.js';
+import { addFloat } from '../systems/floats.js';
+import { clientToWorld } from './canvasGeometry.js';
 
 // 매 프레임 DOM을 만지면 낭비라, 값이 바뀐 것만 갱신하려고 직전 값을 기억해둔다.
 const last = {};
@@ -99,6 +101,34 @@ function mmss(sec) {
   return `${String(Math.floor(s / 60)).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}`;
 }
 
+/** 2026-08-23 VFX: 업로드 진행바(#up-bar)의 맨 앞칸(방금 채워진 칸)에 반짝임
+ * 클래스를 준다 — "차오르는 선두가 빛난다" 요구사항. setBar()는 filled/total이
+ * 바뀔 때만 DOM을 다시 만들고, 바뀐 프레임이 아니면 여기가 매번 같은 마지막
+ * 자식에 같은 클래스를 다시 토글할 뿐이라 매 프레임 불러도 값싸다(자식 수만큼
+ * classList 비교, 재생성 없음). 다른 바(퀘스트 진행률 등)엔 안 걸어 이 요구사항이
+ * 말한 "업로드 진행바"에만 반짝임이 붙는다. */
+function markLeadSegment(barEl) {
+  if (!barEl) return;
+  const kids = barEl.children;
+  const n = kids.length;
+  for (let i = 0; i < n; i++) kids[i].classList.toggle('lead', i === n - 1);
+}
+
+/** 2026-08-23 VFX: 업로드 MB 숫자(#up-size) 옆에 "+N" 플로팅 팝. 새 텍스트 연출을
+ * 또 안 만들고 기존 floats 시스템(systems/floats.js, DungGeunMo+외곽선)을 그대로
+ * 재활용한다 — 화면 좌표(anchorEl 위치)를 월드 좌표로 바꿔야 캔버스 floats와
+ * 같은 자리에 뜬다(systems/input.js의 canvasPoint와 같은 변환, ui/canvasGeometry.js
+ * 한 곳만 쓴다는 원칙 그대로). */
+function spawnMbPop(delta, anchorEl) {
+  if (delta <= 0 || !anchorEl) return;
+  const canvas = document.getElementById('game-canvas');
+  if (!canvas) return;
+  const r = anchorEl.getBoundingClientRect();
+  const worldToBacking = canvas.__worldToBacking || canvas.width / config.canvas.width;
+  const pt = clientToWorld(canvas, r.right, r.top, worldToBacking);
+  addFloat(`+${delta}`, pt.x, pt.y, true);
+}
+
 /** 매 프레임 호출. playing이 아닐 땐 창이 숨겨져 있으므로 건너뛴다. */
 export function updateStatusWindows(state) {
   if (state.phase !== 'playing' || !state.rules) return;
@@ -177,6 +207,7 @@ export function updateStatusWindows(state) {
   const upSizeEl = document.getElementById('up-size');
   setText(upSizeEl, file ? `${doneMb} / ${file.sizeMb}MB` : '—');
   if (upSizeEl && last.upSizeMb !== doneMb) {
+    const prevDoneMb = last.upSizeMb; // ★ VFX: 덮어쓰기 전에 델타 계산용으로 챙겨둔다
     last.upSizeMb = doneMb;
     // 새 파일로 넘어가는 첫 프레임(0/…)까지 펄스가 튀면 "방금 올랐다"는 신호가
     // 파일이 막 배정된 순간에도 오해를 부른다 — 0일 때는 재생하지 않는다.
@@ -184,6 +215,13 @@ export function updateStatusWindows(state) {
       upSizeEl.classList.remove('tick');
       void upSizeEl.offsetWidth;
       upSizeEl.classList.add('tick');
+
+      // ★ VFX: "+N" 플로팅 팝(숫자 옆). prevDoneMb가 숫자일 때만 — 파일이 막
+      // 배정된 직후(0에서 처음 오른 그 프레임엔 prevDoneMb가 undefined이거나 이전
+      // 파일의 완성치라 델타가 의미 없다) 어색한 값이 안 뜨게 한다.
+      if (config.fx.mbPop.enabled && typeof prevDoneMb === 'number' && prevDoneMb <= doneMb) {
+        spawnMbPop(doneMb - prevDoneMb, upSizeEl);
+      }
     }
   }
   setText(document.getElementById('up-pct'), `${Math.floor(file ? file.progress : 0)}%`);
@@ -193,8 +231,11 @@ export function updateStatusWindows(state) {
     document.getElementById('up-caption'),
     state.blocked ? `정지 — ${state.blockedBy.join(', ')}` : state.attackWarning ? '공격 임박!' : '업데이트 중…',
   );
-  const { filled, total } = setBar(document.getElementById('up-bar'), file ? file.progress / 100 : 0, 19);
+  const upBarEl = document.getElementById('up-bar');
+  const { filled, total } = setBar(upBarEl, file ? file.progress / 100 : 0, 19);
   setGhostBar(document.getElementById('up-bar-ghost'), state.fileBarGhostRatio, state.fileBarGhostMs, filled, total);
+  // ★ VFX: 차오르는 선두 반짝임(업로드 진행바 전용, 요구사항 그대로).
+  if (config.fx.progressShine.enabled && filled > 0) markLeadSegment(upBarEl);
 
   // A타입 정지 라벨 — .frame에 클래스만 토글하면 style.css가 나머지(배지 표시,
   // 썸네일 회색조)를 전부 처리한다.
