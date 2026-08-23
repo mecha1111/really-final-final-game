@@ -1,0 +1,166 @@
+<!DOCTYPE html><html lang="ko"><head><meta charset="utf-8"><title>구간 클리어 연출 v3</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:"DungGeunMo","맑은 고딕",sans-serif;background:#000;overflow:hidden}
+#stage{position:relative;width:100vw;height:100vh;overflow:hidden;
+  background:linear-gradient(160deg,#4a7ec4,#6ba3d8 55%,#7ec850 55%,#68b840)}
+#stage::before{content:"";position:absolute;top:-20%;left:50%;transform:translateX(-50%);
+  width:80%;height:60%;background:radial-gradient(ellipse,rgba(255,255,255,.35),transparent 70%);pointer-events:none}
+.dust{position:absolute;width:6px;height:6px;background:rgba(255,255,255,.5);border-radius:50%;pointer-events:none}
+
+/* 폴라로이드 — 더 크게 */
+.polaroid{position:absolute;width:400px;background:#fdfcf7;padding:18px 18px 0;
+  border-radius:2px;box-shadow:0 16px 48px rgba(0,0,0,.5);
+  opacity:0;transform:scale(.4) rotate(0deg);z-index:5}
+.polaroid img{width:100%;height:360px;object-fit:cover;display:block;background:#222;
+  filter:brightness(.3) contrast(.7) blur(4px)}
+.polaroid.developed img{filter:brightness(1) contrast(1) blur(0);transition:filter 1s ease-out}
+.polaroid .cap{height:64px;line-height:64px;text-align:center;font-size:24px;color:#333}
+
+#flash{position:absolute;inset:0;background:#fff;opacity:0;pointer-events:none;z-index:9}
+
+/* 폴더 — 열림/닫힘 두 파트로 (사진이 안으로 들어가게) */
+#folderWrap{position:absolute;bottom:5%;left:50%;transform:translateX(-50%) scale(0);
+  transition:transform .55s cubic-bezier(.34,1.56,.64,1);z-index:6;
+  width:200px;height:160px}
+#folderWrap.show{transform:translateX(-50%) scale(1)}
+@keyframes fb{0%{transform:translateX(-50%) scale(1)}35%{transform:translateX(-50%) scale(1.1) translateY(-8px)}100%{transform:translateX(-50%) scale(1)}}
+#folderWrap.bounce{animation:fb .5s}
+/* 폴더 뒷면(사진이 이 뒤로 들어감) */
+.folder-back{position:absolute;bottom:0;left:0;width:200px;height:130px;
+  background:linear-gradient(#f5c542,#e0a520);border-radius:8px 8px 6px 6px;z-index:1}
+/* 폴더 탭 */
+.folder-tab{position:absolute;top:-14px;left:12px;width:70px;height:22px;
+  background:#f5c542;border-radius:8px 8px 0 0;z-index:1}
+/* 폴더 앞면(사진이 이 앞으로 = 사진이 폴더 속에 낀 것처럼) */
+.folder-front{position:absolute;bottom:0;left:0;width:200px;height:100px;
+  background:linear-gradient(#ffd85e,#f0b830);border-radius:6px;z-index:3;
+  box-shadow:0 -2px 6px rgba(0,0,0,.15) inset;transform-origin:bottom;
+  transition:transform .25s ease}
+#folderWrap.open .folder-front{transform:scaleY(.92) skewX(-2deg)}
+
+#counter{position:absolute;top:7%;left:50%;transform:translateX(-50%);
+  color:#fff;font-size:17px;text-shadow:0 2px 5px rgba(0,0,0,.6);opacity:0;
+  transition:opacity .4s;z-index:10;letter-spacing:1px;
+  background:rgba(0,0,0,.25);padding:6px 18px;border-radius:20px}
+#counter.show{opacity:1}
+
+#result{position:absolute;top:50%;left:50%;transform:translate(-50%,calc(-50% + 40px));
+  text-align:center;color:#fff;opacity:0;transition:all .8s cubic-bezier(.22,1,.36,1);z-index:12;width:90%}
+#result.show{opacity:1;transform:translate(-50%,-50%)}
+#result .title{font-size:48px;font-weight:bold;text-shadow:0 4px 12px rgba(0,0,0,.6);margin-bottom:14px}
+#result .stats{font-size:18px;text-shadow:0 2px 5px rgba(0,0,0,.5);opacity:.95;margin-bottom:22px;line-height:1.7}
+#result .btn{background:linear-gradient(#5a9bff,#2a6ee0);color:#fff;border:2px solid #1b4fc0;
+  border-radius:5px;padding:13px 36px;font-size:18px;font-family:inherit;cursor:pointer;font-weight:bold;
+  box-shadow:0 6px 16px rgba(0,0,0,.3)}
+#result .btn:hover{background:linear-gradient(#6aa8ff,#3a7ef0);transform:translateY(-2px)}
+#replay{position:fixed;top:12px;right:12px;z-index:100;background:#333;color:#fff;
+  border:0;padding:8px 14px;border-radius:6px;cursor:pointer;font-family:sans-serif;font-size:13px}
+</style></head><body>
+<button id="replay" onclick="play()">▶ 다시 재생</button>
+<div id="stage">
+  <div id="counter"></div>
+  <div class="polaroid" id="pol0"><img src="PLACEHOLDER_완성그림_char_N"><div class="cap"></div></div>
+<div class="polaroid" id="pol1"><img src="PLACEHOLDER_완성그림_char_N"><div class="cap"></div></div>
+<div class="polaroid" id="pol2"><img src="PLACEHOLDER_완성그림_char_N"><div class="cap"></div></div>
+<div class="polaroid" id="pol3"><img src="PLACEHOLDER_완성그림_char_N"><div class="cap"></div></div>
+<div class="polaroid" id="pol4"><img src="PLACEHOLDER_완성그림_char_N"><div class="cap"></div></div>
+<div class="polaroid" id="pol5"><img src="PLACEHOLDER_완성그림_char_N"><div class="cap"></div></div>
+
+  <div id="folderWrap">
+    <div class="folder-tab"></div>
+    <div class="folder-back"></div>
+    <div class="folder-front"></div>
+  </div>
+  <div id="flash"></div>
+  <div id="result">
+    <div class="title">1구간 정리 완료!</div>
+    <div class="stats">완료 파일 6 · 제거 132 · 정확도 94%<br>최대 콤보 x21</div>
+    <button class="btn">다음 구간 ▶</button>
+  </div>
+</div>
+
+<script>
+const S=document.getElementById('stage');
+const pols=[...document.querySelectorAll('.polaroid')];
+const fw=document.getElementById('folderWrap');
+const flash=document.getElementById('flash');
+const result=document.getElementById('result');
+const counter=document.getElementById('counter');
+const names=['출근하는 남자','첫 데이트','벚꽃 길','배드민턴','우리집 고양이','노을 지는 날'];
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+
+// ── 효과음 (Web Audio 합성 — 실기선 실제 sfx 파일로 교체) ──
+let actx;
+function AC(){actx=actx||new (window.AudioContext||window.webkitAudioContext)();return actx}
+function shutter(){ // 찰칵 (짧은 노이즈 버스트)
+  const a=AC(),n=a.createBufferSource(),b=a.createBuffer(1,a.sampleRate*0.06,a.sampleRate),d=b.getChannelData(0);
+  for(let i=0;i<d.length;i++)d[i]=(Math.random()*2-1)*Math.pow(1-i/d.length,3);
+  n.buffer=b;const g=a.createGain();g.gain.value=.25;n.connect(g);g.connect(a.destination);n.start();
+}
+function whoosh(){ // 폴더로 쏙 (하강 스윕)
+  const a=AC(),o=a.createOscillator(),g=a.createGain();
+  o.type='sine';o.frequency.setValueAtTime(700,a.currentTime);o.frequency.exponentialRampToValueAtTime(180,a.currentTime+.25);
+  g.gain.setValueAtTime(.18,a.currentTime);g.gain.exponentialRampToValueAtTime(.001,a.currentTime+.28);
+  o.connect(g);g.connect(a.destination);o.start();o.stop(a.currentTime+.3);
+}
+function chime(){ // 완료 로그온풍 (두 음 상승)
+  const a=AC();[523,784].forEach((f,i)=>{const o=a.createOscillator(),g=a.createGain();
+    o.type='triangle';o.frequency.value=f;const t=a.currentTime+i*.12;
+    g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(.2,t+.03);g.gain.exponentialRampToValueAtTime(.001,t+.5);
+    o.connect(g);g.connect(a.destination);o.start(t);o.stop(t+.5);});
+}
+
+function initDust(){for(let i=0;i<18;i++){const d=document.createElement('div');d.className='dust';
+  d.style.left=Math.random()*100+'%';d.style.top=Math.random()*100+'%';d.style.opacity=(.2+Math.random()*.4);
+  const dur=6+Math.random()*8;
+  d.animate([{transform:'translateY(0)'},{transform:`translateY(-${30+Math.random()*40}px)`},{transform:'translateY(0)'}],
+    {duration:dur*1000,iterations:Infinity,easing:'ease-in-out'});S.appendChild(d);}}
+
+async function play(){
+  pols.forEach(p=>{p.className='polaroid';p.style.cssText='';p.querySelector('.cap').textContent=''});
+  fw.className='';result.className='';counter.className='';
+  await sleep(50);
+  fw.classList.add('show');
+  await sleep(500);
+  counter.classList.add('show');
+
+  const cx=window.innerWidth/2, cy=window.innerHeight*0.40;
+  const fx=window.innerWidth/2, fy=window.innerHeight*0.88; // 폴더 입구
+
+  for(let i=0;i<pols.length;i++){
+    const p=pols[i];
+    counter.textContent=`📸 완성한 그림  ${i+1} / ${pols.length}`;
+    const rot=(Math.random()*8-4);
+    shutter(); flash.animate([{opacity:0},{opacity:.85},{opacity:0}],{duration:280,easing:'ease-out'});
+    p.style.left=(cx-200)+'px'; p.style.top=(cy-230)+'px';
+    p.style.transition='opacity .3s, transform .5s cubic-bezier(.34,1.56,.64,1)';
+    p.style.opacity='1'; p.style.transform=`scale(1) rotate(${rot}deg)`;
+    await sleep(200);
+    p.classList.add('developed');
+    p.querySelector('.cap').textContent=names[i]||`그림 ${i+1}`;
+    await sleep(1300); // 감상
+
+    // ★ 폴더 "안으로" 들어감: 폴더 앞면(z3)보다 뒤(z2)로 내려가며 축소→사라짐
+    fw.classList.add('open');
+    p.style.transition='all .55s cubic-bezier(.5,0,.3,1)';
+    p.style.zIndex='2'; // 폴더 앞면(3) 뒤로 = 폴더 속에 낀 것처럼
+    p.style.left=(fx-100)+'px'; p.style.top=(fy-40)+'px';
+    p.style.transform=`scale(.5) rotate(${(Math.random()*16-8)})`;
+    setTimeout(()=>{p.style.opacity='0';whoosh();fw.classList.add('bounce')},260);
+    setTimeout(()=>{fw.classList.remove('bounce');fw.classList.remove('open')},760);
+    await sleep(560);
+  }
+
+  await sleep(400);
+  counter.classList.remove('show');
+  fw.classList.add('bounce');
+  chime();
+  await sleep(450);
+  result.classList.add('show');
+}
+initDust();
+// 자동재생 정책: 첫 클릭 후 소리, 데모는 클릭 유도
+document.body.addEventListener('click',()=>{AC().resume&&AC().resume()},{once:true});
+play();
+</script></body></html>

@@ -19,6 +19,7 @@ let photoEl = null;
 let photoImgEl = null;
 let photoLabelEl = null;
 let photoFlashEl = null;
+let counterEl = null;
 let sceneSummaryEl = null;
 let titleEl = null;
 let statsEl = null;
@@ -44,6 +45,10 @@ let wasCleared = false;
 // 프레임에서, 같은 시계로 처리한다 — 한 프레임(~16ms) 늦어질 뿐 체감상 즉시다.
 let skipRequested = false;
 
+// 이번 클리어 화면에 "진짜로" 들어온 시각(rAF now, ms) — 아래 skipGraceSec
+// 유예 판정의 기준. enterClearedScreen()에서만 갱신한다.
+let clearedEnteredAt = 0;
+
 /** 지금 phase에 머문 시간(초). */
 function elapsedSec(now) {
   return (now - phaseStartAt) / 1000;
@@ -65,10 +70,16 @@ function startPhoto(i, now) {
 
   if (photoImgEl) photoImgEl.style.backgroundImage = `url('${p.src}')`;
   if (photoLabelEl) photoLabelEl.textContent = p.label ?? '';
+  if (counterEl) counterEl.textContent = `📸 완성한 그림  ${i + 1} / ${photos.length}`;
 
   if (photoEl) {
     photoEl.classList.remove('tuck');
     photoEl.style.setProperty('--develop-sec', `${timing.developSec}s`);
+    // 시안(클리어연출_시안_경량.html)처럼 사진마다 살짝 다른 기울기를 준다 —
+    // 물리적인 인화 사진을 아무렇게나 폴더 위에 얹어놓은 느낌. CSS class의
+    // transform 선언 안에서 var()로 참조하므로(style.css) 인라인 style로 transform
+    // 자체를 덮어쓰지 않는다 — 그러면 클래스가 정의한 transition이 그대로 씹혀버린다.
+    photoEl.style.setProperty('--tilt', `${(Math.random() * 8 - 4).toFixed(1)}deg`);
     // on-top을 다음 프레임에 걸어야 transform:scale(0.25)→scale(1) 전환이
     // 실제로 재생된다 — 지금 이 프레임에 바로 걸면 "이미 그 상태로 시작한 것"과
     // 구분이 안 돼 트랜지션이 안 보일 수 있다(display:none→flex와 같은 함정).
@@ -85,9 +96,16 @@ function startPhoto(i, now) {
 /** 지금 사진을 폴더 속으로 밀어 넣는다. */
 function startTuck(now) {
   if (photoEl) {
+    photoEl.style.setProperty('--tilt-tuck', `${(Math.random() * 16 - 8).toFixed(1)}deg`);
     photoEl.classList.remove('on-top');
     photoEl.classList.add('tuck');
   }
+  // 폴더 앞면이 살짝 눌리며 "받아먹는" 느낌(시안의 #folderWrap.open .folder-front) +
+  // 다 들어간 뒤 통 튀는 느낌(시안의 @keyframes fb) — 둘 다 순수 장식용 CSS라
+  // 여기서 클래스만 걸고, 실제 타이밍(언제 눌리고 언제 튀는지)은 style.css의
+  // transition-delay/animation-delay로 짠다(추가 setTimeout 없이 = 시계 하나만 쓴다는
+  // 원칙 유지).
+  if (folderEl) restartClass(folderEl, 'receiving');
   playSfx(SFX.KILL_SOFT); // 폴더로 쏙 — 짧은 처치음을 "쏙" 대용으로 재활용(요구사항)
   phaseName = 'tuck';
   phaseStartAt = now;
@@ -98,6 +116,8 @@ function goToDone(now) {
   phaseName = 'done';
   phaseStartAt = now;
   if (layer) layer.classList.add('done');
+  if (folderEl) restartClass(folderEl, 'bounce'); // 시안처럼 마지막에 한 번 더 통 튄 뒤 요약으로
+  if (counterEl) counterEl.classList.remove('show');
   // display:none→flex 전환 직후 바로 opacity를 1로 걸면 트랜지션이 씹힐 수
   // 있어(위 restartClass 주석과 같은 이유) 한 프레임 쉬고 건다.
   if (sceneSummaryEl) {
@@ -127,6 +147,11 @@ function enterClearedScreen(now) {
   if (photoEl) {
     photoEl.classList.remove('on-top', 'tuck');
   }
+  if (folderEl) folderEl.classList.remove('receiving', 'bounce');
+  if (counterEl) {
+    counterEl.textContent = '';
+    counterEl.classList.toggle('show', photos.length > 0);
+  }
   if (sceneSummaryEl) sceneSummaryEl.classList.remove('in');
 
   // 스탯·제목은 지금(구간이 막 끝난 시점의 실값) 미리 채워둔다 — 장면2가 나타날
@@ -142,6 +167,7 @@ function enterClearedScreen(now) {
   restartClass(folderEl, 'in');
   phaseName = 'folder-enter';
   phaseStartAt = now;
+  clearedEnteredAt = now;
 }
 
 /** 지금 단계가 끝났으면 다음 단계로 넘긴다. 매 프레임 불려도 싸다(비교 몇 줄뿐). */
@@ -201,6 +227,7 @@ export function initClearScreen() {
   photoImgEl = document.getElementById('cleared-photo-img');
   photoLabelEl = document.getElementById('cleared-photo-label');
   photoFlashEl = document.getElementById('cleared-photo-flash');
+  counterEl = document.getElementById('cleared-photo-counter');
   sceneSummaryEl = document.getElementById('cleared-scene-summary');
   titleEl = document.getElementById('cleared-summary-title');
   statsEl = document.getElementById('cleared-summary-stats');
@@ -237,9 +264,20 @@ export function updateClearScreen(now) {
     enterClearedScreen(now);
   }
 
-  if (skipRequested && phaseName !== 'done' && phaseName !== 'idle') {
-    skipRequested = false;
-    goToDone(now);
+  if (skipRequested) {
+    // ★ 실측으로 재현한 버그: 할당량을 채운 그 클릭(스팸 클릭의 뒤이은 클릭들 포함)이
+    // 이 화면이 열리자마자 배경 전체(클릭 어디든 건너뛰기)에 떨어져 사진 연출을
+    // 통째로 건너뛰고 요약 화면으로 직행해버렸다 — "연출이 아예 안 보인다"는
+    // 신고의 실제 원인이 이것이었다(연출 자체가 안 만들어진 게 아니라 매번 열리자마자
+    // 건너뛰어진 것). 진입 직후 skipGraceSec 동안은 건너뛰기 요청을 버리지 않고
+    // 그냥 보류만 한다 — 유예가 끝나면 그때 처리한다. 그동안은 평소처럼 advance()가
+    // 계속 불려서 연출이 멈추지 않는다.
+    if (now - clearedEnteredAt >= config.clearScreen.skipGraceSec * 1000) {
+      skipRequested = false;
+      if (phaseName !== 'done' && phaseName !== 'idle') goToDone(now);
+    } else {
+      advance(now);
+    }
   } else {
     advance(now);
   }

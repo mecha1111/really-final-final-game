@@ -450,6 +450,19 @@ body {
 #desktop .cleared-scene-photos { position: absolute; inset: 0; }
 #desktop .layer-cleared.done .cleared-scene-photos { display: none; }
 
+/* 진행 배지("📸 완성한 그림 i/N") — 시안의 #counter 그대로. 사진이 없는 극단
+   케이스(폴더만 잠깐 보이고 바로 요약)에선 ui/clearScreen.js가 .show를 안 걸어서
+   계속 숨어 있는다. */
+#desktop .cleared-photo-counter {
+  position: absolute; top: 7%; left: 50%; transform: translateX(-50%);
+  color: #fff; font-size: 20px; text-shadow: 0 2px 5px rgba(0, 0, 0, 0.6);
+  letter-spacing: 1px;
+  background: rgba(0, 0, 0, 0.25); padding: 8px 22px; border-radius: 20px;
+  opacity: 0; transition: opacity 0.4s ease-out; pointer-events: none;
+  -webkit-font-smoothing: none;
+}
+#desktop .cleared-photo-counter.show { opacity: 1; }
+
 #desktop .cleared-folder {
   position: absolute; left: 50%; bottom: 130px; transform: translateX(-50%) translateY(60px) scale(0.7);
   width: 480px; height: 300px;
@@ -476,7 +489,23 @@ body {
   background: #f2c884; border: 5px solid #6b4118; border-radius: 10px;
   box-shadow: 5px 5px 0 rgba(0, 0, 0, 0.18);
   z-index: 10;
+  transform-origin: bottom;
+  transition: transform 0.2s ease;
+  /* 시안의 #folderWrap.open .folder-front — 사진이 폴더 속으로 들어가는 순간
+     앞면이 살짝 눌리며 "받아먹는" 느낌. tuck 절반쯤 지났을 때 걸리게
+     transition-delay를 tuckSec의 절반으로 잡는다(추가 타이머 없이 CSS만으로). */
+  transition-delay: calc(var(--tuck-sec, 0.4s) * 0.5);
 }
+#desktop .cleared-folder.receiving .folder-front { transform: scaleY(0.92) skewX(-2deg); }
+/* 폴더가 사진을 다 받아 넣은 뒤(또는 요약 화면 직전) 한 번 통 튄다(시안의 @keyframes fb).
+   .in이 이미 준 최종 transform(translateX(-50%) scale(1))으로 끝나므로 애니 종료 후
+   그대로 이어받아도 어긋나지 않는다. */
+@keyframes clearedFolderBounce {
+  0% { transform: translateX(-50%) translateY(0) scale(1); }
+  35% { transform: translateX(-50%) translateY(-10px) scale(1.08); }
+  100% { transform: translateX(-50%) translateY(0) scale(1); }
+}
+#desktop .cleared-folder.bounce { animation: clearedFolderBounce 0.45s ease; }
 
 /* 폴라로이드 한 장 — DOM 노드 하나를 재사용한다(사진마다 새로 안 만든다).
    기본 상태(꺼짐)는 폴더 뒤(z-index 2, 앞면 10보다 아래)에 작고 흐리고
@@ -485,25 +514,26 @@ body {
 #desktop .cleared-photo {
   position: absolute; left: 50%; top: 40%; z-index: 2;
   width: 400px; height: 400px;
-  transform: translate(-50%, -50%) scale(0.25);
+  /* --tilt/--tilt-tuck: ui/clearScreen.js가 사진마다 랜덤으로 채운다(시안처럼
+     한 장 한 장 살짝 다른 각도로 놓인 느낌) — 인라인 style로 transform 자체를
+     덮지 않고 CSS 변수만 바꾸는 이유는 위 --develop-sec와 같다(그러면 이
+     transition 선언이 그대로 살아있다). */
+  transform: translate(-50%, -50%) scale(0.25) rotate(var(--tilt, 0deg));
   opacity: 0;
   background: #fff;
   border: 10px solid #fff;
   border-bottom-width: 56px; /* 폴라로이드 특유의 아래쪽 여백(라벨 자리) */
   box-shadow: 0 10px 26px rgba(0, 0, 0, 0.35);
-  filter: blur(20px);
   transition:
     opacity 0.2s ease-out,
-    transform 0.35s cubic-bezier(0.34, 1.6, 0.64, 1),
-    filter var(--develop-sec, 1s) ease-out;
+    transform 0.35s cubic-bezier(0.34, 1.6, 0.64, 1);
 }
 /* 등장 중 — 셔터가 터진 순간부터 tuck 시작 전까지 계속 켜져 있다(develop+hold를
    전부 포함). 폴더 앞면(z10)보다 위로 올라와 크고 선명하게 보인다. */
 #desktop .cleared-photo.on-top {
   z-index: 20;
-  transform: translate(-50%, -50%) scale(1);
+  transform: translate(-50%, -50%) scale(1) rotate(var(--tilt, 0deg));
   opacity: 1;
-  filter: blur(0);
 }
 /* tuck — on-top을 떼는 것과 동시에 건다. z-index가 즉시 2로 떨어지므로(z-index는
    transition 대상이 아니라 순간 전환된다) transform/opacity가 서서히 진행되는
@@ -511,15 +541,21 @@ body {
    모양이 저절로 완성된다, 별도 z-index 애니메이션 트릭이 필요 없다. */
 #desktop .cleared-photo.tuck {
   transition-duration: var(--tuck-sec, 0.4s);
-  transform: translate(-50%, 46%) scale(0.15);
+  transform: translate(-50%, 60%) scale(0.15) rotate(var(--tilt-tuck, 0deg));
   opacity: 0;
-  filter: blur(2px);
 }
+/* 사진 자체(그림)만 흐림→선명 "현상"된다 — 흰 액자·그림자까지 같이 흐려지면
+   안 되므로(시안처럼) 필터는 액자(.cleared-photo)가 아니라 그림 레이어에만 건다.
+   시안과 같은 "어둡게 깔린 미현상 필름" 톤(brightness+contrast+blur 3종 조합) —
+   blur만 걸었을 때보다 "막 나온 인화지"에 더 가깝다. */
 #desktop .cleared-photo-img {
   position: absolute; inset: 0;
   background-size: cover; background-position: center;
   image-rendering: pixelated;
+  filter: brightness(0.35) contrast(0.75) blur(6px);
+  transition: filter var(--develop-sec, 1s) ease-out;
 }
+#desktop .cleared-photo.on-top .cleared-photo-img { filter: brightness(1) contrast(1) blur(0); }
 #desktop .cleared-photo-label {
   position: absolute; left: 0; right: 0; bottom: -46px; height: 40px;
   display: flex; align-items: center; justify-content: center;
