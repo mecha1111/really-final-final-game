@@ -92,6 +92,21 @@ const VARIANT_COUNTS = {
   [SFX.UI_CLICK]: 2, // UI 클릭
 };
 
+// 2026-08-23: "kill_soft·ui_click 계열 중 일부가 안 들린다"는 피드백을 raw PCM
+// RMS/peak 실측(decodeAudioData)으로 확인 — GAIN이 낮은 게 아니라, 무작위 풀 안에
+// 형제 변주보다 30~1800배(!) 조용한, 사실상 무음에 가까운 파일이 섞여 있었다:
+//   sfx_kill_soft_3.mp3  peak 0.026 (형제 1/4는 0.65/0.77 — 25~30배 차이)
+//   sfx_ui_click_1.mp3   peak 0.0002(형제 2는 0.35 — ~1800배 차이, 사실상 무음)
+// "일부분이 안 들린다"는 표현과 정확히 맞아떨어진다(그 인덱스가 뽑힌 순간에만
+// 조용해지므로) — 상시 조용한 게 아니라 확률적으로만 그렇다는 게 GAIN 문제가
+// 아니라 개별 파일 결함이라는 증거. 원본 mp3 바이너리를 다시 만들 수단이 이
+// 세션엔 없어서(에셋 쓰기 권한 차단), 코드에서 그 인덱스만 통째로 빼는 쪽으로
+// 고쳤다 — 위 VARIANT_COUNTS의 "1..N 전부"를 이 목록이 있으면 덮어쓴다.
+const VARIANT_SUFFIX_OVERRIDE = {
+  [SFX.KILL_SOFT]: [1, 2, 4], // _3 제외
+  [SFX.UI_CLICK]: [2], // _1 제외(사실상 무음이라 사실상 단일 변주가 됨)
+};
+
 // 소리별 상대 볼륨(0~1, masterGain 위에 곱해진다). 생성된 mp3의 절대 음량이
 // 제각각이라 "체감 크기"를 여기 한 곳에서 맞춘다. 원칙:
 //   - 자주 나는 소리(처치·콤보·클릭·등장)는 확 낮춰 전체 음압을 내린다.
@@ -118,6 +133,14 @@ const VARIANT_COUNTS = {
 //     둔다. 앞으로 또 크다는 말이 나오면 여기(SFX_GAIN)보다 원본 mp3 자체의
 //     라우드니스 정규화를 의심해볼 것 — 같은 등급 대비 raw RMS가 이미 2배였다는
 //     실측 근거가 있으니, 게인만 계속 깎는 데는 한계가 있다.
+//   - 2026-08-23 kill_popup/ui_click 상향: "일부 처치음·팝업 닫기음이 안 들린다"는
+//     피드백. 위 VARIANT_SUFFIX_OVERRIDE로 실제 무음에 가까운 파일은 걷어냈지만,
+//     kill_popup은 무음 파일이 아니라 원본 자체가 형제 처치음(kill_hard 등)보다
+//     raw RMS가 낮게 마스터링돼 있었다(실측: kill_popup RMS 0.023 vs kill_hard
+//     0.036, peak 기준으로도 kill_hard의 절반 수준) — 이건 GAIN으로 메우는 게
+//     맞는 케이스라 0.5→0.75로 올렸다. ui_click도 다른 처치음 대비 낮게 잡혀
+//     있어 0.4→0.5로 소폭 상향(무음 변주 제거로 "가끔 완전히 안 들림"은 이미
+//     해결됐지만, 들릴 때도 다른 소리보다 상대적으로 작다는 지적을 반영).
 
 const SFX_GAIN = {
   // === 자주 나는 소리 — 작게 ===
@@ -126,7 +149,7 @@ const SFX_GAIN = {
   [SFX.KILL_HARD]: 0.6,
   [SFX.HIT]: 0.5,
   [SFX.ATK_WARNING]: 0.6, // 경고는 안 들리면 역할을 못한다 — 0.5→0.6
-  [SFX.UI_CLICK]: 0.4,
+  [SFX.UI_CLICK]: 0.5, // 처치음 대비 상대적으로 작다는 피드백: 0.4→0.5
   [SFX.CRT_KICK]: 0.45,
   [SFX.CLONE_SPLIT]: 0.55,
   [SFX.COPIER_SELFDESTRUCT]: 0.2, // 여전히 크다는 재피드백 — 자폭음 우선 추가 인하: 0.55→0.3→0.2
@@ -138,7 +161,7 @@ const SFX_GAIN = {
 
   // === 특수능력 처치음(고유) — basic(KILL_SOFT)과 같은 결, 살짝만 개성 ===
   [SFX.KILL_CLONE]: 0.5,
-  [SFX.KILL_POPUP]: 0.5,
+  [SFX.KILL_POPUP]: 0.75, // 실측상 원본 자체가 조용해 안 들린다는 지적: 0.5→0.75
   [SFX.KILL_UNPLUG]: 0.5,
   [SFX.KILL_HIDDEN]: 0.5,
   [SFX.KILL_BOMB]: 0.6, // 폭탄 처치(제거) — 존재감
@@ -368,6 +391,13 @@ async function preloadAll() {
   // 이름 하나 → 실제 파일 키 목록으로 펼친다. 변주 개수가 1이면 그냥 이름 그대로.
   const files = [];
   for (const name of names) {
+    const override = VARIANT_SUFFIX_OVERRIDE[name];
+    if (override) {
+      // 결함 있는 인덱스를 뺀 명시적 목록 — 항상 접미사가 붙는다(override가 있는
+      // 이름은 원래 변주가 2개 이상이었다는 뜻이라 n===1 케이스가 없다).
+      for (const i of override) files.push({ key: `${name}_${i}`, name });
+      continue;
+    }
     const n = VARIANT_COUNTS[name] ?? 1;
     for (let i = 1; i <= n; i++) files.push({ key: n === 1 ? name : `${name}_${i}`, name });
   }
