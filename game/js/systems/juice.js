@@ -16,11 +16,19 @@ const rand = (min, max) => min + Math.random() * (max - min);
 // 남은 히트스톱(ms). 0보다 크면 월드 갱신이 멈춘다(main.js가 확인한다).
 let hitStopMs = 0;
 
+// 조각 모양 3종(잉크 방울/종이 조각/작은 세모) — 낙서 방해꾼 톤에 맞춰 딱딱한
+// 유리조각 느낌 대신 손그림 소품처럼 보이게 섞는다. 실제 그리기는
+// ui/renderEnemies.js의 drawKillParticles가 이 문자열을 보고 분기한다.
+const SHAPES = ['square', 'circle', 'triangle'];
+
 /**
  * 처치 순간 1회. 히트스톱 + 조각 + 흔들림을 한꺼번에 건다.
  * @param {number} x,y 터질 자리(월드 좌표) — 보통 죽은 놈의 그림 중심
+ * @param {string} [enemyId] 방해꾼 종류(예: 'clone','ransom') — config.enemy.kill.
+ *   particleColors에 있으면 조각 일부(particleColorMix 비율)가 그 색을 띤다.
+ *   없거나 표에 없으면(basic 등) 전부 기본 잉크색.
  */
-export function burstOnKill(x, y) {
+export function burstOnKill(x, y, enemyId) {
   const c = config.enemy.kill;
   const s = getScaleFactor();
 
@@ -29,6 +37,8 @@ export function burstOnKill(x, y) {
   hitStopMs = Math.max(hitStopMs, c.hitStopMs);
 
   addShake(c.shakePx * s, c.shakeMs);
+
+  const tint = c.particleColors[enemyId]; // undefined면 아래서 전부 null(기본색)
 
   for (let i = 0; i < c.particleCount; i++) {
     // 사방으로 고르게 퍼지되, 각도를 조금씩 흩뜨려서 규칙적으로 안 보이게 한다
@@ -44,7 +54,19 @@ export function burstOnKill(x, y) {
       size: c.particleSize * s * rand(0.65, 1.25),
       spin: rand(-12, 12), // 조각이 돌면서 날아가면 훨씬 부서진 느낌이 난다
       rot: rand(0, Math.PI * 2),
+      shape: SHAPES[(Math.random() * SHAPES.length) | 0],
+      // null = 그리는 쪽(drawKillParticles)이 기본 잉크색을 쓴다. tint가 있어도
+      // particleColorMix 비율만큼만 적용해 "살짝 반영"에 그치게 한다.
+      color: tint && Math.random() < c.particleColorMix ? tint : null,
     });
+  }
+
+  // ★ 성능 상한 — 방해꾼 대량 처치가 몰리면(연타·과밀) 파티클이 무한정 쌓일 수
+  // 있다. 오래된 것부터 잘라낸다(FIFO, splice 한 번) — 방금 터진 조각이 더
+  // 눈에 띄어야 하므로 화면에 남기기엔 옛것보다 새것이 낫다. kill마다 반복되는
+  // 비용이 아니라 배열 끝단만 자르는 O(넘친 만큼)이라 100마리 연속 처치에도 싸다.
+  if (state.particles.length > c.maxParticles) {
+    state.particles.splice(0, state.particles.length - c.maxParticles);
   }
 }
 

@@ -317,7 +317,7 @@ export class Enemy {
       // (triggered)까지 터뜨리면 "잡았다"는 신호가 흐려지고 화면만 시끄러워진다.
       // 팝이 끝날 때까지는 배열에 남아있어야 그 연출이 보인다(basic은 원래 더 길다).
       this.corpseTimer = Math.max(basicLinger, config.enemy.kill.popSec);
-      burstOnKill(this.drawX, this.drawY);
+      burstOnKill(this.drawX, this.drawY, this.id);
       // 타격감(히트스톱+흔들림+조각)을 켜는 바로 그 자리에서 같이 낸다 — 눈에 보이는
       // 타격과 소리가 갈라질 수 없게. 수명만료(expired)나 copier 자폭(triggered)은
       // 이 분기에 안 들어오므로 "잡았다" 소리가 거기 섞이지 않는다.

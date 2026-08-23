@@ -317,6 +317,27 @@ export const config = {
       // 처치 때 화면이 살짝 흔들린다. 과하면 연타할 때 멀미 나므로 작게.
       shakePx: 3.5,
       shakeMs: 130,
+
+      // 2026-08-23 VFX 보강: ★ 성능 상한 — state.particles 전체(모든 처치를 합친
+      // 동시 개수)가 이 값을 넘으면 오래된 것부터 잘라낸다(systems/juice.js).
+      // 방해꾼 대량 처치가 한꺼번에 몰려도(콤보 연타·과밀 글리치) 프레임이
+      // 안정적이게 하는 안전장치 — particleCount(16)×상한 없이 그대로 뒀다면
+      // 100마리 연속 처치 시 순간 1600개까지 쌓일 수 있었다.
+      maxParticles: 200,
+      // 방해꾼 종류색을 "살짝 반영"하는 비율(0~1) — 1이면 조각 전부가 종류색이라
+      // 너무 화려해진다. 이 비율만큼만 종류색, 나머지는 기본 잉크색(아래
+      // --color-kill-particle) 그대로라 "은은하게 힌트만" 준다.
+      particleColorMix: 0.35,
+      // 종류 없는 놈(basic 등, 여기 없는 id)은 항상 기본 잉크색만 나간다.
+      // 색은 새로 안 만들고 이미 다른 곳에 쓰인 팔레트를 그대로 재사용했다.
+      particleColors: {
+        clone: '#44ff88', // --color-success(복제 = 초록, 늘어난다는 느낌)
+        ransom: '#6b7385', // --color-life-bar(몸값요구 = 무채색 회색)
+        popup: '#ff9a3f', // 콤보 tier 주황(팝업 = 시끄러운 경고색)
+        unplug: '#35c8ff', // --color-hitbox(플러그 = 전기 하늘색)
+        hidden: '#7a4dff', // --color-enemy-fallback(숨은놈 = 보라)
+        bomb: '#ff4d4d', // --color-danger(폭탄 = 빨강)
+      },
     },
 
     // '커서쪽 접근'(chase) 방해꾼 — 지금은 fake_btn(함정 확인창) 하나뿐이다.

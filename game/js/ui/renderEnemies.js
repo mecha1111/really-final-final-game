@@ -144,20 +144,46 @@ function drawEnemyGauges(ctx, e) {
  * 처치 순간 사방으로 튀는 조각들(systems/juice.js가 관리하는 state.particles).
  * 손그림/픽셀 톤에 맞춰 원이 아니라 회전하는 네모 조각으로 그린다.
  */
+/** 조각 하나를 그 모양(square/circle/triangle)대로 채운다. 좌표계는 이미
+ * translate/rotate된 상태로 들어온다(중심이 원점) — 여기선 크기만 안다. */
+function fillParticleShape(ctx, shape, s) {
+  switch (shape) {
+    case 'circle': // 잉크 방울
+      ctx.beginPath();
+      ctx.arc(0, 0, s / 2, 0, Math.PI * 2);
+      ctx.fill();
+      break;
+    case 'triangle': // 작은 도형
+      ctx.beginPath();
+      ctx.moveTo(0, -s / 2);
+      ctx.lineTo(s / 2, s / 2);
+      ctx.lineTo(-s / 2, s / 2);
+      ctx.closePath();
+      ctx.fill();
+      break;
+    default: // 'square' — 종이 조각
+      ctx.fillRect(-s / 2, -s / 2, s, s);
+  }
+}
+
+/** 처치 파편(잉크 방울/종이 조각/세모, systems/juice.js가 만든다). 방해꾼 종류색이
+ * 살짝 섞여 있으면(p.color) 그 색, 아니면 기본 잉크색 — 매 파티클마다 결정돼 있어
+ * 여기선 그냥 읽기만 한다(config.enemy.kill.particleColorMix). */
 export function drawKillParticles(ctx, particles) {
   if (!particles || particles.length === 0) return;
 
   ctx.save();
-  ctx.fillStyle = cssColor('--color-kill-particle');
+  const baseColor = cssColor('--color-kill-particle');
   for (const p of particles) {
     // 수명이 다할수록 옅어지고 작아진다 — 딱 끊기지 않고 사그라들게.
     const t = p.maxLife > 0 ? Math.max(0, p.life / p.maxLife) : 0;
     ctx.globalAlpha = Math.min(1, t * 1.6);
+    ctx.fillStyle = p.color || baseColor;
     const s = p.size * (0.35 + 0.65 * t);
     ctx.save();
     ctx.translate(p.x, p.y);
     ctx.rotate(p.rot);
-    ctx.fillRect(-s / 2, -s / 2, s, s);
+    fillParticleShape(ctx, p.shape, s);
     ctx.restore();
   }
   ctx.restore();
