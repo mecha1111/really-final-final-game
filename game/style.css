@@ -436,9 +436,9 @@ body {
 
    2026-08-23 전면 재구현: 폴라로이드/폴더 연출을 폐기하고, "업로드하던 그 창이
    정리 결과를 보여준다"는 흐름으로 바꿨다 — 게임의 실제 .exe 창(위 #desktop .win/
-   .tbar/.wb 공통 규칙)과 그림 뷰어(.frame .img 체크무늬, winB 쪽)·업로드
-   게이지바(.xpbar.big) 스타일을 새로 안 만들고 그대로 재사용한다. .layer-settings
-   가 이미 같은 트릭을 쓴다(그 레이어 안에서만 .win을 position:relative로 덮어써
+   .tbar/.wb 공통 규칙)과 그림 뷰어(.frame .img, winB 쪽)·업로드 게이지바
+   (.xpbar.big) 스타일을 새로 안 만들고 그대로 재사용한다. .layer-settings가
+   이미 같은 트릭을 쓴다(그 레이어 안에서만 .win을 position:relative로 덮어써
    flex 중앙정렬을 따르게 함, 위 "설정 팝업" 섹션 주석 참고) — 여기도 그 패턴 그대로.
    --------------------------------------------------------------------------- */
 #desktop .layer-cleared {
@@ -471,12 +471,14 @@ body {
 #desktop .cleared-scene1 { padding: 22px 24px 20px; display: flex; flex-direction: column; gap: 10px; }
 #desktop .layer-cleared.done .cleared-scene1 { display: none; }
 
-/* 체크무늬 배경·테두리는 winB 쪽 그림 자리(.frame .img)와 완전히 같은 값 —
-   "같은 게임의 같은 그림 표시 방식"이라는 인상을 주려는 것. 정사각 비율도
-   그쪽 540×540(정사각)과 같다. */
+/* 배경·테두리는 winB 쪽 그림 자리(.frame .img)와 완전히 같은 값 — "같은 게임의
+   같은 그림 표시 방식"이라는 인상을 주려는 것. 정사각 비율도 그쪽 540×540과
+   같다. object-fit:contain(아래 .cleared-viewer-img)이 원본 비율을 지키므로
+   정사각이 아닌 그림은 이 배경색 여백(레터박스)이 남는다 — 체크무늬 대신 창
+   배경색(베이지 #ece9d8, .frame .img와 동일)으로 자연스럽게 섞이게 한다. */
 #desktop .cleared-viewer {
   position: relative; width: 100%; aspect-ratio: 1 / 1;
-  background: repeating-conic-gradient(#5a5a5a 0 25%, #4c4c4c 0 50%) 0 / 54px 54px;
+  background: #ece9d8;
   border: 3px solid #111; box-shadow: 4px 4px 0 #999;
   overflow: hidden;
 }
@@ -1197,14 +1199,16 @@ body {
 }
 #desktop .winB .body { padding: 20px; display: flex; flex-direction: column; align-items: center; gap: 18px; }
 #desktop .frame { position: relative; background: #fff; border: 3px solid #111; padding: 10px; box-shadow: 4px 4px 0 #999; }
-/* "업데이트 중" 그림 자리. 지금은 <canvas>(ui/uploadPicture.js가 그린다) —
-   체커보드는 그 아래 깔린 배경이라, 그림이 아직 로딩 전이거나(진짜_최종…exe가
-   막 넘어간 직후) 세로로 긴 그림이라 레터박스가 생길 때 그 여백으로 비친다
-   ("사진 편집기의 투명 배경" 관용구, 그대로 "그림 없음" 표시로 쓴다). */
+/* "업데이트 중" 그림 자리. 지금은 <canvas>(ui/uploadPicture.js가 그린다, 이미
+   containRect()로 원본 비율을 지켜 그린다 — 정사각이 아닌 그림도 늘어나지 않고
+   레터박스로 들어간다). 그 여백(그림 로딩 전이거나 세로/가로형이라 남는 자리)은
+   2026-08-23까지 "사진 편집기의 투명 배경" 체커보드였는데, "안 보였으면 한다"는
+   피드백으로 창 배경색(베이지, .win 기본 배경과 같은 #ece9d8)으로 바꿨다 —
+   여백이 창 배경과 그대로 섞여 자연스럽다. */
 #desktop .frame .img {
   display: block; /* canvas 기본값(inline-block)의 바닥 여백 틈을 없앤다 */
   width: 540px; height: 540px;
-  background: repeating-conic-gradient(#5a5a5a 0 25%, #4c4c4c 0 50%) 0 / 54px 54px;
+  background: #ece9d8;
 }
 #desktop .frame .cap { margin-top: 14px; padding: 0 6px; display: flex; justify-content: space-between; align-items: baseline; font-size: 20px; color: #444; }
 /* 2026-08-24: 34px→46px + 살짝 더 진한 색으로 — "사진 쪽에 시선이 안 간다"는

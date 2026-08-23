@@ -77,8 +77,8 @@ function blockPxFor(progress) {
   return Math.round(cfg.maxBlockPx + (cfg.minBlockPx - cfg.maxBlockPx) * t);
 }
 
-/** 매 프레임 호출. 그림이 없거나(로딩 중) 파일이 없으면 캔버스를 비워 CSS 체커보드
- * 플레이스홀더가 그대로 비치게 한다. */
+/** 매 프레임 호출. 그림이 없거나(로딩 중) 파일이 없으면 캔버스를 비워 CSS 배경색
+ * (베이지, style.css의 .frame .img)이 그대로 비치게 한다. */
 export function updateUploadPicture(state) {
   if (!ensureCanvas()) return;
 
