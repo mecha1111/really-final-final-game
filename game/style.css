@@ -1295,6 +1295,26 @@ body {
   100% { transform: scale(1); }
 }
 
+/* 2026-08-23 VFX 보강: 그림 테두리가 살짝 빛나는 은은한 글로우 — 위 흰 번쩍임
+   (다음 규칙)·팝과 같은 트리거(.file-complete, remove→reflow→add)를 그대로
+   타므로 따로 안 겹치고 자연히 통합된다. .frame 자체의 정적 box-shadow
+   (4px 4px 0 #999, 위 ".frame" 공통 규칙)를 애니 안에서도 계속 들고 있어야
+   글로우가 끝났을 때 원래 그림자가 사라지지 않는다. --file-complete-glow-alpha는
+   initUploadPicture()가 config.fileComplete.glowEnabled를 보고 0 또는 1로
+   흘려보낸다(꺼두면 글로우 없이 팝+번쩍임만 남는다). */
+#desktop .frame.file-complete {
+  animation: fileCompleteGlow var(--file-complete-glow-ms, 500ms) ease-out;
+}
+@keyframes fileCompleteGlow {
+  0% { box-shadow: 4px 4px 0 #999, 0 0 0 0 rgba(var(--file-complete-glow-color, 255, 224, 100), 0); }
+  30% {
+    box-shadow:
+      4px 4px 0 #999,
+      0 0 26px 6px rgba(var(--file-complete-glow-color, 255, 224, 100), calc(0.9 * var(--file-complete-glow-alpha, 1)));
+  }
+  100% { box-shadow: 4px 4px 0 #999, 0 0 0 0 rgba(var(--file-complete-glow-color, 255, 224, 100), 0); }
+}
+
 /* 흰 번쩍임 — .img와 정확히 같은 자리를 덮는다. inset:10px는 .frame의 padding과
    같은 값이라(위 .frame 규칙) .img의 content-box(정사각 540x540, .frame의
    유일한 콘텐츠라 .frame 폭도 그에 맞춰 shrink-to-fit된다)를 그대로 따라간다 —

@@ -596,6 +596,14 @@ export const config = {
     // "완료!" 라벨이 튀어나왔다 사라지는 지속시간(ms).
     labelMs: 900,
     labelText: '완료!',
+
+    // 2026-08-23 VFX 보강: 흰 번쩍임(flashMs)·팝(popMs)에 더해 그림 테두리가
+    // 살짝 빛나는 은은한 글로우 — "이 그림을 완성했다"는 뿌듯함을 테두리
+    // 하나로 더 얹는다. 기존 번쩍임과 같은 트리거(.file-complete, remove→
+    // reflow→add)를 그대로 타므로 따로 안 겹치고 자연히 통합된다.
+    glowEnabled: true,
+    glowMs: 500, // popMs와 같은 박자로 — 팝이 끝날 때 글로우도 같이 잦아든다
+    glowColor: '255, 224, 100', // 금색(rgb 성분만 — CSS에서 알파를 따로 얹는다)
   },
 
   // bait("시선 강탈") 전용 — 화면을 돌아다니지 않고 모서리에 고정된 채

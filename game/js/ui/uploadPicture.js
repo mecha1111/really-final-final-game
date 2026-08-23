@@ -35,6 +35,14 @@ export function initUploadPicture() {
   root.setProperty('--file-complete-pop-ms', `${cfg.popMs}ms`);
   root.setProperty('--file-complete-pop-scale', cfg.popScale);
   root.setProperty('--file-complete-label-ms', `${cfg.labelMs}ms`);
+  // VFX 보강(테두리 글로우) — glowEnabled가 꺼져 있으면 alpha를 0으로 흘려보내
+  // style.css의 fileCompleteGlow 키프레임이 그대로 재생은 되지만(애니 자체를
+  // 끄는 건 아니다) 실제로는 아무 것도 안 보인다 — box-shadow alpha를 0으로
+  // 두 배열 안 늘어난 게 애니 자체를 지우는 것보다 실수로 다시 새는 경우가
+  // 적다(remove→reflow→add 트리거 로직을 그대로 공유하는 게 더 중요해서).
+  root.setProperty('--file-complete-glow-ms', `${cfg.glowMs}ms`);
+  root.setProperty('--file-complete-glow-color', cfg.glowColor);
+  root.setProperty('--file-complete-glow-alpha', cfg.glowEnabled ? 1 : 0);
 
   const label = document.getElementById('file-complete-label');
   if (label) label.textContent = cfg.labelText;
