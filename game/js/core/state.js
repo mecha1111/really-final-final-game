@@ -46,6 +46,8 @@ export const state = {
   floats: [],
   // 처치 순간 사방으로 튀는 조각들(systems/juice.js가 넣고 지운다, 월드 좌표).
   particles: [],
+  // 클릭할 때마다 커서 자리에 퍼지는 잔물결(systems/clickRipple.js가 넣고 지운다).
+  ripples: [],
 
   pointer: { x: 0, y: 0 },
 

@@ -189,6 +189,26 @@ export function drawKillParticles(ctx, particles) {
   ctx.restore();
 }
 
+/** 클릭 리플(systems/clickRipple.js) — 눌린 자리에서 커지며 옅어지는 링.
+ * 채워진 원이 아니라 테두리만 그려서 처치 파편과 겹쳐도 화면이 안 빽빽해 보인다. */
+export function drawClickRipples(ctx, ripples) {
+  if (!ripples || ripples.length === 0) return;
+  const c = config.fx.clickRipple;
+
+  ctx.save();
+  ctx.lineWidth = c.lineWidth;
+  for (const r of ripples) {
+    const t = r.maxLife > 0 ? 1 - Math.max(0, r.life) / r.maxLife : 1; // 0(막 생김)→1(다 됨)
+    const radius = c.startRadius + (c.endRadius - c.startRadius) * t;
+    ctx.globalAlpha = Math.max(0, (1 - t) * c.maxAlpha);
+    ctx.strokeStyle = r.color;
+    ctx.beginPath();
+    ctx.arc(r.x, r.y, radius, 0, Math.PI * 2);
+    ctx.stroke();
+  }
+  ctx.restore();
+}
+
 /**
  * 가짜 커서와 위장한 진짜 커서는 반드시 같은 모양이어야 한다(구분 불가가 핵심) —
  * 그래서 이 함수 하나만 부르면 어느 쪽이든 항상 같은 그림이 나온다.

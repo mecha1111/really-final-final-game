@@ -5,6 +5,7 @@ import { state, emptyStats } from './state.js';
 import { Spawner, buildPool } from '../enemies/spawner.js';
 import { splitEnemy, applyExpiryEffect, triggerSelfDestruct, updateFakeCursors } from '../enemies/effects.js';
 import { clearJuice } from '../systems/juice.js';
+import { clearRipples } from '../systems/clickRipple.js';
 import { clearShake } from '../systems/screenShake.js';
 import { updateUpload, resetUploadEdges } from '../systems/upload.js';
 import { resetOverloadEdges } from '../systems/overload.js';
@@ -64,6 +65,7 @@ export function startGame(stageIndex = 0) {
   clearCombo(); // 지난 판의 콤보와 그 연출이 새 판 첫 프레임에 남지 않게
   clearFloats();
   clearJuice(); // 지난 판의 터진 조각·히트스톱이 새 판 첫 프레임에 남지 않게
+  clearRipples(); // 지난 판의 클릭 리플이 새 판 첫 프레임에 남지 않게
   clearShake(); // 흔들리다 판이 바뀌면 그 잔여 흔들림이 새 판으로 새어 들어간다
   resetTrail(); // 지난 판의 마우스 궤적이 새 판의 가짜 커서에 섞여 들어가지 않게
   // 정지·공격예고 소리의 "직전 프레임 기억"을 끊는다 — 정지된 채로 판이 끝났으면

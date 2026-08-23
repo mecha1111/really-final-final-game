@@ -4,7 +4,8 @@ import { config, getUiScaleFactor, getUiReferenceCanvas } from '../config.js';
 import { state } from '../core/state.js';
 import { startGame, advanceStage } from '../core/stageManager.js';
 import { damageUpload } from './upload.js';
-import { registerKill, registerMiss } from './combo.js';
+import { registerKill, registerMiss, comboTier } from './combo.js';
+import { spawnClickRipple } from './clickRipple.js';
 import { playSfx, SFX } from './sound.js';
 import { pointInRect } from '../ui/draw.js';
 import { getStartButton } from '../ui/screens.js';
@@ -151,6 +152,12 @@ function onPointerDown(canvas, pt, evt) {
   //   어떤 결과가 왜 끊고 왜 안 끊는지는 systems/combo.js의 registerMiss 주석에 모아뒀다.
   if (verdict === 'kill') registerKill(pt.x, pt.y);
   else if (verdict === 'miss') registerMiss();
+
+  // 클릭 리플 — 처치/허공 무관하게 "눌렸다"는 반응(요구사항). 콤보가 오른
+  // 상태로 처치했으면 그 tier 색으로 강조해 콤보 UI(캔버스에 뜨는 x N 글자,
+  // ui/renderEnemies.js의 drawCombo)와 통일감을 준다. registerKill이 이미
+  // state.combo를 올린 뒤라 comboTier(state.combo)가 "지금 처치로 오른" 색을 준다.
+  spawnClickRipple(pt.x, pt.y, verdict === 'kill' ? comboTier(state.combo).color : null);
 
   if (verdict === 'miss') clickThroughTarget = forwardClickThrough(canvas, evt);
 }

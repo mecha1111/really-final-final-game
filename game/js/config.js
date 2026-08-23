@@ -506,6 +506,20 @@ export const config = {
     floatRise: 44,
     // "+60MB"처럼 화면 중앙에 띄우는 글씨의 세로 위치(캔버스 높이 대비 비율).
     floatTopRatio: 0.22,
+
+    // 2026-08-23 VFX 보강: 클릭할 때마다 커서 자리에 퍼지는 잔물결(링). 처치/허공
+    // 클릭 둘 다 반응한다(systems/input.js) — "눌렸다"는 반응성이 목적이라 처치
+    // 여부와 무관하다. enabled를 꺼서 성능 이슈 시 통째로 끌 수 있다.
+    clickRipple: {
+      enabled: true,
+      lifeSec: 0.3, // 0.25~0.35s 요구사항
+      startRadius: 4, // 시작 반지름(px, 기준 해상도)
+      endRadius: 36, // 다 커졌을 때 반지름
+      lineWidth: 3,
+      maxAlpha: 0.5, // 처치 파티클(진하고 확실한 반응)보다 은은하게 — 겹쳐도 안 지저분하게
+      color: '#ffffff', // 허공 클릭 기본색 — 처치는 콤보 tier 색으로 덮어쓴다(systems/input.js)
+      maxRipples: 40, // ★ 성능 상한(동시 개수, 오래된 것부터 잘라낸다)
+    },
   },
 
   // HTML 바탕화면 껍데기(ui/desktop.js) 전용. 전부 1920x1080 좌표 기준.

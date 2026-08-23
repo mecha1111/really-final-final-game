@@ -7,6 +7,7 @@ import { state } from './core/state.js';
 import { startLoop } from './core/gameLoop.js';
 import { update, getPlayArea, startGame } from './core/stageManager.js';
 import { consumeHitStop, updateParticles, clearJuice } from './systems/juice.js';
+import { updateRipples } from './systems/clickRipple.js';
 import { initInput } from './systems/input.js';
 import { initSound } from './systems/sound.js';
 import { initBgm, updateBgm } from './systems/bgm.js';
@@ -130,8 +131,9 @@ async function main() {
       //   실제로 눈에 보인다(안 그리면 그냥 프레임이 끊긴 것과 구분이 안 된다).
       if (consumeHitStop(dt)) return;
       update(dt);
-      // 터진 조각은 게임 규칙과 무관한 순수 연출이라 stageManager 밖에서 돈다.
+      // 터진 조각·클릭 리플은 게임 규칙과 무관한 순수 연출이라 stageManager 밖에서 돈다.
       updateParticles(dt);
+      updateRipples(dt);
     },
     render: (now) => {
       render({ ctx, canvas, state, gameData, now });

@@ -3,7 +3,15 @@
 
 import { config, getUiScaleFactor, getUiReferenceCanvas, getRenderScale, createRules } from '../config.js';
 import { debugState } from '../debug.js';
-import { drawEnemy, drawCursorGlyph, drawFloats, drawCombo, drawClickMarkers, drawKillParticles } from './renderEnemies.js';
+import {
+  drawEnemy,
+  drawCursorGlyph,
+  drawFloats,
+  drawCombo,
+  drawClickMarkers,
+  drawKillParticles,
+  drawClickRipples,
+} from './renderEnemies.js';
 import { drawSelectScreen, drawLoadingOverlay } from './screens.js';
 import { getCrtShakeOffset } from './crtTransition.js';
 import { getShakeOffset } from '../systems/screenShake.js';
@@ -94,6 +102,8 @@ export function render({ ctx, canvas, state, gameData, now }) {
 
     // 조각은 방해꾼 위에 그린다 — 터진 파편이 스프라이트에 가리면 안 보인다.
     drawKillParticles(ctx, state.particles);
+    // 클릭 리플도 같은 층 — 링이라 조각과 겹쳐도 서로 안 가린다(테두리만 그림).
+    drawClickRipples(ctx, state.ripples);
     drawFloats(ctx, state.floats);
     // playing에서만 의미가 있다(select/cleared 등은 이 if 블록 밖 — 콤보가 없다).
     if (state.phase === 'playing') drawCombo(ctx, state);
