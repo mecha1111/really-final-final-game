@@ -248,52 +248,81 @@
         <div class="bsod-scanlines"></div>
       </div>
 
-      <!-- 2026-08-25 신설: 구간 클리어 화면(레이어6, .layer-title/.layer-bsod와 같은
-           자리 — 셋 다 phase가 서로 배타적이라 z-index를 나눠 써도 된다). 예전엔
-           'cleared' phase를 캔버스(ui/screens.js의 drawResultScreen)가 직접 그렸는데,
-           이 화면부터는 title/BSOD와 같은 결(HTML 오버레이 + 진짜 <button>)로 새로
-           만든다 — 캔버스 좌표 판정보다 안전하고, 폴라로이드 여러 장을 다루기엔
-           DOM+CSS 전환이 훨씬 다루기 쉽다.
+      <!-- 2026-08-25 신설, 2026-08-23 게임창 스타일로 전면 재구현(ui/clearScreen.js).
+           구간 클리어 화면(레이어6, .layer-title/.layer-bsod와 같은 자리 — 셋 다
+           phase가 서로 배타적이라 z-index를 나눠 써도 된다). "업로드하던 그 창이
+           정리 결과를 보여준다"는 흐름을 위해 폴라로이드/폴더 대신 게임의 실제
+           .exe 창(.win/.tbar/.wb, style.css)과 그림 뷰어(.frame .img 체크무늬)·
+           업로드 게이지바(.xpbar.big) 스타일을 그대로 재사용한다 —
+           .layer-settings가 이미 같은 트릭을 쓴다(그 레이어 안에서만 .win을
+           position:relative로 덮어써 flex 중앙정렬을 따르게 함, style.css 867행
+           주석 참고). 안의 창(#cleared-win)은 닫히지 않는다(다른 메인 창들과
+           같은 관례 — .wb 버튼에 .disabled만 붙이고 핸들러는 없음).
            .layer-title/.layer-bsod와 다른 점 하나: 이 레이어는 자기 자신이
            pointer-events:auto다(다른 둘은 none + 버튼만 auto) — "클릭 어디든
-           눌러서 연출 건너뛰기" 요구사항 때문에 배경 전체가 클릭 대상이어야 한다.
+           눌러서 연출 건너뛰기" 요구사항 때문에 배경 전체가 클릭 대상이어야
+           한다(단, 진입 직후 skipGraceSec 동안은 무시 — ui/clearScreen.js).
            수치·그림·진행은 전부 ui/clearScreen.js의 updateClearScreen()이 매
            프레임(cleared일 때만) 채운다. -->
       <div class="layer-cleared" id="layer-cleared">
-        <div class="cleared-bg">
-          <div class="hill"></div>
-          <div class="hill2"></div>
-          <div class="cloud c1"></div>
-          <div class="cloud c2"></div>
-        </div>
+        <div class="win cleared-win" id="cleared-win">
+          <div class="tbar">
+            <div class="ico">🖼</div>
+            <div class="t" id="cleared-wtitle">1 구간 정리 중...</div>
+            <div class="wb"><span class="min disabled">_</span><span class="disabled">□</span><span class="x disabled">×</span></div>
+          </div>
 
-        <!-- 장면 1: 폴더+폴라로이드 연출. 사진이 없는 구간(파일을 하나도 못 끝낸
-             채 콤보만으로 할당량을 채운 극단적인 경우)엔 폴더만 잠깐 보이고 바로
-             장면 2로 넘어간다(ui/clearScreen.js). -->
-        <div class="cleared-scene-photos" id="cleared-scene-photos">
-          <div class="cleared-photo-counter" id="cleared-photo-counter"></div>
-          <div class="cleared-folder" id="cleared-folder">
-            <div class="folder-tab"></div>
-            <div class="folder-back"></div>
-            <div class="cleared-photo" id="cleared-photo">
-              <div class="cleared-photo-img" id="cleared-photo-img"></div>
-              <div class="cleared-photo-label" id="cleared-photo-label"></div>
-              <div class="cleared-photo-flash" id="cleared-photo-flash"></div>
+          <!-- 장면 1: 그림 뷰어 — 그 구간에서 완성한 그림을 하나씩 창 가득 보여준다.
+               사진이 없는 구간(파일을 하나도 못 끝낸 채 콤보만으로 할당량을 채운
+               극단적인 경우)엔 이 장면 자체를 건너뛰고 바로 장면 2로 넘어간다. -->
+          <div class="cleared-scene1" id="cleared-scene1">
+            <div class="cleared-viewer" id="cleared-viewer">
+              <img class="cleared-viewer-img" id="cleared-viewer-img" alt="" />
+              <div class="cleared-stamp" id="cleared-stamp">완료!</div>
             </div>
-            <div class="folder-front"></div>
+            <div class="cleared-info">
+              <span class="cleared-pic-name" id="cleared-pic-name"></span>
+              <span class="cleared-pic-count" id="cleared-pic-count"></span>
+            </div>
+            <div class="cleared-gauge-label">
+              <span>정리 진행도</span><span id="cleared-gauge-count">0 / 0</span>
+            </div>
+            <div class="xpbar big cleared-gauge" id="cleared-gauge"></div>
+          </div>
+
+          <!-- 장면 2: 진짜 XP 시스템 완료 대화상자 — 세련된 카드가 아니라 투박한
+               시스템 다이얼로그 톤(초록 체크 아이콘 + 구분선 리스트 + 각진 버튼).
+               기본은 숨김(.layer-cleared.done일 때만 보인다, style.css). -->
+          <div class="cleared-scene2 hidden" id="cleared-scene2">
+            <div class="cleared-dlg-body">
+              <div class="cleared-dlg-icon">✓</div>
+              <div class="cleared-dlg-main">
+                <div class="cleared-dlg-title" id="cleared-dlg-title">1 구간 정리 완료</div>
+                <div class="cleared-dlg-sub">이 구간의 파일을 모두 정리했습니다.</div>
+                <div class="cleared-dlg-rank">종합 평가 : <b id="cleared-dlg-rank">A 등급</b></div>
+                <div class="cleared-dlg-list">
+                  <div class="cleared-dlg-row">
+                    <span class="k">완료한 파일</span><span class="v" id="cleared-stat-files" data-count="0">0</span>
+                  </div>
+                  <div class="cleared-dlg-row">
+                    <span class="k">제거한 방해꾼</span><span class="v" id="cleared-stat-killed" data-count="0">0</span>
+                  </div>
+                  <div class="cleared-dlg-row">
+                    <span class="k">정확도</span><span class="v" id="cleared-stat-acc" data-count="0" data-suffix="%">0</span>
+                  </div>
+                  <div class="cleared-dlg-row">
+                    <span class="k">최대 콤보</span><span class="v" id="cleared-stat-combo" data-count="0" data-prefix="x">0</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="cleared-dlg-foot">
+              <button type="button" class="settings-btn settings-btn-primary cleared-next-btn" id="cleared-next-btn">다음 구간 ▶</button>
+            </div>
           </div>
         </div>
 
-        <!-- 장면 2: "정리 완료!" + 스탯 + 다음 구간 버튼. 기본은 숨김
-             (.layer-cleared.done일 때만 보인다, style.css). -->
-        <div class="cleared-scene-summary" id="cleared-scene-summary">
-          <div class="cleared-summary-title" id="cleared-summary-title">1 구간 정리 완료!</div>
-          <div class="cleared-summary-stats" id="cleared-summary-stats">
-            완료 파일 0 · 제거 0 · 정확도 0% · 최대 콤보 0
-          </div>
-          <button type="button" class="cleared-next-btn" id="cleared-next-btn">다음 구간 ▶</button>
-        </div>
-
+        <div class="cleared-flash" id="cleared-flash"></div>
         <div class="cleared-skip-hint">클릭 또는 아무 키나 눌러 건너뛰기</div>
       </div>
 

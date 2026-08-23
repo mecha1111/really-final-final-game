@@ -219,8 +219,10 @@ body {
 #desktop.phase-title .layer-title { display: block; }
 /* failed 단계(BSOD)도 같은 방식 — ui/desktop.js가 .phase-failed를 토글한다. */
 #desktop.phase-failed .layer-bsod { display: block; }
-/* cleared 단계(구간 클리어)도 같은 방식 — ui/desktop.js가 .phase-cleared를 토글한다. */
-#desktop.phase-cleared .layer-cleared { display: block; }
+/* cleared 단계(구간 클리어)도 같은 방식 — ui/desktop.js가 .phase-cleared를 토글한다.
+   ★ display:block이 아니라 flex — 이 레이어 자신이 안의 .win을 가운데 정렬한다
+   (.layer-settings와 같은 패턴, 아래 "구간 클리어 화면" 섹션 주석 참고). */
+#desktop.phase-cleared .layer-cleared { display: flex; }
 /* 상시 CRT 질감도 같은 방식 — playing 중에만 보인다(대기·타이틀·BSOD엔 안 얹는다). */
 #desktop.phase-playing .layer-crt-steady { display: block; }
 
@@ -426,15 +428,22 @@ body {
 }
 
 /* ---------------------------------------------------------------------------
-   ===== 구간 클리어 화면 = 폴더 정리 연출 (레이어6) =====
+   ===== 구간 클리어 화면 = 게임 창(XP) 스타일 (레이어6) =====
    .layer-title/.layer-bsod와 같은 자리(z-index 6, phase 배타적)지만 하는 일은
    훨씬 동적이다 — ui/clearScreen.js가 now(ms) 하나로 시간을 재며 이 안의 클래스를
    매 프레임 갈아 끼운다. 배경은 BSOD의 XP 블루스크린과 대비되게 #desktop 기본
    Bliss(하늘→잔디) 톤을 그대로 재사용 — "정리하고 있다"는 밝고 편안한 톤.
+
+   2026-08-23 전면 재구현: 폴라로이드/폴더 연출을 폐기하고, "업로드하던 그 창이
+   정리 결과를 보여준다"는 흐름으로 바꿨다 — 게임의 실제 .exe 창(위 #desktop .win/
+   .tbar/.wb 공통 규칙)과 그림 뷰어(.frame .img 체크무늬, winB 쪽)·업로드
+   게이지바(.xpbar.big) 스타일을 새로 안 만들고 그대로 재사용한다. .layer-settings
+   가 이미 같은 트릭을 쓴다(그 레이어 안에서만 .win을 position:relative로 덮어써
+   flex 중앙정렬을 따르게 함, 위 "설정 팝업" 섹션 주석 참고) — 여기도 그 패턴 그대로.
    --------------------------------------------------------------------------- */
 #desktop .layer-cleared {
   display: none; /* .phase-cleared일 때만 위쪽 규칙이 block으로 바꾼다 */
-  overflow: hidden;
+  align-items: center; justify-content: center;
   font-family: 'DGM', 'Galmuri11', monospace;
   -webkit-font-smoothing: none;
   cursor: pointer; /* 배경 전체가 "건너뛰기" 클릭 대상이라는 걸 커서로도 알린다 */
@@ -442,174 +451,123 @@ body {
      z6에서 그 아래(캔버스·창 등)를 완전히 덮어야 하므로 배경이 비치면 안 된다. */
   background: linear-gradient(180deg, #3f7fc8 0%, #5c9bd8 20%, #8fbfe8 38%, #bfe0f2 50%, #5aa832 50%, #4f9c2a 74%, #3f8420 100%);
 }
-/* 배경 장식 — layer-bg의 .hill/.hill2/.cloud를 그대로 재사용한다(같은 클래스,
-   같은 CSS 규칙이 그대로 먹는다 — 새로 안 만든다는 원칙 그대로). */
-#desktop .layer-cleared .cleared-bg { position: absolute; inset: 0; pointer-events: none; }
+/* .win은 원래 position:absolute(창 좌표는 .winA/.winB가 left/top으로 박는다) —
+   .layer-settings .win과 똑같이 이 레이어 안에서만 relative로 덮어써서 위 flex
+   가운데 정렬을 따르게 한다. 배경·테두리·그림자·.win::after 안쪽 테두리는 전부
+   원래 .win 규칙 그대로 물려받는다(새로 안 만든다는 원칙). */
+#desktop .layer-cleared .win { position: relative; }
+#desktop .cleared-win {
+  width: 720px;
+  opacity: 0; transform: scale(0.85);
+  transition: opacity 0.3s ease-out, transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+/* 창 등장("통 튀며") — ui/clearScreen.js가 진입 즉시 이 클래스를 건다. */
+#desktop .cleared-win.show { opacity: 1; transform: scale(1); }
+/* 메인 창들과 같은 관례 — 닫히지 않는 창이라 .wb 버튼엔 .disabled만 붙는다
+   (핸들러 자체가 없다, 위 "메인 창의 × 닫기와 _ 최소화 둘 다" 주석과 같은 이유). */
+#desktop .cleared-win .tbar { cursor: default; }
 
-/* --- 장면 1: 폴더 + 폴라로이드 --- */
-#desktop .cleared-scene-photos { position: absolute; inset: 0; }
-#desktop .layer-cleared.done .cleared-scene-photos { display: none; }
+/* --- 장면 1: 그림 뷰어 --- */
+#desktop .cleared-scene1 { padding: 22px 24px 20px; display: flex; flex-direction: column; gap: 10px; }
+#desktop .layer-cleared.done .cleared-scene1 { display: none; }
 
-/* 진행 배지("📸 완성한 그림 i/N") — 시안의 #counter 그대로. 사진이 없는 극단
-   케이스(폴더만 잠깐 보이고 바로 요약)에선 ui/clearScreen.js가 .show를 안 걸어서
-   계속 숨어 있는다. */
-#desktop .cleared-photo-counter {
-  position: absolute; top: 7%; left: 50%; transform: translateX(-50%);
-  color: #fff; font-size: 20px; text-shadow: 0 2px 5px rgba(0, 0, 0, 0.6);
-  letter-spacing: 1px;
-  background: rgba(0, 0, 0, 0.25); padding: 8px 22px; border-radius: 20px;
-  opacity: 0; transition: opacity 0.4s ease-out; pointer-events: none;
-  -webkit-font-smoothing: none;
+/* 체크무늬 배경·테두리는 winB 쪽 그림 자리(.frame .img)와 완전히 같은 값 —
+   "같은 게임의 같은 그림 표시 방식"이라는 인상을 주려는 것. 정사각 비율도
+   그쪽 540×540(정사각)과 같다. */
+#desktop .cleared-viewer {
+  position: relative; width: 100%; aspect-ratio: 1 / 1;
+  background: repeating-conic-gradient(#5a5a5a 0 25%, #4c4c4c 0 50%) 0 / 54px 54px;
+  border: 3px solid #111; box-shadow: 4px 4px 0 #999;
+  overflow: hidden;
 }
-#desktop .cleared-photo-counter.show { opacity: 1; }
+#desktop .cleared-viewer-img {
+  position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain;
+  opacity: 0; transform: scale(1.05);
+  transition: opacity 0.5s, transform 0.5s;
+  filter: brightness(0.4) blur(3px); /* 미현상 상태 — .developing이 붙기 전까진 그대로 유지 */
+}
+/* 등장(페이드+살짝 확대)만 담당 — 필터(흐림→선명)는 아래 .developing이 전담한다.
+   여기서 같이 필터 목표값을 주면 opacity/transform과 동시에(전환 없이) 필터가
+   먼저 순간 전환돼버려 "현상" 효과 자체가 안 보이게 된다(시안 원본 CSS의
+   실제 동작을 확인해보니 이 문제가 있었다 — 아래서 바로잡았다). */
+#desktop .cleared-viewer-img.on { opacity: 1; transform: scale(1); }
+#desktop .cleared-viewer-img.developing {
+  filter: brightness(1) blur(0);
+  transition: filter var(--develop-sec, 0.8s) ease-out;
+}
+/* 완성 도장 — 시안 그대로(각진 빨간 테두리, 살짝 기울어져 튕기듯 등장) */
+#desktop .cleared-stamp {
+  position: absolute; top: 14px; right: 14px; color: #d33; border: 3px solid #d33; border-radius: 6px;
+  padding: 4px 14px; font-size: 22px; font-weight: 700;
+  transform: rotate(8deg) scale(0); opacity: 0;
+  transition: transform 0.3s cubic-bezier(0.34, 1.9, 0.64, 1), opacity 0.3s;
+  background: rgba(255, 255, 255, 0.85);
+}
+#desktop .cleared-stamp.on { transform: rotate(8deg) scale(1); opacity: 0.92; }
 
-#desktop .cleared-folder {
-  position: absolute; left: 50%; bottom: 130px; transform: translateX(-50%) translateY(60px) scale(0.7);
-  width: 480px; height: 300px;
-  opacity: 0;
-  transition: opacity 0.35s ease-out, transform 0.4s cubic-bezier(0.34, 1.6, 0.64, 1);
-}
-/* 폴더 등장("통 튀며") — ui/clearScreen.js가 진입 즉시 이 클래스를 건다. */
-#desktop .cleared-folder.in { opacity: 1; transform: translateX(-50%) translateY(0) scale(1); }
+#desktop .cleared-info { display: flex; justify-content: space-between; align-items: baseline; font-size: 20px; color: #333; }
+#desktop .cleared-pic-name { font-weight: 700; }
+#desktop .cleared-pic-count { color: #666; font-size: 17px; }
 
-#desktop .folder-back {
-  position: absolute; inset: 30px 0 0 0;
-  background: #e8b563; border: 5px solid #6b4118; border-radius: 10px;
-  box-shadow: 7px 7px 0 rgba(0, 0, 0, 0.22);
-}
-#desktop .folder-tab {
-  position: absolute; left: 26px; top: 0; width: 170px; height: 34px;
-  background: #e8b563; border: 5px solid #6b4118; border-bottom: none; border-radius: 10px 10px 0 0;
-}
-/* 폴더 앞면 — 항상 사진(.cleared-photo)보다 위(z-index)에 있다. 사진이
-   .on-top(등장 중)일 때만 그 위로 올라가고, 나머지 순간엔 이 앞면에 가려져
-   "폴더 속"에 있는 것처럼 보인다 — 그게 곧 "쏙 들어가는" 트릭의 전부다. */
-#desktop .folder-front {
-  position: absolute; left: -12px; right: -12px; bottom: -12px; height: 64%;
-  background: #f2c884; border: 5px solid #6b4118; border-radius: 10px;
-  box-shadow: 5px 5px 0 rgba(0, 0, 0, 0.18);
-  z-index: 10;
-  transform-origin: bottom;
-  transition: transform 0.2s ease;
-  /* 시안의 #folderWrap.open .folder-front — 사진이 폴더 속으로 들어가는 순간
-     앞면이 살짝 눌리며 "받아먹는" 느낌. tuck 절반쯤 지났을 때 걸리게
-     transition-delay를 tuckSec의 절반으로 잡는다(추가 타이머 없이 CSS만으로). */
-  transition-delay: calc(var(--tuck-sec, 0.4s) * 0.5);
-}
-#desktop .cleared-folder.receiving .folder-front { transform: scaleY(0.92) skewX(-2deg); }
-/* 폴더가 사진을 다 받아 넣은 뒤(또는 요약 화면 직전) 한 번 통 튄다(시안의 @keyframes fb).
-   .in이 이미 준 최종 transform(translateX(-50%) scale(1))으로 끝나므로 애니 종료 후
-   그대로 이어받아도 어긋나지 않는다. */
-@keyframes clearedFolderBounce {
-  0% { transform: translateX(-50%) translateY(0) scale(1); }
-  35% { transform: translateX(-50%) translateY(-10px) scale(1.08); }
-  100% { transform: translateX(-50%) translateY(0) scale(1); }
-}
-#desktop .cleared-folder.bounce { animation: clearedFolderBounce 0.45s ease; }
+/* 진행 게이지바 — 새 바를 안 만들고 게임 업로드바(.xpbar.big, 칸 채우는 세그먼트
+   방식)를 그대로 가져다 쓴다. 칸 수 계산·렌더는 ui/statusWindow.js의 setBar()를
+   그대로 재사용한다(ui/clearScreen.js가 import). */
+#desktop .cleared-gauge-label { display: flex; justify-content: space-between; font-size: 16px; color: #0956c9; font-weight: 700; }
 
-/* 폴라로이드 한 장 — DOM 노드 하나를 재사용한다(사진마다 새로 안 만든다).
-   기본 상태(꺼짐)는 폴더 뒤(z-index 2, 앞면 10보다 아래)에 작고 흐리고
-   투명하게 숨어 있다 — 다음 사진을 준비하는 동안의 모습이자, tuck 애니의
-   도착점이기도 하다. */
-#desktop .cleared-photo {
-  position: absolute; left: 50%; top: 40%; z-index: 2;
-  width: 400px; height: 400px;
-  /* --tilt/--tilt-tuck: ui/clearScreen.js가 사진마다 랜덤으로 채운다(시안처럼
-     한 장 한 장 살짝 다른 각도로 놓인 느낌) — 인라인 style로 transform 자체를
-     덮지 않고 CSS 변수만 바꾸는 이유는 위 --develop-sec와 같다(그러면 이
-     transition 선언이 그대로 살아있다). */
-  transform: translate(-50%, -50%) scale(0.25) rotate(var(--tilt, 0deg));
-  opacity: 0;
-  background: #fff;
-  border: 10px solid #fff;
-  border-bottom-width: 56px; /* 폴라로이드 특유의 아래쪽 여백(라벨 자리) */
-  box-shadow: 0 10px 26px rgba(0, 0, 0, 0.35);
-  transition:
-    opacity 0.2s ease-out,
-    transform 0.35s cubic-bezier(0.34, 1.6, 0.64, 1);
-}
-/* 등장 중 — 셔터가 터진 순간부터 tuck 시작 전까지 계속 켜져 있다(develop+hold를
-   전부 포함). 폴더 앞면(z10)보다 위로 올라와 크고 선명하게 보인다. */
-#desktop .cleared-photo.on-top {
-  z-index: 20;
-  transform: translate(-50%, -50%) scale(1) rotate(var(--tilt, 0deg));
-  opacity: 1;
-}
-/* tuck — on-top을 떼는 것과 동시에 건다. z-index가 즉시 2로 떨어지므로(z-index는
-   transition 대상이 아니라 순간 전환된다) transform/opacity가 서서히 진행되는
-   동안 이미 폴더 앞면 뒤에 있다 — 그래서 "줄어들며 폴더 속으로 빨려들어가는"
-   모양이 저절로 완성된다, 별도 z-index 애니메이션 트릭이 필요 없다. */
-#desktop .cleared-photo.tuck {
-  transition-duration: var(--tuck-sec, 0.4s);
-  transform: translate(-50%, 60%) scale(0.15) rotate(var(--tilt-tuck, 0deg));
-  opacity: 0;
-}
-/* 사진 자체(그림)만 흐림→선명 "현상"된다 — 흰 액자·그림자까지 같이 흐려지면
-   안 되므로(시안처럼) 필터는 액자(.cleared-photo)가 아니라 그림 레이어에만 건다.
-   시안과 같은 "어둡게 깔린 미현상 필름" 톤(brightness+contrast+blur 3종 조합) —
-   blur만 걸었을 때보다 "막 나온 인화지"에 더 가깝다. */
-#desktop .cleared-photo-img {
-  position: absolute; inset: 0;
-  background-size: cover; background-position: center;
-  image-rendering: pixelated;
-  filter: brightness(0.35) contrast(0.75) blur(6px);
-  transition: filter var(--develop-sec, 1s) ease-out;
-}
-#desktop .cleared-photo.on-top .cleared-photo-img { filter: brightness(1) contrast(1) blur(0); }
-#desktop .cleared-photo-label {
-  position: absolute; left: 0; right: 0; bottom: -46px; height: 40px;
-  display: flex; align-items: center; justify-content: center;
-  font-size: 20px; color: #333; text-align: center; white-space: nowrap;
-}
-/* 셔터 플래시 — 사진 카드 위를 흰색으로 순간 덮었다 사라진다. ui/clearScreen.js가
-   사진을 새로 시작할 때마다 remove→reflow→add로 재시작한다(다른 곳의 hitSeq류
-   트리거와 같은 패턴). */
-#desktop .cleared-photo-flash {
-  position: absolute; inset: -10px -10px 46px -10px; /* 폴라로이드 흰 테두리까지 덮는다 */
-  background: #fff; opacity: 0; pointer-events: none;
-}
-#desktop .cleared-photo-flash.play { animation: clearedFlash var(--flash-sec, 0.15s) ease-out; }
-@keyframes clearedFlash {
-  0% { opacity: 0.95; }
-  100% { opacity: 0; }
-}
-
-/* --- 장면 2: "정리 완료!" + 스탯 + 다음 구간 --- */
-#desktop .cleared-scene-summary {
-  position: absolute; inset: 0;
-  display: none;
-  flex-direction: column; align-items: center; justify-content: center; gap: 22px;
+/* --- 장면 2: 진짜 XP 시스템 완료 대화상자 --- */
+#desktop .cleared-scene2 {
   opacity: 0;
   transition: opacity 0.4s ease-out;
 }
-#desktop .layer-cleared.done .cleared-scene-summary { display: flex; }
-/* display:none→flex 전환 직후 opacity를 1로 올려야 페이드인이 보인다 —
-   ui/clearScreen.js가 .done을 건 다음 프레임에 .in을 추가한다(reflow 한 프레임
-   차이를 둬서 트랜지션이 실제로 재생되게 한다, CSS transition의 흔한 함정). */
-#desktop .layer-cleared.done .cleared-scene-summary.in { opacity: 1; }
-#desktop .cleared-summary-title {
-  font-size: 52px; font-weight: 700; color: #fff;
-  text-shadow:
-    -3px -3px 0 #111, 3px -3px 0 #111, -3px 3px 0 #111, 3px 3px 0 #111,
-    0 -3px 0 #111, 0 3px 0 #111, -3px 0 0 #111, 3px 0 0 #111;
+/* display:none→flex(사실 .win의 flex 자식이라 block) 전환 직후 곧장 opacity를
+   1로 걸면 트랜지션이 씹힐 수 있어(이 프로젝트 전역의 흔한 함정) ui/clearScreen.js가
+   .hidden을 뗀 다음 프레임에 .in을 건다. */
+#desktop .cleared-scene2.in { opacity: 1; }
+#desktop .cleared-scene2.hidden { display: none; }
+
+#desktop .cleared-dlg-body { background: #fff; padding: 28px 30px; display: flex; gap: 22px; align-items: flex-start; }
+#desktop .cleared-dlg-icon {
+  width: 64px; height: 64px; flex-shrink: 0; border-radius: 6px;
+  background: radial-gradient(circle at 35% 30%, #7ed957, #3aa02a);
+  display: flex; align-items: center; justify-content: center; font-size: 40px; color: #fff;
+  border: 1px solid #2a8020; box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
 }
-#desktop .cleared-summary-stats { font-size: 24px; color: #1a2333; font-weight: 700; }
-#desktop .cleared-next-btn {
-  pointer-events: auto;
-  margin-top: 10px;
-  font-family: inherit;
-  font-size: 26px;
-  padding: 16px 44px;
-  background: #fff;
-  color: #1a7a3c;
-  border: 3px solid #111;
-  box-shadow: 4px 4px 0 rgba(0, 0, 0, 0.3);
-  cursor: pointer;
-  transition: transform 0.1s, background 0.1s;
-  -webkit-font-smoothing: none;
+#desktop .cleared-dlg-main { flex: 1; }
+#desktop .cleared-dlg-title { font-size: 30px; color: #0a3; margin-bottom: 2px; }
+#desktop .cleared-dlg-sub { font-size: 17px; color: #333; margin-bottom: 12px; }
+/* 등급 = 배지가 아니라 텍스트 한 줄(투박하게, 세련된 카드 금지) */
+#desktop .cleared-dlg-rank { font-size: 20px; color: #333; margin-bottom: 14px; }
+#desktop .cleared-dlg-rank b { font-size: 30px; color: #c47f00; }
+/* 스탯 = XP 리스트(구분선 있는 항목 나열, 각지게) */
+#desktop .cleared-dlg-list { border: 1px solid #c8c4b4; background: #fbfbf8; border-radius: 2px; }
+#desktop .cleared-dlg-row {
+  display: flex; justify-content: space-between; padding: 12px 18px; font-size: 24px;
+  border-bottom: 1px solid #ececec;
 }
-#desktop .cleared-next-btn:hover { background: #eafff1; }
-#desktop .cleared-next-btn:active { transform: scale(0.96); }
+#desktop .cleared-dlg-row:last-child { border-bottom: none; }
+#desktop .cleared-dlg-row .k { color: #444; }
+#desktop .cleared-dlg-row .v { font-weight: 700; color: #1a1a1a; }
+/* 하단 버튼바(회색, 우측정렬 = XP 관례) — 색·질감은 .settings-btn을 그대로 쓰고
+   (index.html에서 이미 그 클래스를 같이 붙였다) 여기서는 이 버튼만 더 키운다는
+   요구사항(버튼 ~22px)만 얹는다. */
+#desktop .cleared-dlg-foot {
+  background: #ece9d8; border-top: 1px solid #aca899; /* .win 기본 배경(#ece9d8)과 같은 회색 */
+  padding: 14px 18px; display: flex; justify-content: flex-end;
+}
+#desktop .cleared-next-btn { font-size: 22px; padding: 13px 40px; }
+
+/* 셔터 플래시 — 뷰어나 창이 아니라 화면 전체(.layer-cleared)를 순간 덮는다
+   (시안의 #flash와 같은 자리 — #stage 전체를 덮지 .win만 덮지 않는다).
+   ui/clearScreen.js가 사진을 새로 시작할 때마다 remove→reflow→add로 재시작한다
+   (다른 곳의 hitSeq류 트리거와 같은 패턴). */
+#desktop .cleared-flash {
+  position: absolute; inset: 0; background: #fff; opacity: 0; pointer-events: none; z-index: 1;
+}
+#desktop .cleared-flash.play { animation: clearedFlash var(--flash-sec, 0.15s) ease-out; }
+@keyframes clearedFlash {
+  0% { opacity: 0.7; }
+  100% { opacity: 0; }
+}
 
 /* 건너뛰기 안내 — 화면 하단에 은은하게. 요약 화면(.done)에선 이미 버튼이
    있으니 안 보여도 된다. */

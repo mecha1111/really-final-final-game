@@ -30,7 +30,7 @@ function setText(el, value) {
  * @returns {{filled:number, total:number}} 손실 잔상(setGhostBar)이 같은 슬롯
  *   칸수 기준으로 계산해야 두 바가 정확히 겹치므로, 계산값을 돌려준다.
  */
-function setBar(el, ratio, slotWidth) {
+export function setBar(el, ratio, slotWidth) {
   if (!el) return { filled: 0, total: 1 };
   const cs = getComputedStyle(el);
   const gap = parseFloat(cs.columnGap || cs.gap) || 0;
