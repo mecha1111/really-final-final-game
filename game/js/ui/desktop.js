@@ -140,6 +140,35 @@ export function spawnGagPopup() {
   wireGagPopup(el);
 }
 
+/**
+ * 회차(구간) 시작마다 부른다. 드래그로 옮긴 창(.win — 상태.dat/업로드.exe) 위치를
+ * CSS 기본 좌표로 되돌리고, 개그 팝업도 전부 지운 뒤 새로 띄운다.
+ *
+ * ★ 버그 배경: makeDraggable()이 드래그할 때마다 win.style.left/top을 인라인으로
+ *   박는다(위 pointermove 핸들러). initDesktop()은 페이지 로드 시 딱 1회만 불리고
+ *   startGame()은 이 인라인 값을 전혀 안 건드렸으므로, 한 번 옮긴 창은 다음 구간은
+ *   물론 재도전(title→시작)해도 그 자리에 그대로 남아있었다 — "다음 회차에도
+ *   위치가 고정된다"는 신고 그대로. 인라인 style만 지우면 CSS(.winA/.winB)의
+ *   원래 좌표로 저절로 돌아간다 — 좌표를 여기 또 하드코딩할 필요가 없다.
+ */
+export function resetWindowPositions() {
+  document.querySelectorAll('#desktop .win').forEach((win) => {
+    win.style.left = '';
+    win.style.top = '';
+    win.style.zIndex = '';
+  });
+  topZ = 100; // bringFront가 다시 100부터 올라가게(안 그러면 z-index만 계속 불어난다)
+
+  // 개그 팝업도 드래그로 옮겨진 채 세션 내내 남을 수 있다 — 통째로 지우고
+  // initDesktop()과 같은 방식으로 다시 띄운다(위치는 원래도 매번 무작위라
+  // "초기 위치"가 따로 없다, 그냥 새로 무작위 배치하는 것 자체가 리셋이다).
+  const layer = document.getElementById('layer-gag');
+  if (layer) {
+    layer.innerHTML = '';
+    for (let i = 0; i < config.desktop.initialGagPopups; i++) spawnGagPopup();
+  }
+}
+
 /** 작업표시줄 시계 — 그냥 분위기용(게임 시간과 무관). */
 function startClock() {
   const el = document.getElementById('tb-clock');

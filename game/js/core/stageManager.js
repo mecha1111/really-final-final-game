@@ -15,6 +15,7 @@ import { playSfx, SFX } from '../systems/sound.js';
 import { updateFloats, clearFloats } from '../systems/floats.js';
 import { updateCombo, clearCombo } from '../systems/combo.js';
 import { recordPointer, resetTrail } from '../systems/pointerTrail.js';
+import { resetWindowPositions } from '../ui/desktop.js';
 import { bindRules } from '../debug.js';
 
 const spawner = new Spawner();
@@ -71,6 +72,7 @@ export function startGame(stageIndex = 0) {
   clearRipples(); // 지난 판의 클릭 리플이 새 판 첫 프레임에 남지 않게
   clearShake(); // 흔들리다 판이 바뀌면 그 잔여 흔들림이 새 판으로 새어 들어간다
   resetTrail(); // 지난 판의 마우스 궤적이 새 판의 가짜 커서에 섞여 들어가지 않게
+  resetWindowPositions(); // 드래그로 옮긴 창·개그 팝업 위치가 다음 회차까지 남지 않게
   // 정지·공격예고 소리의 "직전 프레임 기억"을 끊는다 — 정지된 채로 판이 끝났으면
   // 그 기억이 남아 새 판의 첫 정지에서 소리가 안 난다(systems/upload.js 주석 참고).
   resetUploadEdges();
