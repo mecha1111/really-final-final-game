@@ -193,8 +193,10 @@ export function initDesktop() {
   // 일부러 클릭 핸들러를 안 붙이고(= 눌러도 아무 일도 안 일어난다) 비활성 스타일
   // (.disabled, style.css)만 입혀 "이건 안 눌린다"를 보여준다.
   // 개그 팝업(.gagpop)의 × 는 이 선택자와 무관한 wireGagPopup()이 따로 처리하므로
-  // 기존대로 닫힌다 — 여기서 안 건드린다.
-  document.querySelectorAll('#desktop .win .wb .x').forEach((x) => {
+  // 기존대로 닫힌다 — 여기서 안 건드린다. .quit-win(나가기 개그 대화상자, index.html)
+  // 도 제외한다 — 그 × 는 ui/titleScreen.js가 실제로 닫는 버튼으로 쓴다(진짜
+  // 동작해야 하는 유일한 .win .wb .x라 여기서 비활성화하면 안 된다).
+  document.querySelectorAll('#desktop .win:not(.quit-win) .wb .x').forEach((x) => {
     x.classList.add('disabled');
     x.title = '이 창은 닫을 수 없습니다';
   });

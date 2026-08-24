@@ -211,6 +211,33 @@
         </div>
       </div>
 
+      <!-- "나가기" 개그 대화상자 — 웹게임이라 어차피 종료 불가라는 메타 개그.
+           .layer-settings와 완전히 같은 패턴(이 레이어 안에서만 .win을
+           position:relative로 덮어써 flex 가운데 정렬을 따르게 함) — 그 CSS 규칙을
+           그대로 물려받는다. 본문(아이콘+제목+부제+버튼)은 구간 클리어 화면의 XP
+           대화상자 클래스(.cleared-dlg-*, style.css)를 그대로 재사용하고 색만
+           에러 톤으로 덮어쓴다(.error-icon/.error-title) — 새 레이아웃을 또 안
+           만든다. ui/titleScreen.js가 열고/닫고, 여러 번 누르면 문구만 갈아 끼운다. -->
+      <div class="layer-quit" id="layer-quit">
+        <div class="win quit-win">
+          <div class="tbar">
+            <div class="ico">⚠</div>
+            <div class="t">시스템</div>
+            <div class="wb"><span class="min disabled">_</span><span class="disabled">□</span><span class="x" id="quit-dlg-close">×</span></div>
+          </div>
+          <div class="cleared-dlg-body">
+            <div class="cleared-dlg-icon error-icon">❌</div>
+            <div class="cleared-dlg-main">
+              <div class="cleared-dlg-title error-title" id="quit-dlg-title">못나가요 ㅋㅋ</div>
+              <div class="cleared-dlg-sub" id="quit-dlg-sub">이 프로그램은 종료할 수 없습니다.</div>
+            </div>
+          </div>
+          <div class="cleared-dlg-foot">
+            <button type="button" class="settings-btn settings-btn-primary" id="quit-dlg-ok">확인</button>
+          </div>
+        </div>
+      </div>
+
       <!-- 실패 화면(HTML 오버레이, XP 블루스크린 패러디). style.css의 .phase-failed
            규칙으로 phase==='failed'일 때만 보인다(ui/desktop.js의 syncDesktopPhase가
            토글) — .layer-title과 완전히 같은 방식이다. 수치는 전부

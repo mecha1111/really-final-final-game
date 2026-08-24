@@ -558,6 +558,30 @@ body {
 }
 #desktop .cleared-next-btn { font-size: 22px; padding: 13px 40px; }
 
+/* ---------------------------------------------------------------------------
+   ===== 타이틀 "나가기" 개그 대화상자 =====
+   .layer-settings와 완전히 같은 패턴(레이어 자신이 flex로 가운데 정렬,
+   .win을 그 안에서만 position:relative로 덮어씀 — 위 838~843행). 본문은
+   위 .cleared-dlg-*(구간 클리어 XP 대화상자)를 그대로 재사용하고, 아이콘·제목
+   색만 에러 톤으로 덮어쓴다 — 레이아웃을 또 안 만든다는 원칙 그대로.
+   --------------------------------------------------------------------------- */
+#desktop .layer-quit {
+  position: absolute; inset: 0; z-index: 12; /* 설정(11)보다 위 — 타이틀에서 확실히 최상단 */
+  display: none;
+  align-items: center; justify-content: center;
+  background: rgba(10, 14, 30, 0.55);
+  pointer-events: none;
+}
+#desktop .layer-quit.open { display: flex; pointer-events: auto; }
+#desktop .layer-quit .win { position: relative; }
+#desktop .quit-win { width: 520px; }
+/* 초록(완료) 대신 빨강(에러) — .cleared-dlg-icon/.cleared-dlg-title 위에 덧씌운다. */
+#desktop .cleared-dlg-icon.error-icon {
+  background: radial-gradient(circle at 35% 30%, #ff6b5b, #c0392b);
+  border-color: #7a1f14;
+}
+#desktop .cleared-dlg-title.error-title { color: #c0392b; }
+
 /* 셔터 플래시 — 뷰어나 창이 아니라 화면 전체(.layer-cleared)를 순간 덮는다
    (시안의 #flash와 같은 자리 — #stage 전체를 덮지 .win만 덮지 않는다).
    ui/clearScreen.js가 사진을 새로 시작할 때마다 remove→reflow→add로 재시작한다
