@@ -49,10 +49,11 @@ export const state = {
   // 클릭할 때마다 커서 자리에 퍼지는 잔물결(systems/clickRipple.js가 넣고 지운다).
   ripples: [],
 
-  // 이번 판에 팝업 광고(popup)가 몇 번째로 스폰됐는지 — enemies/Enemy.js가 스폰마다
-  // 올린다. X 버튼 시선 유도(펄스/손가락 아이콘) 세기를 초반 몇 번만 강하게 주려고
-  // 쓴다(config.enemy.popupCloseButton.strongCount, ui/renderEnemies.js).
-  popupsSeen: 0,
+  // 팝업 광고 몸통을 X로 착각해 잘못 누른 누적 횟수 — systems/input.js의 shake
+  // 분기(closeButton형 몸통 오클릭)가 올린다. X 버튼 시선 유도(펄스/손가락 아이콘)를
+  // "헤매는 유저에게만" 켜는 기준이라(config.enemy.popupCloseButton.missThreshold,
+  // ui/renderEnemies.js) 일부러 판이 바뀌어도 리셋 안 한다 — 세션 내내 누적.
+  popupMisses: 0,
 
   pointer: { x: 0, y: 0 },
 

@@ -196,6 +196,10 @@ function hitTestEnemies(pt) {
         // X가 아닌 몸통을 눌렀다 — "여기가 아니다"를 시각(흔들림)뿐 아니라 소리로도
         // 알린다. fake_btn 페널티음과 같은 "틀림" 결이지만, 구분되는 가벼운 오답음이다.
         playSfx(SFX.POPUP_WRONG);
+        // X 버튼을 못 찾아 헤매고 있다는 신호 — 누적이 config.enemy.popupCloseButton.
+        // missThreshold를 넘으면 ui/renderEnemies.js가 X 버튼 시선 유도(펄스+손가락)를
+        // 강하게 켠다. 일부러 판이 바뀌어도 안 지운다(core/stageManager.js 주석 참고).
+        state.popupMisses += 1;
         return 'shake';
       }
       continue; // 이 놈은 안 맞았다 — 뒤에 깔린 놈을 계속 검사

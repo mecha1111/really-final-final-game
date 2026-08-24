@@ -1,6 +1,7 @@
 // 이 파일 역할: 방해꾼 본체·게이지, 가짜 커서, 뜬 글씨을 그린다. render.js는 조립만 하고 세부는 여기서 맡는다.
 
 import { config } from '../config.js';
+import { state } from '../core/state.js';
 import { enemyImages } from '../assets.js';
 import { cssColor, roundRect, text, outlinedText } from './draw.js';
 import { drawBaitEnemy } from './baitRender.js';
@@ -142,8 +143,10 @@ function drawEnemyGauges(ctx, e) {
   }
 }
 
-/** 강한 시선 유도(초반 몇 번)에서만: 버튼 위에 손가락이 까닥이다 사라진다.
- * e.age(스폰 후 경과, 방해꾼별 단일 시계) 기준이라 별도 타이머가 없다. */
+/** 헤매는 유저에게만(누적 오클릭 ≥ missThreshold): 버튼 위에 손가락이 까닥이다
+ * 사라진다. e.age(스폰 후 경과, 방해꾼별 단일 시계) 기준이라 별도 타이머가 없다 —
+ * 그 대신 "이 팝업이 뜬 지 얼마 안 됐을 때"만 보인다(한참 떠 있던 팝업에 뒤늦게
+ * 손가락이 튀어나오면 갑작스럽다 — 펄스만으로도 그 경우는 충분히 눈에 띈다). */
 function drawFingerHint(ctx, r, e) {
   const dur = config.enemy.popupCloseButton.fingerHintSec;
   if (e.age >= dur) return;
@@ -161,16 +164,19 @@ function drawFingerHint(ctx, r, e) {
 }
 
 /** 팝업 X 버튼 — 원본 그림의 작은 손그림 X 자리(closeButtonRect, config.enemy.
- * artHitbox)에 XP 창 닫기버튼 톤(빨강+흰 X)의 큰 버튼을 덧그린다. 이 사각형이 곧
+ * artHitbox)에 XP 창 닫기버튼 톤(빨강+흰 X)의 버튼을 덧그린다. 이 사각형이 곧
  * 클릭 판정(enemies/hitbox.js의 closeButtonRect)과 정확히 같아서 "보이는 것보다
- * 크게 눌린다"가 구조적으로 생길 수 없다. 시선 유도(펄스+손가락)는
- * e.closeAttentionTier(스폰 시 enemies/Enemy.js가 정한다)로 세기만 갈린다. */
+ * 크게 눌린다"가 구조적으로 생길 수 없다. 시선 유도(펄스+손가락)는 스폰 시점이
+ * 아니라 매 프레임 state.popupMisses(systems/input.js가 몸통 오클릭마다 올린다)를
+ * 직접 읽어서 정한다 — "몇 번째 팝업이냐"가 아니라 "지금 헤매고 있냐"로 판단하는
+ * 요구사항이라, 이미 떠 있는 팝업도 기준을 넘는 순간부터 즉시 강하게 바뀐다. */
 function drawPopupCloseButton(ctx, e) {
   const r = e.closeButtonRect();
   if (!r) return;
 
   const c = config.enemy.popupCloseButton;
-  const tier = e.closeAttentionTier === 'strong' ? c.pulse.strong : c.pulse.weak;
+  const strong = state.popupMisses >= c.missThreshold;
+  const tier = strong ? c.pulse.strong : c.pulse.weak;
   // 0→1→0을 코사인으로 매끄럽게(사인은 age=0에서 갑자기 튀어 시작이 어색하다).
   const cycle = tier.periodSec > 0 ? (e.age % tier.periodSec) / tier.periodSec : 0;
   const pulseT = 0.5 - 0.5 * Math.cos(cycle * Math.PI * 2);
@@ -213,7 +219,7 @@ function drawPopupCloseButton(ctx, e) {
 
   ctx.restore();
 
-  if (e.closeAttentionTier === 'strong') drawFingerHint(ctx, r, e);
+  if (strong) drawFingerHint(ctx, r, e);
 }
 
 /**
