@@ -189,6 +189,11 @@ function hitTestEnemies(pt) {
       if (btn && pointInRect(pt, btn)) {
         enemy.kill('clicked');
         state.stats.hits += 1;
+        // X를 정확히 찾아 눌렀다 — 더 이상 헤매고 있지 않다는 뜻이므로 강조 X
+        // 시선 유도 기준(state.popupMisses)을 도로 내린다. 안 그러면 한 번
+        // missThreshold를 넘긴 뒤로는 이후 팝업마다 계속 강조 X가 떠 있게 된다
+        // (요구사항: 누르면 다시 내려가야 하고, 그 뒤로도 계속 떠 있으면 안 됨).
+        state.popupMisses = 0;
         return 'kill';
       }
       if (enemy.containsBody(pt.x, pt.y)) {

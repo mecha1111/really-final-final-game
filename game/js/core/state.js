@@ -52,7 +52,9 @@ export const state = {
   // 팝업 광고 몸통을 X로 착각해 잘못 누른 누적 횟수 — systems/input.js의 shake
   // 분기(closeButton형 몸통 오클릭)가 올린다. X 버튼 시선 유도(펄스/손가락 아이콘)를
   // "헤매는 유저에게만" 켜는 기준이라(config.enemy.popupCloseButton.missThreshold,
-  // ui/renderEnemies.js) 일부러 판이 바뀌어도 리셋 안 한다 — 세션 내내 누적.
+  // ui/renderEnemies.js) 일부러 판이 바뀌어도 리셋 안 한다 — 세션 내내 누적. 단,
+  // X를 정확히 눌러 팝업을 잡으면(systems/input.js의 kill 분기) 0으로 되돌아간다 —
+  // 더 이상 헤매고 있지 않다는 뜻이라, 강조 X가 그 뒤로도 계속 떠 있으면 안 된다.
   popupMisses: 0,
 
   pointer: { x: 0, y: 0 },
