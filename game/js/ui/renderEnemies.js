@@ -81,6 +81,8 @@ export function drawEnemy(ctx, e, showHitbox, now) {
   // 죽어서 잠깐 corpseTimer만큼 남아있는 동안(basic dead 프레임)은 게이지를 안 그린다 —
   // 이미 죽은 놈의 수명 바/hp 점이 잠깐 더 보이면 헷갈린다.
   if (e.alive) drawEnemyGauges(ctx, e);
+  // 팝업 X 버튼 — 원본 그림의 작은 손그림 X 위에 크고 눈에 띄는 진짜 버튼을 덧그린다.
+  if (e.alive && e.closeButton) drawPopupCloseButton(ctx, e);
 
   // ★ 예전엔 여기서 "정지시킨 게 이놈이다" 빨간 대시 테두리(drawBlockHighlight)를
   //   그렸다. 없앤 이유: A타입은 살아있는 내내 isBlocking이라 그 테두리가 "잠깐
@@ -138,6 +140,44 @@ function drawEnemyGauges(ctx, e) {
       px += dot + gap;
     }
   }
+}
+
+/** 팝업 X 버튼 — 원본 그림의 작은 손그림 X 자리(closeButtonRect, config.enemy.
+ * artHitbox)에 XP 창 닫기버튼 톤(빨강+흰 X)의 큰 버튼을 덧그린다. 이 사각형이 곧
+ * 클릭 판정(enemies/hitbox.js의 closeButtonRect)과 정확히 같아서 "보이는 것보다
+ * 크게 눌린다"가 구조적으로 생길 수 없다. */
+function drawPopupCloseButton(ctx, e) {
+  const r = e.closeButtonRect();
+  if (!r) return;
+
+  const c = config.enemy.popupCloseButton;
+  const cx = r.x + r.w / 2;
+  const cy = r.y + r.h / 2;
+
+  ctx.save();
+  ctx.globalAlpha = Math.max(0, e.entAlpha ?? 1);
+
+  // 버튼 본체(XP 닫기버튼 톤 — 각진 빨강 사각형 + 테두리)
+  roundRect(ctx, r.x, r.y, r.w, r.h, c.cornerRadius);
+  ctx.fillStyle = c.bg;
+  ctx.fill();
+  ctx.lineWidth = Math.max(1, r.w * 0.06);
+  ctx.strokeStyle = c.border;
+  ctx.stroke();
+
+  // 흰 X 글리프
+  ctx.strokeStyle = c.glyphColor;
+  ctx.lineWidth = Math.max(1.5, r.w * 0.14);
+  ctx.lineCap = 'round';
+  const pad = r.w * 0.28;
+  ctx.beginPath();
+  ctx.moveTo(cx - r.w / 2 + pad, cy - r.h / 2 + pad);
+  ctx.lineTo(cx + r.w / 2 - pad, cy + r.h / 2 - pad);
+  ctx.moveTo(cx + r.w / 2 - pad, cy - r.h / 2 + pad);
+  ctx.lineTo(cx - r.w / 2 + pad, cy + r.h / 2 - pad);
+  ctx.stroke();
+
+  ctx.restore();
 }
 
 /**
