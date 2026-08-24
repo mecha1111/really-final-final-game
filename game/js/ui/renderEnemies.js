@@ -143,83 +143,79 @@ function drawEnemyGauges(ctx, e) {
   }
 }
 
-/** 헤매는 유저에게만(누적 오클릭 ≥ missThreshold): 버튼 위에 손가락이 까닥이다
- * 사라진다. e.age(스폰 후 경과, 방해꾼별 단일 시계) 기준이라 별도 타이머가 없다 —
- * 그 대신 "이 팝업이 뜬 지 얼마 안 됐을 때"만 보인다(한참 떠 있던 팝업에 뒤늦게
- * 손가락이 튀어나오면 갑작스럽다 — 펄스만으로도 그 경우는 충분히 눈에 띈다). */
-function drawFingerHint(ctx, r, e) {
-  const dur = config.enemy.popupCloseButton.fingerHintSec;
-  if (e.age >= dur) return;
-  const t = e.age / dur;
-  const fade = t < 0.7 ? 1 : Math.max(0, 1 - (t - 0.7) / 0.3); // 마지막 30%만 페이드아웃
-  const bob = Math.sin(e.age * 6) * r.h * 0.18; // 위아래로 살짝 까닥
-
-  ctx.save();
-  ctx.globalAlpha = fade * Math.max(0, e.entAlpha ?? 1);
-  ctx.font = `${Math.round(r.w * 0.95)}px sans-serif`;
-  ctx.textAlign = 'center';
-  ctx.textBaseline = 'middle';
-  ctx.fillText('👇', r.x + r.w / 2, r.y - r.h * 0.6 + bob);
-  ctx.restore();
-}
-
-/** 팝업 X 버튼 — 원본 그림의 작은 손그림 X 자리(closeButtonRect, config.enemy.
- * artHitbox)에 XP 창 닫기버튼 톤(빨강+흰 X)의 버튼을 덧그린다. 이 사각형이 곧
- * 클릭 판정(enemies/hitbox.js의 closeButtonRect)과 정확히 같아서 "보이는 것보다
- * 크게 눌린다"가 구조적으로 생길 수 없다. 시선 유도(펄스+손가락)는 스폰 시점이
- * 아니라 매 프레임 state.popupMisses(systems/input.js가 몸통 오클릭마다 올린다)를
- * 직접 읽어서 정한다 — "몇 번째 팝업이냐"가 아니라 "지금 헤매고 있냐"로 판단하는
- * 요구사항이라, 이미 떠 있는 팝업도 기준을 넘는 순간부터 즉시 강하게 바뀐다. */
+/** 팝업 X 버튼 — 평소엔 원본 그림의 손그림 X를 그대로 둔다(아무것도 안 덧그림).
+ * 유저가 X를 못 찾아 팝업 몸통을 반복해서 잘못 누르면(state.popupMisses,
+ * systems/input.js가 몸통 오클릭마다 올린다) 그제서야 진짜 XP 창 닫기버튼 톤의
+ * 버튼을 closeButtonRect(config.enemy.artHitbox) 자리에 덧그린다 — 이 사각형이
+ * 곧 클릭 판정과 정확히 같아서 "보이는 것보다 크게 눌린다"가 구조적으로 생길 수
+ * 없다. "몇 번째 팝업이냐"가 아니라 매 프레임 "지금 헤매고 있냐"를 직접 보므로,
+ * 이미 떠 있는 팝업도 기준을 넘는 순간부터 즉시 나타난다. */
 function drawPopupCloseButton(ctx, e) {
+  const c = config.enemy.popupCloseButton;
+  if (state.popupMisses < c.missThreshold) return; // 평소엔 숨김 — 원본 손그림 X만
+
   const r = e.closeButtonRect();
   if (!r) return;
 
-  const c = config.enemy.popupCloseButton;
-  const strong = state.popupMisses >= c.missThreshold;
-  const tier = strong ? c.pulse.strong : c.pulse.weak;
-  // 0→1→0을 코사인으로 매끄럽게(사인은 age=0에서 갑자기 튀어 시작이 어색하다).
-  const cycle = tier.periodSec > 0 ? (e.age % tier.periodSec) / tier.periodSec : 0;
+  // 은은한 펄스(주목은 끌되 거슬리지 않게) — 0→1→0을 코사인으로 매끄럽게
+  // (사인은 age=0에서 갑자기 튀어 시작이 어색하다).
+  const p = c.pulse;
+  const cycle = p.periodSec > 0 ? (e.age % p.periodSec) / p.periodSec : 0;
   const pulseT = 0.5 - 0.5 * Math.cos(cycle * Math.PI * 2);
 
   const cx = r.x + r.w / 2;
   const cy = r.y + r.h / 2;
-  const w = r.w * (1 + tier.scaleAmp * pulseT);
-  const h = r.h * (1 + tier.scaleAmp * pulseT);
+  const w = r.w * (1 + p.scaleAmp * pulseT);
+  const h = r.h * (1 + p.scaleAmp * pulseT);
+  const x0 = cx - w / 2;
+  const y0 = cy - h / 2;
 
   ctx.save();
   ctx.globalAlpha = Math.max(0, e.entAlpha ?? 1);
 
-  // 은은한 후광 — 버튼 뒤에서 펄스에 맞춰 커졌다 옅어진다(주목은 끌되 거슬리지 않게).
-  if (tier.glowAlpha > 0) {
-    ctx.fillStyle = `rgba(255, 90, 60, ${(tier.glowAlpha * pulseT).toFixed(3)})`;
+  // 은은한 후광 — 버튼 뒤에서 펄스에 맞춰 커졌다 옅어진다.
+  if (p.glowAlpha > 0) {
+    ctx.fillStyle = `rgba(255, 90, 60, ${(p.glowAlpha * pulseT).toFixed(3)})`;
     ctx.beginPath();
     ctx.arc(cx, cy, Math.max(w, h) * 0.72, 0, Math.PI * 2);
     ctx.fill();
   }
 
-  // 버튼 본체(XP 닫기버튼 톤 — 각진 빨강 사각형 + 테두리)
-  roundRect(ctx, cx - w / 2, cy - h / 2, w, h, c.cornerRadius);
-  ctx.fillStyle = c.bg;
+  // 버튼 본체 — 진짜 XP 창 닫기버튼과 같은 세로 그라데이션(위 밝고 아래 진한
+  // 빨강, style.css의 #desktop .wb .x와 정확히 같은 색 재사용)으로 광택을 낸다.
+  const grad = ctx.createLinearGradient(0, y0, 0, y0 + h);
+  grad.addColorStop(0, c.bgTop);
+  grad.addColorStop(1, c.bgBottom);
+  roundRect(ctx, x0, y0, w, h, c.cornerRadius);
+  ctx.fillStyle = grad;
   ctx.fill();
-  ctx.lineWidth = Math.max(1, w * 0.06);
+
+  // 밝은 테두리(흰색, 실제 XP 버튼처럼 전체를 두른다) — 광택 있는 양각 느낌.
+  ctx.lineWidth = Math.max(1, w * 0.07);
   ctx.strokeStyle = c.border;
   ctx.stroke();
 
+  // 위쪽 절반에 살짝 밝은 하이라이트를 얹어 "볼록한 버튼" 입체감을 더한다.
+  ctx.save();
+  roundRect(ctx, x0, y0, w, h, c.cornerRadius);
+  ctx.clip();
+  ctx.fillStyle = 'rgba(255, 255, 255, 0.35)';
+  ctx.fillRect(x0, y0, w, h * 0.42);
+  ctx.restore();
+
   // 흰 X 글리프
   ctx.strokeStyle = c.glyphColor;
-  ctx.lineWidth = Math.max(1.5, w * 0.14);
+  ctx.lineWidth = Math.max(1.5, w * 0.16);
   ctx.lineCap = 'round';
-  const pad = w * 0.28;
+  const pad = w * 0.3;
   ctx.beginPath();
-  ctx.moveTo(cx - w / 2 + pad, cy - h / 2 + pad);
-  ctx.lineTo(cx + w / 2 - pad, cy + h / 2 - pad);
-  ctx.moveTo(cx + w / 2 - pad, cy - h / 2 + pad);
-  ctx.lineTo(cx - w / 2 + pad, cy + h / 2 - pad);
+  ctx.moveTo(x0 + pad, y0 + pad);
+  ctx.lineTo(x0 + w - pad, y0 + h - pad);
+  ctx.moveTo(x0 + w - pad, y0 + pad);
+  ctx.lineTo(x0 + pad, y0 + h - pad);
   ctx.stroke();
 
   ctx.restore();
-
-  if (strong) drawFingerHint(ctx, r, e);
 }
 
 /**

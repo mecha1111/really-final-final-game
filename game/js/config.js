@@ -284,25 +284,24 @@ export const config = {
     // 피드백 — ui/renderEnemies.js의 drawPopupCloseButton()이 위 artHitbox['popup:a'/
     // 'popup:b'] 자리에 원본 손그림 X 대신 이 버튼을 덧그린다(XP 창 닫기버튼 톤).
     popupCloseButton: {
-      bg: '#c0392b', // XP 닫기버튼 정석 빨강
-      border: '#7a1f14',
+      // 2026-08-23(3차): 강조 X가 "항상 떠있다"는 피드백 — 원래 의도대로 평소엔
+      // 원본 손그림 X만 두고(아무것도 안 덧그림), 유저가 못 찾아 헤맬 때만
+      // (state.popupMisses, 팝업 몸통을 X로 착각해 잘못 누른 누적 횟수 — 판이
+      // 바뀌어도 안 낮춘다, 세션 누적) 이 버튼을 덧그린다. 손가락 아이콘은
+      // 제거(강조 X 자체로 충분하다는 판단) — ui/renderEnemies.js의
+      // drawPopupCloseButton 참고.
+      missThreshold: 5,
+      // 진짜 XP 창 닫기버튼과 같은 세로 그라데이션(위 밝고 아래 진한 빨강) —
+      // style.css의 #desktop .wb .x(실제 타이틀바 닫기버튼)와 정확히 같은 색을
+      // 재사용해 톤을 통일했다.
+      bgTop: '#f2724d',
+      bgBottom: '#d1330f',
+      border: '#ffffff', // 밝은 테두리 — 마찬가지로 .wb span의 흰 테두리 재사용
       glyphColor: '#ffffff',
       cornerRadius: 3,
-      // 2026-08-23(2차) 시선 유도 조건 변경: 등장 순서가 아니라 "헤매고 있나"로
-      // 판단한다 — state.popupMisses(팝업 몸통을 X로 착각해 잘못 누른 누적 횟수,
-      // systems/input.js의 shake 분기에서 올린다)가 이 값 이상이면 "강하게"(펄스
-      // 폭 크고 손가락 아이콘도 같이), 미만이면 "약하게"(펄스만, 폭 작게). 잘 맞히는
-      // 유저에겐 안 뜨고 X를 못 찾아 헤매는 유저에게만 뜬다는 요구사항 그대로 — 판이
-      // 바뀌어도 안 낮춘다(계속 헤매면 계속 도와주는 쪽을 택함, 세션 누적).
-      missThreshold: 5,
-      pulse: {
-        strong: { periodSec: 0.9, scaleAmp: 0.22, glowAlpha: 0.85 },
-        weak: { periodSec: 1.7, scaleAmp: 0.07, glowAlpha: 0.3 },
-      },
-      // 강한 쪽에서만: 등장 직후 이만큼(초) 동안 버튼 위에 손가락(👇)이 까닥이다
-      // 사라진다. e.age(스폰 후 경과, 방해꾼별 단일 시계) 기준이라 별도 타이머가
-      // 없다(sprite/animator.js·entrance.js와 같은 원칙).
-      fingerHintSec: 1.3,
+      // 뜬 동안만 은은하게 — 이미 "헤매는 유저에게만" 뜨는 상태라 평소보다
+      // 존재감을 더 눌러도 된다(과하면 거슬린다는 요구사항 유지).
+      pulse: { periodSec: 1.1, scaleAmp: 0.12, glowAlpha: 0.55 },
     },
 
     // H키 디버그 십자선(클릭이 계산된 월드 좌표)이 보이는 시간(ms).
