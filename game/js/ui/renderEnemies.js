@@ -144,15 +144,16 @@ function drawEnemyGauges(ctx, e) {
 }
 
 /** 팝업 X 버튼 — 평소엔 원본 그림의 손그림 X를 그대로 둔다(아무것도 안 덧그림).
- * 유저가 X를 못 찾아 팝업 몸통을 반복해서 잘못 누르면(state.popupMisses,
- * systems/input.js가 몸통 오클릭마다 올린다) 그제서야 진짜 XP 창 닫기버튼 톤의
- * 버튼을 closeButtonRect(config.enemy.artHitbox) 자리에 덧그린다 — 이 사각형이
- * 곧 클릭 판정과 정확히 같아서 "보이는 것보다 크게 눌린다"가 구조적으로 생길 수
- * 없다. "몇 번째 팝업이냐"가 아니라 매 프레임 "지금 헤매고 있냐"를 직접 보므로,
- * 이미 떠 있는 팝업도 기준을 넘는 순간부터 즉시 나타난다. */
+ * 유저가 이 방해꾼 하나에서 X를 못 찾아 몸통을 반복해서 잘못 누르면(e.closeMisses,
+ * enemies/Enemy.js가 방해꾼별로 따로 센다 — systems/input.js가 몸통 오클릭마다
+ * 올린다) 그제서야 진짜 XP 창 닫기버튼 톤의 버튼을 closeButtonRect(config.enemy.
+ * artHitbox) 자리에 덧그린다 — 이 사각형이 곧 클릭 판정과 정확히 같아서 "보이는
+ * 것보다 크게 눌린다"가 구조적으로 생길 수 없다. ★ 전역이 아니라 이 방해꾼
+ * 하나만 본다 — 화면에 팝업이 여러 마리 떠 있어도 헤맨 그 한 마리에만 강조 X가
+ * 뜨고 나머지는 원본 그대로다. */
 function drawPopupCloseButton(ctx, e) {
   const c = config.enemy.popupCloseButton;
-  if (state.popupMisses < c.missThreshold) return; // 평소엔 숨김 — 원본 손그림 X만
+  if (e.closeMisses < c.missThreshold) return; // 평소엔 숨김 — 원본 손그림 X만
 
   const r = e.closeButtonRect();
   if (!r) return;

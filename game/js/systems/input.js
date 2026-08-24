@@ -189,11 +189,6 @@ function hitTestEnemies(pt) {
       if (btn && pointInRect(pt, btn)) {
         enemy.kill('clicked');
         state.stats.hits += 1;
-        // X를 정확히 찾아 눌렀다 — 더 이상 헤매고 있지 않다는 뜻이므로 강조 X
-        // 시선 유도 기준(state.popupMisses)을 도로 내린다. 안 그러면 한 번
-        // missThreshold를 넘긴 뒤로는 이후 팝업마다 계속 강조 X가 떠 있게 된다
-        // (요구사항: 누르면 다시 내려가야 하고, 그 뒤로도 계속 떠 있으면 안 됨).
-        state.popupMisses = 0;
         return 'kill';
       }
       if (enemy.containsBody(pt.x, pt.y)) {
@@ -201,10 +196,13 @@ function hitTestEnemies(pt) {
         // X가 아닌 몸통을 눌렀다 — "여기가 아니다"를 시각(흔들림)뿐 아니라 소리로도
         // 알린다. fake_btn 페널티음과 같은 "틀림" 결이지만, 구분되는 가벼운 오답음이다.
         playSfx(SFX.POPUP_WRONG);
-        // X 버튼을 못 찾아 헤매고 있다는 신호 — 누적이 config.enemy.popupCloseButton.
-        // missThreshold를 넘으면 ui/renderEnemies.js가 X 버튼 시선 유도(펄스+손가락)를
-        // 강하게 켠다. 일부러 판이 바뀌어도 안 지운다(core/stageManager.js 주석 참고).
-        state.popupMisses += 1;
+        // 이 팝업 한 마리에서만 X를 못 찾아 헤매고 있다는 신호(전역이 아니다 —
+        // 화면에 팝업이 여러 마리 떠 있어도 헤맨 그 한 마리만 강조돼야 한다).
+        // 누적이 config.enemy.popupCloseButton.missThreshold를 넘으면
+        // ui/renderEnemies.js가 이 방해꾼의 강조 X를 켠다. 정확히 맞히면(위 kill
+        // 분기) 그 방해꾼째 사라지므로 카운트도 자연히 같이 없어진다 — 따로 리셋할
+        // 필요가 없다.
+        enemy.closeMisses += 1;
         return 'shake';
       }
       continue; // 이 놈은 안 맞았다 — 뒤에 깔린 놈을 계속 검사
