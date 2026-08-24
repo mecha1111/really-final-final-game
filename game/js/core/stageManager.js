@@ -180,6 +180,11 @@ function processDeaths(rules, playArea) {
       } else if (enemy.deathReason === 'triggered') {
         // copier가 커서 위에 안착했다 — 잡아서 죽인 게 아니므로 killed로 안 센다
         triggerSelfDestruct(enemy);
+      } else if (enemy.deathReason === 'trapped') {
+        // fake_btn(당첨/확인 함정)에 낚여 사라졌다(systems/input.js) — 방해꾼을
+        // "잡은" 게 아니라 플레이어가 속은 것이므로 killed 통계에 안 넣는다.
+        // 페널티(업로드 손실+함정음)는 이미 input.js가 그 자리에서 줬으니 여기선
+        // 할 일이 없다 — 그냥 배열에서 빠지게 둔다.
       } else {
         state.stats.killed += 1;
         if (enemy.deathReason === 'clicked') {

@@ -216,7 +216,7 @@ function hitTestEnemies(pt) {
     }
 
     if (enemy.isTrap) {
-      // 누르면 안 되는 버튼을 눌렀다
+      // 누르면 안 되는 버튼을 눌렀다 — 낚였다.
       state.stats.trapClicks += 1;
       // 함정음(FAKEBTN_PENALTY)이 곧 "속았다+당했다"는 신호라, damageUpload의 공통
       // 피격음(HIT)은 silent로 꺼서 겹치지 않게 한다 — 공통음까지 얹으면 함정음이 묻힌다.
@@ -224,6 +224,12 @@ function hitTestEnemies(pt) {
       playSfx(SFX.FAKEBTN_PENALTY);
       damageUpload(enemy.effect.wrongClickPct, enemy.x, enemy.y, { silent: true });
       enemy.hitFlash = config.enemy.hitFlashSec;
+      // 낚인 그 자리에서 바로 사라진다(요구사항) — reason을 'clicked'가 아닌 값으로
+      // 줘서 처치 연출(파편·처치음·kill 통계)은 안 타게 한다. 이건 "잡았다"가 아니라
+      // "낚였다"라 다른 결이어야 한다 — 위 페널티(damageUpload+함정음)가 이미 그
+      // 반응을 냈다. kill 통계에 안 들어가는 이유는 core/stageManager.js의
+      // processDeaths 'trapped' 분기 주석 참고.
+      enemy.kill('trapped');
       return 'trap';
     }
 
