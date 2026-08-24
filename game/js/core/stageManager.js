@@ -57,6 +57,7 @@ export function startGame(stageIndex = 0) {
   state.cursorDisguise = 0;
   state.urgent = false;
   state.nearGoal = false;
+  state.popupsSeen = 0; // 팝업 X 버튼 시선 유도를 이번 판 초반에도 다시 강하게
   // 완료 연출 홀드 중에 재도전 등으로 판이 바로 다시 시작되면, 남은 홀드가
   // 새 판까지 새어 들어가 updateUpload()가 새 판 첫 몇 프레임을 "완료 연출
   // 유지 중"으로 착각해 건너뛸 수 있다 — 여기서 확실히 끊는다.

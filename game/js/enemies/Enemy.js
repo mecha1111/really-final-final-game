@@ -1,6 +1,7 @@
 // 이 파일 역할: 방해꾼 한 마리의 상태와 판정(히트박스/클릭/수명). 이동은 behaviors.js, 그리기는 ui가 맡는다.
 
 import { config, getScaleFactor, parseSpecialEffect } from '../config.js';
+import { state } from '../core/state.js';
 import { PATTERN_KIND, initMovement, moveEnemy, bounceInside } from './behaviors.js';
 import { hitRect, bodyRect, closeButtonRect, artRect, rectContains, inflateToMin } from './hitbox.js';
 import { initEntrance, updateEntrance } from './entrance.js';
@@ -121,6 +122,15 @@ export class Enemy {
     this.clickable = spec.action === 'click' && spec.hp > 0 && !this.isEventType;
     // 시트의 action='drag'는 이제 "우상단 X 버튼으로 닫기"를 뜻한다(popup).
     this.closeButton = spec.action === 'drag';
+    // X 버튼 시선 유도 세기 — 스폰 시점에 한 번만 정해서 살아있는 내내 안 바뀐다.
+    // 이번 판 들어 몇 번째 팝업인지로 정한다(config.enemy.popupCloseButton.
+    // strongCount, ui/renderEnemies.js의 drawPopupCloseButton이 읽는다).
+    if (this.closeButton) {
+      state.popupsSeen += 1;
+      this.closeAttentionTier = state.popupsSeen <= config.enemy.popupCloseButton.strongCount ? 'strong' : 'weak';
+    } else {
+      this.closeAttentionTier = null;
+    }
     this.isTrap = spec.action === 'none' && this.effect.wrongClickPct > 0;
 
     this.x = x;

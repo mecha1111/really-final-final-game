@@ -142,42 +142,78 @@ function drawEnemyGauges(ctx, e) {
   }
 }
 
+/** 강한 시선 유도(초반 몇 번)에서만: 버튼 위에 손가락이 까닥이다 사라진다.
+ * e.age(스폰 후 경과, 방해꾼별 단일 시계) 기준이라 별도 타이머가 없다. */
+function drawFingerHint(ctx, r, e) {
+  const dur = config.enemy.popupCloseButton.fingerHintSec;
+  if (e.age >= dur) return;
+  const t = e.age / dur;
+  const fade = t < 0.7 ? 1 : Math.max(0, 1 - (t - 0.7) / 0.3); // 마지막 30%만 페이드아웃
+  const bob = Math.sin(e.age * 6) * r.h * 0.18; // 위아래로 살짝 까닥
+
+  ctx.save();
+  ctx.globalAlpha = fade * Math.max(0, e.entAlpha ?? 1);
+  ctx.font = `${Math.round(r.w * 0.95)}px sans-serif`;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText('👇', r.x + r.w / 2, r.y - r.h * 0.6 + bob);
+  ctx.restore();
+}
+
 /** 팝업 X 버튼 — 원본 그림의 작은 손그림 X 자리(closeButtonRect, config.enemy.
  * artHitbox)에 XP 창 닫기버튼 톤(빨강+흰 X)의 큰 버튼을 덧그린다. 이 사각형이 곧
  * 클릭 판정(enemies/hitbox.js의 closeButtonRect)과 정확히 같아서 "보이는 것보다
- * 크게 눌린다"가 구조적으로 생길 수 없다. */
+ * 크게 눌린다"가 구조적으로 생길 수 없다. 시선 유도(펄스+손가락)는
+ * e.closeAttentionTier(스폰 시 enemies/Enemy.js가 정한다)로 세기만 갈린다. */
 function drawPopupCloseButton(ctx, e) {
   const r = e.closeButtonRect();
   if (!r) return;
 
   const c = config.enemy.popupCloseButton;
+  const tier = e.closeAttentionTier === 'strong' ? c.pulse.strong : c.pulse.weak;
+  // 0→1→0을 코사인으로 매끄럽게(사인은 age=0에서 갑자기 튀어 시작이 어색하다).
+  const cycle = tier.periodSec > 0 ? (e.age % tier.periodSec) / tier.periodSec : 0;
+  const pulseT = 0.5 - 0.5 * Math.cos(cycle * Math.PI * 2);
+
   const cx = r.x + r.w / 2;
   const cy = r.y + r.h / 2;
+  const w = r.w * (1 + tier.scaleAmp * pulseT);
+  const h = r.h * (1 + tier.scaleAmp * pulseT);
 
   ctx.save();
   ctx.globalAlpha = Math.max(0, e.entAlpha ?? 1);
 
+  // 은은한 후광 — 버튼 뒤에서 펄스에 맞춰 커졌다 옅어진다(주목은 끌되 거슬리지 않게).
+  if (tier.glowAlpha > 0) {
+    ctx.fillStyle = `rgba(255, 90, 60, ${(tier.glowAlpha * pulseT).toFixed(3)})`;
+    ctx.beginPath();
+    ctx.arc(cx, cy, Math.max(w, h) * 0.72, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
   // 버튼 본체(XP 닫기버튼 톤 — 각진 빨강 사각형 + 테두리)
-  roundRect(ctx, r.x, r.y, r.w, r.h, c.cornerRadius);
+  roundRect(ctx, cx - w / 2, cy - h / 2, w, h, c.cornerRadius);
   ctx.fillStyle = c.bg;
   ctx.fill();
-  ctx.lineWidth = Math.max(1, r.w * 0.06);
+  ctx.lineWidth = Math.max(1, w * 0.06);
   ctx.strokeStyle = c.border;
   ctx.stroke();
 
   // 흰 X 글리프
   ctx.strokeStyle = c.glyphColor;
-  ctx.lineWidth = Math.max(1.5, r.w * 0.14);
+  ctx.lineWidth = Math.max(1.5, w * 0.14);
   ctx.lineCap = 'round';
-  const pad = r.w * 0.28;
+  const pad = w * 0.28;
   ctx.beginPath();
-  ctx.moveTo(cx - r.w / 2 + pad, cy - r.h / 2 + pad);
-  ctx.lineTo(cx + r.w / 2 - pad, cy + r.h / 2 - pad);
-  ctx.moveTo(cx + r.w / 2 - pad, cy - r.h / 2 + pad);
-  ctx.lineTo(cx - r.w / 2 + pad, cy + r.h / 2 - pad);
+  ctx.moveTo(cx - w / 2 + pad, cy - h / 2 + pad);
+  ctx.lineTo(cx + w / 2 - pad, cy + h / 2 - pad);
+  ctx.moveTo(cx + w / 2 - pad, cy - h / 2 + pad);
+  ctx.lineTo(cx - w / 2 + pad, cy + h / 2 - pad);
   ctx.stroke();
 
   ctx.restore();
+
+  if (e.closeAttentionTier === 'strong') drawFingerHint(ctx, r, e);
 }
 
 /**

@@ -49,6 +49,11 @@ export const state = {
   // 클릭할 때마다 커서 자리에 퍼지는 잔물결(systems/clickRipple.js가 넣고 지운다).
   ripples: [],
 
+  // 이번 판에 팝업 광고(popup)가 몇 번째로 스폰됐는지 — enemies/Enemy.js가 스폰마다
+  // 올린다. X 버튼 시선 유도(펄스/손가락 아이콘) 세기를 초반 몇 번만 강하게 주려고
+  // 쓴다(config.enemy.popupCloseButton.strongCount, ui/renderEnemies.js).
+  popupsSeen: 0,
+
   pointer: { x: 0, y: 0 },
 
   // === 설정 팝업(ui/settingsPanel.js) ===

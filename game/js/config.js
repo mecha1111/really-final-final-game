@@ -286,6 +286,19 @@ export const config = {
       border: '#7a1f14',
       glyphColor: '#ffffff',
       cornerRadius: 3,
+      // 시선 유도 — state.popupsSeen(판마다 0으로 리셋, enemies/Enemy.js가 팝업이
+      // 스폰될 때마다 올린다)이 이 수 이하일 때만 "강하게"(펄스 폭 크고 손가락
+      // 아이콘도 같이), 그 이후엔 "약하게"(펄스만, 폭 작게) — 매번 강하면 거슬린다는
+      // 요구사항 그대로.
+      strongCount: 3,
+      pulse: {
+        strong: { periodSec: 0.9, scaleAmp: 0.22, glowAlpha: 0.85 },
+        weak: { periodSec: 1.7, scaleAmp: 0.07, glowAlpha: 0.3 },
+      },
+      // 강한 쪽에서만: 등장 직후 이만큼(초) 동안 버튼 위에 손가락(👇)이 까닥이다
+      // 사라진다. e.age(스폰 후 경과, 방해꾼별 단일 시계) 기준이라 별도 타이머가
+      // 없다(sprite/animator.js·entrance.js와 같은 원칙).
+      fingerHintSec: 1.3,
     },
 
     // H키 디버그 십자선(클릭이 계산된 월드 좌표)이 보이는 시간(ms).
