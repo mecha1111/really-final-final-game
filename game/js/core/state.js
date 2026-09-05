@@ -77,6 +77,14 @@ export const state = {
   // (config.enemy.hourglass.freezeSec 주석 참고).
   inputFreezeSec: 0,
 
+  // popup 몸통(= X가 아닌 곳)을 잘못 누른 누적 횟수 — 개체별이 아니라 판 전체
+  // 하나로 센다(systems/input.js가 올린다). config.popupHintOutline.threshold에
+  // 닿으면 ui/renderEnemies.js가 살아있는 모든 popup의 X 버튼 판정 영역에 테두리
+  // 힌트를 켠다 — 한 번 켜지면 그 판이 끝날 때까지 안 꺼진다(요구사항: 켜졌다
+  // 꺼졌다 하면 더 헷갈린다). core/stageManager.js의 startGame()이 새 판마다 0으로
+  // 되돌린다(판을 넘어 기억하지 않는다).
+  popupBodyMisses: 0,
+
   // === 긴박 경고(systems/urgency.js, config.urgency) ===
   // 남은 시간이 얼마 없는데 할당량이 한참 못 미치면 true — ui/statusWindow.js가
   // 이 값만 보고 화면 전체(비네트·남은시간 깜빡임)의 CSS 클래스를 토글한다.

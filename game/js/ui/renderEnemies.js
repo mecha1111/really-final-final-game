@@ -106,6 +106,10 @@ export function drawEnemy(ctx, e, showHitbox, now) {
   // 이미 죽은 놈의 수명 바/hp 점이 잠깐 더 보이면 헷갈린다.
   if (e.alive) drawEnemyGauges(ctx, e);
 
+  // popup X 버튼 찾기 힌트 — 살아있는 popup에만, 판 전체 몸통 오클릭 누적이
+  // threshold에 닿았을 때만(아래 함수가 직접 그 조건을 본다).
+  if (e.alive && e.closeButton) drawPopupHintOutline(ctx, e, now);
+
   // ★ 예전엔 여기서 "정지시킨 게 이놈이다" 빨간 대시 테두리(drawBlockHighlight)를
   //   그렸다. 없앤 이유: A타입은 살아있는 내내 isBlocking이라 그 테두리가 "잠깐
   //   뜨는 강조"가 아니라 사실상 상시 표시였다 — 화면만 지저분해지고 정작
@@ -162,6 +166,39 @@ function drawEnemyGauges(ctx, e) {
       px += dot + gap;
     }
   }
+}
+
+/**
+ * popup의 X 버튼(닫기 판정) 찾기 힌트 — 테두리만 그린다, 내부는 절대 안 칠한다
+ * (원본 손그림 X가 그대로 보여야 한다는 요구사항). 사각형은 closeButtonRect() —
+ * 클릭 판정과 정확히 같은 값이라 "보이는 자리와 눌리는 자리"가 구조적으로
+ * 갈릴 수 없다(이 프로젝트의 반복 원칙, config.enemy.artHitbox 주석과 같은 이유).
+ * ★ 이전엔(2026-08~09) 그림 위에 가짜 버튼을 통째로 덧그리는 방식이었는데 아트
+ * 리소스가 바뀔 때마다 충돌해서 걷어냈다 — 이번엔 그리기 자체가 훨씬 가볍고
+ * (스트로크 한 번), 그림을 전혀 가리지 않아 리소스 교체와 안 부딪힌다.
+ */
+function drawPopupHintOutline(ctx, e, now) {
+  const c = config.popupHintOutline;
+  if (!c.enabled || state.popupBodyMisses < c.threshold) return;
+
+  const r = e.closeButtonRect();
+  if (!r) return;
+
+  // 0.5~1.0(minOpacity~maxOpacity) 사이를 코사인으로 매끄럽게 오간다 — 갑자기
+  // 튀지 않고 XP 포커스 표시 특유의 "은은한 점멸" 느낌을 낸다.
+  const cycleMs = c.blinkPeriodSec * 1000;
+  const cycle = cycleMs > 0 ? (now % cycleMs) / cycleMs : 0;
+  const pulseT = 0.5 - 0.5 * Math.cos(cycle * Math.PI * 2);
+  const alpha = c.minOpacity + (c.maxOpacity - c.minOpacity) * pulseT;
+
+  ctx.save();
+  ctx.globalAlpha = alpha;
+  ctx.strokeStyle = c.color;
+  ctx.lineWidth = c.strokeWidth;
+  // 다른 디버그 사각형(ui/render.js의 H키 오버레이)과 같은 관례 — +0.5로 스트로크가
+  // 반픽셀 어긋나 흐려지는 걸 막는다.
+  ctx.strokeRect(r.x + 0.5, r.y + 0.5, r.w, r.h);
+  ctx.restore();
 }
 
 // ── zombie 초록 틴트 캐시 ─────────────────────────────────────────────────────

@@ -59,6 +59,9 @@ export function startGame(stageIndex = 0) {
   // hourglass 조작 불능 잔여가 새 판까지 새어 들어가지 않게(부활 대기 zombie가
   // 새 판으로 안 넘어가는 것과 같은 이유 — 아래 state.enemies = [] 참고).
   state.inputFreezeSec = 0;
+  // popup 몸통 오클릭 누적도 판을 넘어 기억하면 안 된다(요구사항) — 새 판은
+  // 항상 힌트 테두리가 꺼진 상태로 시작한다.
+  state.popupBodyMisses = 0;
   state.urgent = false;
   state.nearGoal = false;
   // 완료 연출 홀드 중에 재도전 등으로 판이 바로 다시 시작되면, 남은 홀드가

@@ -408,6 +408,28 @@ export const config = {
     },
   },
 
+  // popup의 X 버튼(닫기 판정)을 찾도록 돕는 테두리 힌트. 예전엔 그림 위에 가짜
+  // 버튼을 덧그렸는데(빨강+흰 X) 아트 리소스가 바뀌면서 그림과 계속 충돌해
+  // 걷어냈다(2026-09) — 이번엔 그림을 안 가리는 "테두리만" 방식으로 다시 넣는다.
+  // ui/renderEnemies.js의 drawPopupHintOutline이 이 값들만 읽는다.
+  popupHintOutline: {
+    enabled: true,
+    // 판 전체 popup 몸통 오클릭 누적(state.popupBodyMisses, systems/input.js가
+    // 올리고 개체별이 아니라 판 하나로 센다)이 이 값에 닿으면 그 판 내내 켜진다.
+    threshold: 10,
+    // XP 포커스 표시 톤. 흰색과 XP 파랑(#0A5BD8) 둘 다 실제 popup 손그림(a=노랑
+    // 팻말, b=핑크 창) 위에 풀 불투명(점멸 없이)으로 스크린샷 비교한 결과 —
+    // a는 팻말 자체가 옅은 노랑+흰 테두리라 흰색 선이 거의 안 보였고, b는 X 바로
+    // 위에 겹친 흰 구름/장갑 그림과 흰색 선이 섞여 흐릿했다. XP 파랑은 노랑·핑크·
+    // 흰색 어디에도 안 섞이고 두 그림 모두에서 또렷하게 도드라져 이 색으로 확정.
+    color: '#0A5BD8',
+    strokeWidth: 2,
+    // 점멸 한 주기(초) — 0.5~1.0 사이를 이 시간으로 오간다(코사인, 갑자기 안 튐).
+    blinkPeriodSec: 1.2,
+    minOpacity: 0.5,
+    maxOpacity: 1.0,
+  },
+
   // 방해꾼이 너무 많아졌을 때 화면 전체가 지지직거리는 과부하 연출(systems/overload.js).
   // "지금 감당이 안 되고 있다"를 숫자(살아있음 n/m)가 아니라 화면 자체로 알리는 장치다.
   overload: {
