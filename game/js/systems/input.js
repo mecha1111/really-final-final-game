@@ -141,6 +141,13 @@ function onPointerDown(canvas, pt, evt) {
 
   if (state.phase !== 'playing') return;
 
+  // hourglass 함정이 발동시킨 조작 불능 — 남아있는 동안은 클릭 자체를 통째로
+  // 무시한다(요구사항: 다른 방해꾼을 눌러도 아무 반응이 없어야 한다). 얼어있는
+  // 동안엔 이 클릭이 곧바로 여기서 끝나므로, 다른 hourglass를 눌러도 애초에
+  // config.enemy.hourglass.freezeSec을 "다시 대입"할 클릭 자체가 들어올 수
+  // 없다 — 그래서 중첩 연장이 구조적으로 불가능하다(스택 금지 요구사항).
+  if (state.inputFreezeSec > 0) return;
+
   // 방해꾼은 바탕화면 전체를 쓴다. 맞혔으면 여기서 끝 — 캔버스가 클릭을 가져간 것이다.
   state.stats.clicks += 1;
   const verdict = hitTestEnemies(pt);
@@ -152,6 +159,9 @@ function onPointerDown(canvas, pt, evt) {
   //   어떤 결과가 왜 끊고 왜 안 끊는지는 systems/combo.js의 registerMiss 주석에 모아뒀다.
   if (verdict === 'kill') registerKill(pt.x, pt.y);
   else if (verdict === 'miss') registerMiss();
+  // hourglass 발동 — fake_btn(trap)과 달리 콤보를 끊는다(요구사항). 진행도(MB)는
+  // 안 건드리므로 damageUpload는 안 부른다 — "시간"이 이미 벌칙이다.
+  else if (verdict === 'freeze') registerMiss();
 
   // 클릭 리플 — 처치/허공 무관하게 "눌렸다"는 반응(요구사항). 콤보가 오른
   // 상태로 처치했으면 그 tier 색으로 강조해 콤보 UI(캔버스에 뜨는 x N 글자,
@@ -167,9 +177,10 @@ function onPointerDown(canvas, pt, evt) {
  * 'miss'만이 아무 방해꾼도 없었다는 뜻이고(= 캔버스 아래로 클릭을 흘려보낸다),
  * 나머지는 전부 방해꾼이 판정을 소비한 경우다.
  *
- * @returns {'kill'|'hit'|'shake'|'trap'|'ignore'|'miss'}
+ * @returns {'kill'|'hit'|'shake'|'trap'|'freeze'|'ignore'|'miss'}
  *   kill   잡았다(콤보 +1)          hit    유효타지만 아직 안 죽음(ransom 등)
  *   shake  popup 몸통을 눌렀다      trap   함정(fake_btn)을 밟았다
+ *   freeze hourglass 함정을 밟았다(콤보 끊김, MB는 안 깎임 — trap과 다른 벌칙)
  *   ignore 눌러도 아무 일 없는 놈(copier)   miss   허공(bait 포함 — 아래 주석)
  */
 function hitTestEnemies(pt) {
@@ -202,6 +213,17 @@ function hitTestEnemies(pt) {
     }
 
     if (!enemy.containsPoint(pt.x, pt.y)) continue;
+
+    if (enemy.isFreezeTrap) {
+      // hourglass 발동. fake_btn(isTrap)과 벌칙의 결이 다르다 — 진행도(MB)는 안
+      // 건드리고 대신 조작 자체를 config.enemy.hourglass.freezeSec만큼 통째로
+      // 멈춘다("대입"만 해서 중첩 연장을 막는다 — 위 onPointerDown 가드가 이미
+      // 얼어있는 동안 클릭 자체를 막으므로 실질적으로도 스택될 수 없다).
+      playSfx(SFX.FAKEBTN_PENALTY); // 전용음이 없어 같은 "함정에 당했다" 결의 소리를 재사용
+      state.inputFreezeSec = config.enemy.hourglass.freezeSec;
+      enemy.kill('trapped'); // 발동 즉시 소멸(요구사항) — 'trapped'라 killed 통계엔 안 들어간다
+      return 'freeze';
+    }
 
     if (enemy.clickable) {
       // takeHit()은 이 클릭으로 실제로 죽었을 때만 true다(ransom처럼 hp가 여러

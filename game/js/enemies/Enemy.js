@@ -122,6 +122,10 @@ export class Enemy {
     // 시트의 action='drag'는 이제 "우상단 X 버튼으로 닫기"를 뜻한다(popup).
     this.closeButton = spec.action === 'drag';
     this.isTrap = spec.action === 'none' && this.effect.wrongClickPct > 0;
+    // hourglass — 클릭하면 발동하는 별개의 함정(진행도가 아니라 "시간"을 뺏는다).
+    // isTrap(wrongClickPct 기반, fake_btn)과 조건이 겹치지 않게 id로 직접 특정한다 —
+    // 시트 문구 파싱을 새로 만들지 않고 config.enemy.hourglass 수치만으로 동작한다.
+    this.isFreezeTrap = spec.id === 'hourglass';
 
     this.x = x;
     this.y = y;

@@ -290,7 +290,7 @@ export const config = {
     // 종류는 무제한(기존과 동일) — copier(가짜 커서로 혼란을 주는 추격형)만 한 번에
     // 하나로 막는다. 여러 마리가 동시에 커서를 쫓아오면 "어느 게 진짜지"보다
     // "화면이 어지럽다"가 앞서서 원래 노린 압박감이 아니라 그냥 짜증이 된다.
-    maxConcurrentById: { copier: 1 },
+    maxConcurrentById: { copier: 1, hourglass: 2 },
     // 몸통(= X 버튼이 아닌 곳)을 잘못 눌렀을 때 흔들리는 시간(초).
     bodyShakeSec: 0.25,
     // 그 흔들림의 폭(px).
@@ -361,6 +361,24 @@ export const config = {
       arriveRadius: 120,
       // 감속하더라도 이 비율 아래로는 안 떨어진다(완전히 멈추면 안 무섭다).
       minSpeedRatio: 0.15,
+    },
+
+    // hourglass(모래시계 함정) — 클릭하면 발동하는 "시간 함정". fake_btn(wrongClickPct,
+    // 진행도 손실)과 일부러 역할을 분리했다: 이쪽은 MB를 안 깎는 대신 조작 자체를
+    // 잠깐 통째로 멈춘다 — 벌칙의 "결"이 다양해야 뭘 눌러도 안심할 수 없다.
+    // enemies/Enemy.js의 isFreezeTrap, systems/input.js의 hitTestEnemies/onPointerDown 참고.
+    hourglass: {
+      // 발동 시 조작 불능 시간(초). systems/input.js가 state.inputFreezeSec에 이 값을
+      // 그대로 "대입"만 한다(더하지 않는다) — 그래서 얼어있는 동안 또 다른 hourglass를
+      // 밟아도 시간이 누적되어 늘어나지 않는다(스택 금지 요구사항). 얼어있는 동안은
+      // 애초에 모든 클릭이 통째로 무시되므로(같은 파일의 onPointerDown 가드) 사실
+      // "다시 발동시킬 클릭" 자체가 들어올 수 없다 — 그래도 나중에 그 가드가 느슨해질
+      // 경우를 대비해 대입 방식 자체를 규칙으로 못박아 둔다.
+      freezeSec: 1.0,
+      // 임시 코드드로잉(ui/renderEnemies.js의 drawHourglassPlaceholder) 색 — XP 아이콘
+      // 톤의 금속 마개(어두운 청동)와 호박색 모래. png로 교체되면 이 값은 그냥 안 읽힌다.
+      frameColor: '#8a7048',
+      sandColor: '#e8b923',
     },
   },
 
@@ -771,7 +789,7 @@ export const config = {
 // 덕분에 게임 코드는 경로를 신경 쓰지 않고 './config.js' 하나만 보면 된다.
 // ---------------------------------------------------------------------------
 
-import { getStageValue } from './balance/loader.js';
+import { gameData, getStageValue } from './balance/loader.js';
 
 export { gameData, getStageValue, loadGameData, reloadGameData } from './balance/loader.js';
 export { getFileTiers, createRules, parseSpecialEffect } from './balance/rules.js';
@@ -785,6 +803,43 @@ export { getFileTiers, createRules, parseSpecialEffect } from './balance/rules.j
 export function applyStageToConfig() {
   config.canvas.width = getStageValue('canvas_w', config.canvas.width);
   config.canvas.height = getStageValue('canvas_h', config.canvas.height);
+}
+
+// ---------------------------------------------------------------------------
+// 신규 방해꾼(hourglass) 시트 폴백
+//
+// 2026-09: 구글 시트 enemies 탭에 아직 이 행이 없다. 시트에 추가되기 전까지는
+// 여기 값으로 동작하고, 시트에 실제 행이 생기면(같은 id) 그쪽이 자동으로 이긴다
+// (아래 applyEnemyFallbacks의 .some 검사) — 이 표를 나중에 지울 필요조차 없다.
+//
+// 시트에 실제로 추가할 때 필요한 컬럼(enemies 탭 헤더와 동일 순서):
+//   id,name_kr,type,size_w,size_h,hit_w,hit_h,speed,move_pattern,hp,dps,
+//   stops_upload,lifetime,weight,min_stage,action,special_effect
+// 아래 객체의 값을 그대로 그 행에 옮기면 된다. hp/dps/stops_upload/action은
+// 게임 동작을 직접 좌우하니(action=none이라야 "클릭=일반 처치"가 아니라 함정
+// 분기를 탄다) 값이 아니라 어휘 자체를 바꾸면(예: action에 다른 문구) 동작이 깨진다.
+// ---------------------------------------------------------------------------
+const ENEMY_SHEET_FALLBACK = [
+  {
+    id: 'hourglass', name_kr: '모래시계 함정', type: 'B',
+    size_w: 90, size_h: 110, hit_w: 90, hit_h: 110,
+    speed: 25, move_pattern: '떠다님',
+    hp: 0, dps: 0, stops_upload: false, lifetime: 7,
+    weight: 8, min_stage: 3, action: 'none', special_effect: '클릭시 조작불능 1초+콤보리셋',
+  },
+];
+
+/**
+ * gameData.enemies(시트든 로컬CSV든 하드코딩이든 어느 소스로 로드됐든)에 위 종류가
+ * 아직 없으면 채워 넣는다. main.js가 loadGameData() 직후(최초 로드·리로드 버튼
+ * 둘 다 applyLoadedData를 거치므로 한 곳만 부르면 됨) 호출한다.
+ */
+export function applyEnemyFallbacks() {
+  for (const fallback of ENEMY_SHEET_FALLBACK) {
+    if (!gameData.enemies.some((e) => e.id === fallback.id)) {
+      gameData.enemies.push(fallback);
+    }
+  }
 }
 
 /**

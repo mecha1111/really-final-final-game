@@ -1,6 +1,6 @@
 // 이 파일 역할: 진입점. 밸런스를 불러오고 각 모듈을 연결한 뒤 루프를 돌린다. 게임 규칙은 여기 없다.
 
-import { config, gameData, loadGameData, reloadGameData, applyStageToConfig, createRules } from './config.js';
+import { config, gameData, loadGameData, reloadGameData, applyStageToConfig, applyEnemyFallbacks, createRules } from './config.js';
 import { loadEnemyImages } from './assets.js';
 import { buildAssetKeys } from './sprite/animator.js';
 import { state } from './core/state.js';
@@ -20,7 +20,7 @@ import { initBsodScreen, updateBsodScreen } from './ui/bsodScreen.js';
 import { initClearScreen, updateClearScreen } from './ui/clearScreen.js';
 import { initCrtTransition, syncCrtTransition } from './ui/crtTransition.js';
 import { initSettingsPanel } from './ui/settingsPanel.js';
-import { initCursor } from './ui/cursor.js';
+import { initCursor, updateCursor } from './ui/cursor.js';
 import { updateStatusWindows } from './ui/statusWindow.js';
 import { initUploadPicture, updateUploadPicture } from './ui/uploadPicture.js';
 import { initDebugPanel, bindRules, updateDebugStats } from './debug.js';
@@ -46,6 +46,10 @@ function logFontLoadStatus() {
 
 /** 시트를 읽고 나서 해상도와 이미지를 맞춘다. 리로드 후에도 다시 호출된다. */
 async function applyLoadedData() {
+  // 구글 시트에 아직 없는 신규 방해꾼(hourglass)을 config 폴백으로 채운다
+  // (config.js의 ENEMY_SHEET_FALLBACK 주석 참고) — 시트에 실제 행이 생기면 자동으로
+  // 그쪽이 우선된다. 최초 로드·리로드 버튼 둘 다 이 함수를 거치므로 여기 한 곳이면 된다.
+  applyEnemyFallbacks();
   applyStageToConfig();
   // 논리 해상도(시트의 canvas_w/h)가 바뀌었을 수 있으니 표시 크기와 백킹스토어를
   // 다시 맞춘다 — 리로드 때도 창을 꽉 채운 채로 유지된다.
@@ -145,6 +149,7 @@ async function main() {
       updateUploadPicture(state);
       updateBsodScreen();
       updateClearScreen(now);
+      updateCursor(state.inputFreezeSec > 0); // hourglass 함정 발동 중엔 대기 커서로
     },
     onFrame: (fps) => updateDebugStats(state, gameData, fps),
   });

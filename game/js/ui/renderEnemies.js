@@ -69,6 +69,10 @@ export function drawEnemy(ctx, e, showHitbox, now) {
 
   if (img) {
     ctx.drawImage(img, x, y, w, h);
+  } else if (e.id === 'hourglass') {
+    // 임시 코드드로잉(요구사항) — assets/enemies/hourglass.png가 생기면 위 `if (img)`
+    // 분기가 자동으로 이긴다(다른 곳 손댈 필요 없음, 요구사항 "로딩 경로는 동일 구조로").
+    drawHourglassPlaceholder(ctx, e, x, y, w, h);
   } else {
     // PNG를 못 읽었을 때의 대체 표시
     ctx.fillStyle = cssColor('--color-enemy-fallback');
@@ -139,6 +143,82 @@ function drawEnemyGauges(ctx, e) {
       px += dot + gap;
     }
   }
+}
+
+/**
+ * hourglass(모래시계) 임시 코드드로잉. XP 아이콘 톤(금속 마개 + 호박색 모래)의
+ * 벡터 모래시계를 직접 그린다 — assets/enemies/hourglass.png가 생기면 drawEnemy의
+ * `if (img)` 분기가 자동으로 이겨서 이 함수는 조용히 안 불리게 된다(요구사항: 그림
+ * 교체가 코드 수정 없이 되게 할 것).
+ */
+function drawHourglassPlaceholder(ctx, e, x, y, w, h) {
+  const c = config.enemy.hourglass;
+  const cx = x + w / 2;
+  const capH = h * 0.09; // 위아래 금속 마개 두께
+  const bodyTop = y + capH;
+  const bodyBottom = y + h - capH;
+  const midY = y + h / 2;
+  const halfW = w * 0.38; // 마개 바로 아래 유리 폭
+  const neckW = w * 0.06; // 잘록한 목 폭
+
+  // 모래 진행도 — 수명이 줄어들수록(lifeRatio↓) 아래 칸이 차오른다. 이미 있는
+  // 값을 그대로 재활용해서 "시간이 흐른다"는 새 상태를 따로 안 만든다.
+  const sandT = 1 - e.lifeRatio();
+
+  ctx.save();
+  ctx.translate(cx, 0);
+
+  // 유리 윤곽(위 칸 넓게→목으로 좁아짐, 아래 칸 목에서 다시 넓어짐) — 하나의
+  // path로 이어 "모래시계 실루엣" 하나를 만든다.
+  ctx.beginPath();
+  ctx.moveTo(-halfW, bodyTop);
+  ctx.lineTo(halfW, bodyTop);
+  ctx.lineTo(neckW, midY);
+  ctx.lineTo(halfW, bodyBottom);
+  ctx.lineTo(-halfW, bodyBottom);
+  ctx.lineTo(-neckW, midY);
+  ctx.closePath();
+
+  ctx.fillStyle = 'rgba(255, 255, 255, 0.08)'; // 유리 안쪽 은은한 톤
+  ctx.fill();
+  ctx.lineWidth = Math.max(1.5, w * 0.03);
+  ctx.strokeStyle = c.frameColor;
+  ctx.stroke();
+
+  // 모래 — 유리 윤곽을 클립으로 걸고 그 안에서만 채운다.
+  ctx.save();
+  ctx.clip();
+
+  const bottomFillH = (bodyBottom - midY) * sandT;
+  if (bottomFillH > 0) {
+    ctx.fillStyle = c.sandColor;
+    ctx.fillRect(-halfW, bodyBottom - bottomFillH, halfW * 2, bottomFillH);
+  }
+  const topFillH = (midY - bodyTop) * (1 - sandT);
+  if (topFillH > 0) {
+    ctx.fillStyle = c.sandColor;
+    ctx.fillRect(-halfW, bodyTop, halfW * 2, topFillH);
+  }
+
+  // 목을 타고 떨어지는 모래알 몇 개 — 정확한 물리는 아니고 "지금도 흐르고 있다"는
+  // 인상만 준다. e.age를 시드로 써서 같은 프레임엔 항상 같은 자리라 안 지글거린다.
+  if (sandT > 0.02 && sandT < 0.98) {
+    const dropSpan = bodyBottom - bodyTop;
+    ctx.fillStyle = c.sandColor;
+    for (let i = 0; i < 3; i++) {
+      const phase = (e.age * 2.2 + i / 3) % 1;
+      ctx.fillRect(-1.5, bodyTop + dropSpan * phase, 3, 5);
+    }
+  }
+  ctx.restore(); // clip 해제
+
+  // 위/아래 금속 마개(유리 폭보다 살짝 넓은 가로 바)
+  ctx.fillStyle = c.frameColor;
+  const capW = halfW * 2 + w * 0.06;
+  ctx.fillRect(-capW / 2, y, capW, capH);
+  ctx.fillRect(-capW / 2, y + h - capH, capW, capH);
+
+  ctx.restore(); // translate 해제
 }
 
 /**

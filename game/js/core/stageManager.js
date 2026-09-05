@@ -56,6 +56,8 @@ export function startGame(stageIndex = 0) {
   state.attackWarning = false;
   state.hitFlash = 0;
   state.cursorDisguise = 0;
+  // hourglass 조작 불능 잔여가 새 판까지 새어 들어가지 않게.
+  state.inputFreezeSec = 0;
   state.urgent = false;
   state.nearGoal = false;
   // 완료 연출 홀드 중에 재도전 등으로 판이 바로 다시 시작되면, 남은 홀드가
@@ -120,6 +122,7 @@ export function update(dt) {
   const playArea = getPlayArea();
 
   state.timeLeft -= dt;
+  state.inputFreezeSec = Math.max(0, state.inputFreezeSec - dt); // hourglass 조작 불능 카운트다운
   recordPointer(state.pointer, dt); // copier의 가짜 커서가 나중에 이 궤적을 따라간다
 
   // 제한시간 임박(마지막 5초) 똑딱 — 1초에 한 번만(초가 바뀔 때만) 낸다. 긴장감용이라

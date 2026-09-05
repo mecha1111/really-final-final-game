@@ -70,6 +70,13 @@ export const state = {
   blockedBy: [],
   attackWarning: false, // 예비동작 중인 방해꾼이 있나(곧 얻어맞는다)
 
+  // hourglass(모래시계 함정) 발동으로 클릭 자체가 통째로 무시되는 남은 시간(초).
+  // core/stageManager.js의 update()가 매 프레임 깎고, systems/input.js의
+  // onPointerDown이 이 값이 남아있으면 클릭을 아예 처리하지 않는다(다른 방해꾼도
+  // 전부 무시됨). 발동할 때마다 "더하지 않고 대입"만 하므로 중첩 연장되지 않는다
+  // (config.enemy.hourglass.freezeSec 주석 참고).
+  inputFreezeSec: 0,
+
   // === 긴박 경고(systems/urgency.js, config.urgency) ===
   // 남은 시간이 얼마 없는데 할당량이 한참 못 미치면 true — ui/statusWindow.js가
   // 이 값만 보고 화면 전체(비네트·남은시간 깜빡임)의 CSS 클래스를 토글한다.
