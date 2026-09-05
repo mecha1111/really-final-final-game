@@ -196,13 +196,6 @@ function hitTestEnemies(pt) {
         // X가 아닌 몸통을 눌렀다 — "여기가 아니다"를 시각(흔들림)뿐 아니라 소리로도
         // 알린다. fake_btn 페널티음과 같은 "틀림" 결이지만, 구분되는 가벼운 오답음이다.
         playSfx(SFX.POPUP_WRONG);
-        // 이 팝업 한 마리에서만 X를 못 찾아 헤매고 있다는 신호(전역이 아니다 —
-        // 화면에 팝업이 여러 마리 떠 있어도 헤맨 그 한 마리만 강조돼야 한다).
-        // 누적이 config.enemy.popupCloseButton.missThreshold를 넘으면
-        // ui/renderEnemies.js가 이 방해꾼의 강조 X를 켠다. 정확히 맞히면(위 kill
-        // 분기) 그 방해꾼째 사라지므로 카운트도 자연히 같이 없어진다 — 따로 리셋할
-        // 필요가 없다.
-        enemy.closeMisses += 1;
         return 'shake';
       }
       continue; // 이 놈은 안 맞았다 — 뒤에 깔린 놈을 계속 검사

@@ -121,11 +121,6 @@ export class Enemy {
     this.clickable = spec.action === 'click' && spec.hp > 0 && !this.isEventType;
     // 시트의 action='drag'는 이제 "우상단 X 버튼으로 닫기"를 뜻한다(popup).
     this.closeButton = spec.action === 'drag';
-    // 이 팝업 하나에서만 X를 못 맞히고 몸통을 잘못 누른 횟수 — 방해꾼별로 각자
-    // 센다(전역이 아니다). systems/input.js가 올리고, ui/renderEnemies.js의
-    // drawPopupCloseButton이 이 값만 보고 강조 X를 켠다 — "여러 마리가 떠 있을 때
-    // 헤맨 그 한 마리만" 강조돼야 한다는 요구사항 그대로.
-    this.closeMisses = 0;
     this.isTrap = spec.action === 'none' && this.effect.wrongClickPct > 0;
 
     this.x = x;

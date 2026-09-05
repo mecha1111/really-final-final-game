@@ -82,8 +82,6 @@ export function drawEnemy(ctx, e, showHitbox, now) {
   // 죽어서 잠깐 corpseTimer만큼 남아있는 동안(basic dead 프레임)은 게이지를 안 그린다 —
   // 이미 죽은 놈의 수명 바/hp 점이 잠깐 더 보이면 헷갈린다.
   if (e.alive) drawEnemyGauges(ctx, e);
-  // 팝업 X 버튼 — 원본 그림의 작은 손그림 X 위에 크고 눈에 띄는 진짜 버튼을 덧그린다.
-  if (e.alive && e.closeButton) drawPopupCloseButton(ctx, e);
 
   // ★ 예전엔 여기서 "정지시킨 게 이놈이다" 빨간 대시 테두리(drawBlockHighlight)를
   //   그렸다. 없앤 이유: A타입은 살아있는 내내 isBlocking이라 그 테두리가 "잠깐
@@ -141,82 +139,6 @@ function drawEnemyGauges(ctx, e) {
       px += dot + gap;
     }
   }
-}
-
-/** 팝업 X 버튼 — 평소엔 원본 그림의 손그림 X를 그대로 둔다(아무것도 안 덧그림).
- * 유저가 이 방해꾼 하나에서 X를 못 찾아 몸통을 반복해서 잘못 누르면(e.closeMisses,
- * enemies/Enemy.js가 방해꾼별로 따로 센다 — systems/input.js가 몸통 오클릭마다
- * 올린다) 그제서야 진짜 XP 창 닫기버튼 톤의 버튼을 closeButtonRect(config.enemy.
- * artHitbox) 자리에 덧그린다 — 이 사각형이 곧 클릭 판정과 정확히 같아서 "보이는
- * 것보다 크게 눌린다"가 구조적으로 생길 수 없다. ★ 전역이 아니라 이 방해꾼
- * 하나만 본다 — 화면에 팝업이 여러 마리 떠 있어도 헤맨 그 한 마리에만 강조 X가
- * 뜨고 나머지는 원본 그대로다. */
-function drawPopupCloseButton(ctx, e) {
-  const c = config.enemy.popupCloseButton;
-  if (e.closeMisses < c.missThreshold) return; // 평소엔 숨김 — 원본 손그림 X만
-
-  const r = e.closeButtonRect();
-  if (!r) return;
-
-  // 은은한 펄스(주목은 끌되 거슬리지 않게) — 0→1→0을 코사인으로 매끄럽게
-  // (사인은 age=0에서 갑자기 튀어 시작이 어색하다).
-  const p = c.pulse;
-  const cycle = p.periodSec > 0 ? (e.age % p.periodSec) / p.periodSec : 0;
-  const pulseT = 0.5 - 0.5 * Math.cos(cycle * Math.PI * 2);
-
-  const cx = r.x + r.w / 2;
-  const cy = r.y + r.h / 2;
-  const w = r.w * (1 + p.scaleAmp * pulseT);
-  const h = r.h * (1 + p.scaleAmp * pulseT);
-  const x0 = cx - w / 2;
-  const y0 = cy - h / 2;
-
-  ctx.save();
-  ctx.globalAlpha = Math.max(0, e.entAlpha ?? 1);
-
-  // 은은한 후광 — 버튼 뒤에서 펄스에 맞춰 커졌다 옅어진다.
-  if (p.glowAlpha > 0) {
-    ctx.fillStyle = `rgba(255, 90, 60, ${(p.glowAlpha * pulseT).toFixed(3)})`;
-    ctx.beginPath();
-    ctx.arc(cx, cy, Math.max(w, h) * 0.72, 0, Math.PI * 2);
-    ctx.fill();
-  }
-
-  // 버튼 본체 — 진짜 XP 창 닫기버튼과 같은 세로 그라데이션(위 밝고 아래 진한
-  // 빨강, style.css의 #desktop .wb .x와 정확히 같은 색 재사용)으로 광택을 낸다.
-  const grad = ctx.createLinearGradient(0, y0, 0, y0 + h);
-  grad.addColorStop(0, c.bgTop);
-  grad.addColorStop(1, c.bgBottom);
-  roundRect(ctx, x0, y0, w, h, c.cornerRadius);
-  ctx.fillStyle = grad;
-  ctx.fill();
-
-  // 밝은 테두리(흰색, 실제 XP 버튼처럼 전체를 두른다) — 광택 있는 양각 느낌.
-  ctx.lineWidth = Math.max(1, w * 0.07);
-  ctx.strokeStyle = c.border;
-  ctx.stroke();
-
-  // 위쪽 절반에 살짝 밝은 하이라이트를 얹어 "볼록한 버튼" 입체감을 더한다.
-  ctx.save();
-  roundRect(ctx, x0, y0, w, h, c.cornerRadius);
-  ctx.clip();
-  ctx.fillStyle = 'rgba(255, 255, 255, 0.35)';
-  ctx.fillRect(x0, y0, w, h * 0.42);
-  ctx.restore();
-
-  // 흰 X 글리프
-  ctx.strokeStyle = c.glyphColor;
-  ctx.lineWidth = Math.max(1.5, w * 0.16);
-  ctx.lineCap = 'round';
-  const pad = w * 0.3;
-  ctx.beginPath();
-  ctx.moveTo(x0 + pad, y0 + pad);
-  ctx.lineTo(x0 + w - pad, y0 + h - pad);
-  ctx.moveTo(x0 + w - pad, y0 + pad);
-  ctx.lineTo(x0 + pad, y0 + h - pad);
-  ctx.stroke();
-
-  ctx.restore();
 }
 
 /**
