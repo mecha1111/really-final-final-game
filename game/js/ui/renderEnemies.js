@@ -41,6 +41,15 @@ export function drawEnemy(ctx, e, showHitbox, now) {
     whiteFlash = e.deathAge < k.whiteFlashSec;
   }
 
+  // zombie 부활 직후 반투명→불투명 페이드(entAlpha/killAlpha와는 별개 채널 —
+  // 등장 연출은 이미 끝났고 죽는 중도 아니라 그 둘은 항상 1이다).
+  let reviveAlpha = 1;
+  if (e.reviveFadeTimer > 0) {
+    const c = config.enemy.zombie;
+    const t = c.reviveFadeSec > 0 ? 1 - e.reviveFadeTimer / c.reviveFadeSec : 1;
+    reviveAlpha = c.reviveStartAlpha + (1 - c.reviveStartAlpha) * t;
+  }
+
   const punch = 1 + config.enemy.hitPunch * flashRatio + config.enemy.atkTelegraphPunch * telegraph;
   const w = e.drawW * punch * killScale;
   const h = e.drawH * punch * killScale;
@@ -54,9 +63,9 @@ export function drawEnemy(ctx, e, showHitbox, now) {
   const y = e.drawY + telegraphY - h / 2;
 
   ctx.save();
-  // 등장 연출의 투명도/블러(fade·print·blurIn)와 처치 팝의 투명도를 곱해서 건다.
-  // 연출이 없을 땐 둘 다 1이라 무해하다.
-  const alpha = Math.max(0, e.entAlpha) * killAlpha;
+  // 등장 연출의 투명도/블러(fade·print·blurIn)와 처치 팝의 투명도, zombie 부활
+  // 페이드를 전부 곱해서 건다. 해당 없는 연출은 항상 1이라 무해하다.
+  const alpha = Math.max(0, e.entAlpha) * killAlpha * reviveAlpha;
   if (alpha < 1) ctx.globalAlpha = alpha;
   const blur = e.entBlurPx > 0.1 ? `blur(${e.entBlurPx.toFixed(2)}px)` : '';
   if (whiteFlash) {
@@ -69,6 +78,16 @@ export function drawEnemy(ctx, e, showHitbox, now) {
 
   if (img) {
     ctx.drawImage(img, x, y, w, h);
+    if (e.id === 'zombie') {
+      // basic 그림 위에 초록 실루엣을 얹어 "감염돼 재활용됐다" 톤을 낸다(임시 아트 —
+      // 요구사항: bait 글리치의 틴트 레이어 캐시 방식 재사용, 아래 getZombieTintCanvas).
+      // 현재 걸린 filter(피격 번쩍임 등)와 globalAlpha를 그대로 물려받아서 zombie도
+      // 다른 상태 연출과 똑같이 반응한다.
+      ctx.save();
+      ctx.globalAlpha *= config.enemy.zombie.tintAlpha;
+      ctx.drawImage(getZombieTintCanvas(img), x, y, w, h);
+      ctx.restore();
+    }
   } else if (e.id === 'hourglass') {
     // 임시 코드드로잉(요구사항) — assets/enemies/hourglass.png가 생기면 위 `if (img)`
     // 분기가 자동으로 이긴다(다른 곳 손댈 필요 없음, 요구사항 "로딩 경로는 동일 구조로").
@@ -143,6 +162,33 @@ function drawEnemyGauges(ctx, e) {
       px += dot + gap;
     }
   }
+}
+
+// ── zombie 초록 틴트 캐시 ─────────────────────────────────────────────────────
+// bait 글리치 색수차(ui/baitRender.js의 getTinted)와 같은 방식 — 원본 이미지를
+// 통째로 한 색으로 물들인 오프스크린 캔버스를 (원본 img) 조합별로 딱 한 번만
+// 만들어 재사용한다. zombie는 basic 그림 3종(variant)만 재활용하므로 캐시 항목도
+// 최대 3개로 끝난다. 색은 항상 config.enemy.zombie.tintColor 하나뿐이라 키를
+// img.src만으로 잡아도 충분하다(bait처럼 색이 여러 개였다면 색까지 키에 넣어야 한다).
+const zombieTintCache = new Map(); // key: img.src -> canvas
+
+function getZombieTintCanvas(img) {
+  let canvas = zombieTintCache.get(img.src);
+  if (canvas) return canvas;
+
+  canvas = document.createElement('canvas');
+  canvas.width = img.naturalWidth || img.width;
+  canvas.height = img.naturalHeight || img.height;
+  const tctx = canvas.getContext('2d');
+  tctx.drawImage(img, 0, 0);
+  // source-in: 이미 그려진 이미지의 알파(실루엣)만 남기고 그 자리를 단색으로 덮는다
+  // → "이미지 모양 그대로, 색만 초록인" 레이어가 된다(getTinted와 동일 원리).
+  tctx.globalCompositeOperation = 'source-in';
+  tctx.fillStyle = config.enemy.zombie.tintColor;
+  tctx.fillRect(0, 0, canvas.width, canvas.height);
+
+  zombieTintCache.set(img.src, canvas);
+  return canvas;
 }
 
 /**

@@ -74,9 +74,11 @@ export function buildPool(specs, stage) {
  * config.enemy.maxConcurrentById에 상한이 걸린 종류는, 지금 살아있는 수가 그
  * 상한에 이미 닿았으면 이번 굴림 후보에서 뺀다. 표에 없는 종류는 무제한(기존과
  * 동일) — copier처럼 "한 번에 하나만 쫓아와야 압박이 산다" 싶은 종류만 여기 올린다.
- * ★ corpseTimer로 잠깐 화면에 남는 시체는 안 센다(.alive만) — "지금 실제로
- *   쫓아오는 놈"이 몇 마리인지가 기준이지, 막 죽어가는 잔상까지 포함하면 다음
- *   한 마리가 나올 타이밍이 부당하게 늦어진다.
+ * ★ corpseTimer로 잠깐 화면에 남는 시체는 안 센다(enemy.countsForConcurrency가
+ *   기본은 .alive만 본다) — "지금 실제로 쫓아오는 놈"이 몇 마리인지가 기준이지,
+ *   막 죽어가는 잔상까지 포함하면 다음 한 마리가 나올 타이밍이 부당하게 늦어진다.
+ *   단, zombie는 부활 대기 중에도 셈에 포함된다(그 게터 주석 참고) — 그래야
+ *   부활을 기다리는 동안 새 zombie가 상한 없이 계속 채워지지 않는다.
  */
 function filterByConcurrencyCap(pool, enemies) {
   const limits = config.enemy.maxConcurrentById;
@@ -85,7 +87,7 @@ function filterByConcurrencyCap(pool, enemies) {
   return pool.filter((spec) => {
     const cap = limits[spec.id];
     if (cap == null) return true;
-    const aliveCount = enemies.reduce((n, e) => n + (e.alive && e.id === spec.id ? 1 : 0), 0);
+    const aliveCount = enemies.reduce((n, e) => n + (e.countsForConcurrency && e.id === spec.id ? 1 : 0), 0);
     return aliveCount < cap;
   });
 }

@@ -46,7 +46,7 @@ function logFontLoadStatus() {
 
 /** 시트를 읽고 나서 해상도와 이미지를 맞춘다. 리로드 후에도 다시 호출된다. */
 async function applyLoadedData() {
-  // 구글 시트에 아직 없는 신규 방해꾼(hourglass)을 config 폴백으로 채운다
+  // 구글 시트에 아직 없는 신규 방해꾼(hourglass/zombie)을 config 폴백으로 채운다
   // (config.js의 ENEMY_SHEET_FALLBACK 주석 참고) — 시트에 실제 행이 생기면 자동으로
   // 그쪽이 우선된다. 최초 로드·리로드 버튼 둘 다 이 함수를 거치므로 여기 한 곳이면 된다.
   applyEnemyFallbacks();

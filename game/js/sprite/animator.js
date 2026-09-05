@@ -96,7 +96,9 @@ export function pickAbVariant() {
 export function getFrameKey(enemy, now) {
   const id = enemy.id;
 
-  if (id === 'basic') {
+  // zombie는 자기 그림이 없다 — basic 그림을 그대로 재활용하고(초록 틴트만
+  // ui/renderEnemies.js가 위에 얹는다) 프레임 선택 로직도 basic과 완전히 같다.
+  if (id === 'basic' || id === 'zombie') {
     const v = enemy.basicVariant ?? FRAME_SETS.basic.variants[0];
     if (!enemy.alive) return FRAME_SETS.basic.dead(v);
     return pickLoopFrame(FRAME_SETS.basic.alive(v), now);
@@ -137,6 +139,10 @@ export function getFrameKey(enemy, now) {
 
 /** 이 spec(enemies 시트 한 행)이 미리 읽어야 할 이미지 키 전부. 폴더 정의가 없으면 [id] 하나뿐이다. */
 export function enemyAssetKeys(spec) {
+  // zombie는 자기 png가 없다(basic을 재활용) — 여기서 안 갈라주면 존재하지 않는
+  // assets/enemies/zombie.png를 매번 헛되이 fetch해서 "못 읽어서 대체" 경고만 남긴다.
+  if (spec.id === 'zombie') return enemyAssetKeys({ id: 'basic' });
+
   const set = FRAME_SETS[spec.id];
   if (!set) return [spec.id];
 

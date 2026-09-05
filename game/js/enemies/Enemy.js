@@ -79,8 +79,10 @@ export class Enemy {
     this.shakeTimer = 0;
 
     // === 애니 전용 상태(sprite/animator.js가 읽는다) ===
-    // basic만 잡몹 얼굴(1/2/3)이 스폰 시 하나로 고정된다.
-    this.basicVariant = spec.id === 'basic' ? pickBasicVariant() : null;
+    // basic만 잡몹 얼굴(1/2/3)이 스폰 시 하나로 고정된다. zombie는 그림을 새로 안 그리고
+    // basic 그림을 그대로 재활용하므로(초록 틴트만 위에 얹는다, ui/renderEnemies.js) 여기서
+    // 같이 고른다 — sprite/animator.js의 getFrameKey가 'zombie'도 'basic'과 똑같이 취급한다.
+    this.basicVariant = spec.id === 'basic' || spec.id === 'zombie' ? pickBasicVariant() : null;
     // a/b 두 벌 그림을 가진 종류(popup의 노랑/핑크 광고)는 스폰 시 한쪽으로 고정된다.
     // ★ 이 값은 그림만 고르는 게 아니다 — popup은 a와 b의 X 버튼 위치가 서로 달라서
     //   클릭 판정(enemies/hitbox.js의 artRect)도 이걸 보고 갈라진다.
@@ -94,6 +96,17 @@ export class Enemy {
     this.corpseTimer = 0;
     // 살아남는 피격(ransom 단계 전환 등) 직후 hit 프레임을 잠깐 보여주는 남은 시간(초).
     this.hitFrameTimer = 0;
+
+    // === zombie 부활 상태(core/stageManager.js의 processDeaths/reviveZombie가 다룬다) ===
+    // 이 판에서 이미 몇 번 부활했는지 — config.enemy.zombie.maxRevives에 닿으면 그다음
+    // 처치는 진짜 최종 처치가 된다. zombie가 아닌 놈에게도 그냥 0으로 둔다(무해).
+    this.reviveCount = 0;
+    // "쓰러졌지만 부활을 기다리는 중" — true인 동안은 alive=false라도 배열에서 안
+    // 빠지고 reviveDelaySec을 채운다. enemies/spawner.js의 countsForConcurrency도 이 값을 본다.
+    this._zombiePendingRevive = false;
+    // 부활 직후 반투명(reviveStartAlpha)→불투명(1)으로 밝아지는 남은 시간(초).
+    // update()가 매 프레임 깎고, ui/renderEnemies.js가 이 값으로 알파를 계산한다.
+    this.reviveFadeTimer = 0;
 
     // special_effect가 "가짜커서"를 낸 놈(copier)은 클릭 대상이 아니라 진짜
     // 커서를 쫓아가 안착하면 터지는 이벤트형이다. move_pattern/dps는 무시한다.
@@ -196,6 +209,17 @@ export class Enemy {
     return this.age >= config.enemy.blockDelaySec;
   }
 
+  /**
+   * 스폰 동시 상한(config.enemy.maxConcurrentById, enemies/spawner.js)을 셀 때
+   * 이 놈을 넣을지. 보통은 살아있는 놈만 센다(alive=false인 잔여 시체는 안 셈 —
+   * spawner.js 주석 참고). zombie만 예외다: 부활을 기다리는 동안(_zombiePendingRevive)도
+   * "이 자리는 곧 다시 채워진다"는 뜻이라 마저 세지 않으면, 부활 대기 동안 새 zombie가
+   * 상한 없이 계속 채워져 동시 존재 수가 상한을 훌쩍 넘어버린다(요구사항 결정: 포함).
+   */
+  get countsForConcurrency() {
+    return this.alive || this._zombiePendingRevive;
+  }
+
   /** 다음 공격까지 남은 시간 대비 예비동작 진행도(0~1, 1이 발동 직전) */
   get atkTelegraphRatio() {
     if (!this.atk) return 0;
@@ -207,11 +231,14 @@ export class Enemy {
 
   update(dt, world) {
     if (!this.alive) {
-      // 죽은 뒤 잠깐 "죽은 프레임"을 보여주는 동안(corpseTimer)만 여기 남는다 —
+      // 죽은 뒤 잠깐 "죽은 프레임"을 보여주는 동안(corpseTimer)만 여기 남는 게
+      // 보통이지만, zombie가 부활을 기다리는 동안(_zombiePendingRevive)은 corpseTimer가
+      // 훨씬 먼저(짧은 처치 팝만큼) 0이 된 뒤에도 deathAge만 계속 늘며 여기 남는다 —
+      // core/stageManager.js의 processDeaths가 deathAge로 reviveDelaySec을 재기 때문이다.
       // 그 사이엔 움직이거나 공격하지 않고 그냥 시간만 깎는다. 실제로 배열에서
-      // 치우는 건 core/stageManager.js의 processDeaths가 corpseTimer<=0일 때 한다.
+      // 치우는 건 processDeaths가 corpseTimer<=0(부활 대기가 아닐 때)일 때 한다.
       this.corpseTimer = Math.max(0, this.corpseTimer - dt);
-      this.deathAge += dt; // 처치 팝(부풀며 사라지기)이 이 시간으로 진행된다
+      this.deathAge += dt; // 처치 팝(부풀며 사라지기)/부활 대기가 이 시간으로 진행된다
       return;
     }
 
@@ -220,6 +247,7 @@ export class Enemy {
     this.hitFlash = Math.max(0, this.hitFlash - dt);
     this.shakeTimer = Math.max(0, this.shakeTimer - dt);
     this.hitFrameTimer = Math.max(0, this.hitFrameTimer - dt);
+    this.reviveFadeTimer = Math.max(0, this.reviveFadeTimer - dt); // zombie 부활 직후 반투명→불투명
     this.pendingAttack = 0;
 
     if (this.atk) {

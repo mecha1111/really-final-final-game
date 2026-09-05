@@ -290,7 +290,11 @@ export const config = {
     // 종류는 무제한(기존과 동일) — copier(가짜 커서로 혼란을 주는 추격형)만 한 번에
     // 하나로 막는다. 여러 마리가 동시에 커서를 쫓아오면 "어느 게 진짜지"보다
     // "화면이 어지럽다"가 앞서서 원래 노린 압박감이 아니라 그냥 짜증이 된다.
-    maxConcurrentById: { copier: 1, hourglass: 2 },
+    // ★ zombie는 부활 대기 중(죽어서 alive=false인 채로 3초 대기)인 개체도 이 상한에
+    //   같이 센다(enemies/Enemy.js의 countsForConcurrency, spawner.js가 그걸 쓴다) —
+    //   안 그러면 부활을 기다리는 동안 새 zombie가 상한 없이 계속 채워져 실제 동시
+    //   존재 수가 3마리를 훌쩍 넘어버린다(결정: 포함).
+    maxConcurrentById: { copier: 1, hourglass: 2, zombie: 3 },
     // 몸통(= X 버튼이 아닌 곳)을 잘못 눌렀을 때 흔들리는 시간(초).
     bodyShakeSec: 0.25,
     // 그 흔들림의 폭(px).
@@ -342,6 +346,7 @@ export const config = {
         unplug: '#35c8ff', // --color-hitbox(플러그 = 전기 하늘색)
         hidden: '#7a4dff', // --color-enemy-fallback(숨은놈 = 보라)
         bomb: '#ff4d4d', // --color-danger(폭탄 = 빨강)
+        zombie: '#2ecc71', // config.enemy.zombie.tintColor와 같은 값(부활 틴트와 통일)
       },
     },
 
@@ -379,6 +384,27 @@ export const config = {
       // 톤의 금속 마개(어두운 청동)와 호박색 모래. png로 교체되면 이 값은 그냥 안 읽힌다.
       frameColor: '#8a7048',
       sandColor: '#e8b923',
+    },
+
+    // zombie(좀비 프로세스) — 처치해도 reviveDelaySec 뒤 같은 자리에서 한 번 더 살아난다.
+    // 임시 아트는 새로 안 그리고 basic 스프라이트를 그대로 재사용한 뒤 초록 틴트만
+    // 얹는다(ui/renderEnemies.js — bait 글리치의 틴트 레이어 캐시 방식과 같은 원리,
+    // ui/baitRender.js의 getTinted 참고). 부활/재처치 상태기계는 core/stageManager.js의
+    // processDeaths(제거 대신 부활 예약)와 enemies/Enemy.js(reviveCount 등)에 있다.
+    zombie: {
+      // 몇 번까지 부활하는가. 1이면 "처치 → 부활 → (다시 처치하면 완전 제거)"까지 한 사이클.
+      maxRevives: 1,
+      // 처치된 순간부터 실제로 부활하기까지 걸리는 시간(초).
+      reviveDelaySec: 3,
+      // 부활 시작 순간의 불투명도(0=완전 투명, 1=완전 불투명) — 여기서부터
+      // reviveFadeSec에 걸쳐 1(완전 불투명)까지 밝아진다.
+      reviveStartAlpha: 0.3,
+      reviveFadeSec: 1.0,
+      // basic 그림 위에 얹는 초록 틴트. tintAlpha가 1이면 원본이 안 보이는 완전한
+      // 초록 실루엣이 되어버려 "basic을 재활용했다"는 티가 안 난다 — 원본이 은은히
+      // 비치는 선에서 얹는다. kill.particleColors.zombie와 같은 색으로 맞춰뒀다.
+      tintColor: '#2ecc71',
+      tintAlpha: 0.55,
     },
   },
 
@@ -806,18 +832,19 @@ export function applyStageToConfig() {
 }
 
 // ---------------------------------------------------------------------------
-// 신규 방해꾼(hourglass) 시트 폴백
+// 신규 방해꾼(hourglass/zombie) 시트 폴백
 //
-// 2026-09: 구글 시트 enemies 탭에 아직 이 행이 없다. 시트에 추가되기 전까지는
+// 2026-09: 구글 시트 enemies 탭에 아직 이 두 행이 없다. 시트에 추가되기 전까지는
 // 여기 값으로 동작하고, 시트에 실제 행이 생기면(같은 id) 그쪽이 자동으로 이긴다
 // (아래 applyEnemyFallbacks의 .some 검사) — 이 표를 나중에 지울 필요조차 없다.
 //
 // 시트에 실제로 추가할 때 필요한 컬럼(enemies 탭 헤더와 동일 순서):
 //   id,name_kr,type,size_w,size_h,hit_w,hit_h,speed,move_pattern,hp,dps,
 //   stops_upload,lifetime,weight,min_stage,action,special_effect
-// 아래 객체의 값을 그대로 그 행에 옮기면 된다. hp/dps/stops_upload/action은
-// 게임 동작을 직접 좌우하니(action=none이라야 "클릭=일반 처치"가 아니라 함정
-// 분기를 탄다) 값이 아니라 어휘 자체를 바꾸면(예: action에 다른 문구) 동작이 깨진다.
+// 아래 두 객체의 값을 그대로 그 행에 옮기면 된다. hp/dps/stops_upload/action은
+// 게임 동작을 직접 좌우하니(hourglass는 action=none이라야 "클릭=일반 처치"가
+// 아니라 함정 분기를 타고, zombie는 action=click이라야 보통 잡몹처럼 클릭된다)
+// 값이 아니라 어휘 자체를 바꾸면(예: action에 다른 문구) 동작이 깨진다.
 // ---------------------------------------------------------------------------
 const ENEMY_SHEET_FALLBACK = [
   {
@@ -827,12 +854,19 @@ const ENEMY_SHEET_FALLBACK = [
     hp: 0, dps: 0, stops_upload: false, lifetime: 7,
     weight: 8, min_stage: 3, action: 'none', special_effect: '클릭시 조작불능 1초+콤보리셋',
   },
+  {
+    id: 'zombie', name_kr: '좀비 프로세스', type: 'B',
+    size_w: 90, size_h: 90, hit_w: 100, hit_h: 100,
+    speed: 45, move_pattern: '직선+벽반사',
+    hp: 1, dps: 2, stops_upload: false, lifetime: 9,
+    weight: 12, min_stage: 4, action: 'click', special_effect: '처치 3초 후 1회 부활',
+  },
 ];
 
 /**
- * gameData.enemies(시트든 로컬CSV든 하드코딩이든 어느 소스로 로드됐든)에 위 종류가
- * 아직 없으면 채워 넣는다. main.js가 loadGameData() 직후(최초 로드·리로드 버튼
- * 둘 다 applyLoadedData를 거치므로 한 곳만 부르면 됨) 호출한다.
+ * gameData.enemies(시트든 로컬CSV든 하드코딩이든 어느 소스로 로드됐든)에 위 두
+ * 종류가 아직 없으면 채워 넣는다. main.js가 loadGameData() 직후(최초 로드·리로드
+ * 버튼 둘 다 applyLoadedData를 거치므로 한 곳만 부르면 됨) 호출한다.
  */
 export function applyEnemyFallbacks() {
   for (const fallback of ENEMY_SHEET_FALLBACK) {

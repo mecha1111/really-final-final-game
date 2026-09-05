@@ -56,7 +56,8 @@ export function startGame(stageIndex = 0) {
   state.attackWarning = false;
   state.hitFlash = 0;
   state.cursorDisguise = 0;
-  // hourglass 조작 불능 잔여가 새 판까지 새어 들어가지 않게.
+  // hourglass 조작 불능 잔여가 새 판까지 새어 들어가지 않게(부활 대기 zombie가
+  // 새 판으로 안 넘어가는 것과 같은 이유 — 아래 state.enemies = [] 참고).
   state.inputFreezeSec = 0;
   state.urgent = false;
   state.nearGoal = false;
@@ -185,6 +186,12 @@ function processDeaths(rules, playArea) {
         // "잡은" 게 아니라 플레이어가 속은 것이므로 killed 통계에 안 넣는다.
         // 페널티(업로드 손실+함정음)는 이미 input.js가 그 자리에서 줬으니 여기선
         // 할 일이 없다 — 그냥 배열에서 빠지게 둔다.
+      } else if (enemy.id === 'zombie' && enemy.reviveCount < config.enemy.zombie.maxRevives) {
+        // 아직 부활권이 남은 zombie — "완전히 잡았다"가 아니라 "한 번 쓰러뜨렸다"이므로
+        // killed 통계·분열 둘 다 여기서는 안 건드린다(최종 처치 때만 센다, 아래 참고).
+        // 처치음(kill_soft)·타격 팝 연출은 이미 Enemy.kill()이 일반 처치와 똑같이
+        // 냈다 — "쓰러뜨렸다"는 반응 자체는 매번 있어야 한다.
+        enemy._zombiePendingRevive = true;
       } else {
         state.stats.killed += 1;
         if (enemy.deathReason === 'clicked') {
@@ -193,11 +200,45 @@ function processDeaths(rules, playArea) {
       }
     }
 
+    // 부활 대기 중인 zombie — corpseTimer(짧은 처치 팝)가 다 닳아 안 보이게 된
+    // 뒤에도 계속 배열에 남아 reviveDelaySec을 채운다. 다 채우면 그 자리에서 되살린다.
+    if (enemy._zombiePendingRevive) {
+      if (enemy.deathAge >= config.enemy.zombie.reviveDelaySec) reviveZombie(enemy);
+      keep.push(enemy);
+      continue;
+    }
+
     // corpseTimer가 남아있는 동안(죽음 연출 중)은 배열에 그대로 둔다.
     if (enemy.corpseTimer > 0) keep.push(enemy);
   }
 
   state.enemies = keep.concat(born);
+}
+
+/**
+ * zombie를 같은 자리에서 되살린다. 위치(x/y)는 안 건드린다 — "같은 자리에서
+ * 부활"이 요구사항이고, 물리 이동은 죽어있는 동안 멈춰 있었으므로(Enemy.update의
+ * !alive 가드) 자리도 그대로다. 등장 연출(entrance)은 다시 안 튼다 — 이미
+ * entranceDone이라 손대지 않으면 그리기가 그대로 정상 크기/위치를 쓴다. 대신
+ * reviveFadeTimer로 반투명→불투명 페이드만 새로 건다(ui/renderEnemies.js가 읽는다).
+ */
+function reviveZombie(enemy) {
+  const c = config.enemy.zombie;
+  enemy.reviveCount += 1;
+  enemy.alive = true;
+  enemy.hp = enemy.maxHp;
+  enemy.age = 0; // 되살아난 것도 "새 위협"이라 수명을 다시 꽉 채워 준다
+  enemy.deathReason = null;
+  enemy.deathAge = 0;
+  enemy.corpseTimer = 0;
+  enemy.hitFlash = 0;
+  enemy.shakeTimer = 0;
+  enemy._deathEffectsApplied = false; // 다음 죽음(최종 처치일 수도 있다)이 다시 효과를 타게
+  enemy._zombiePendingRevive = false;
+  enemy.reviveFadeTimer = c.reviveFadeSec;
+  // "부활" 전용 사운드 에셋은 없다 — 요구사항의 "hidden 등장음 계열"에 가장 가까운
+  // 기존 소리(발각/KILL_HIDDEN, "숨어있던 게 다시 드러난다"는 결)를 재사용했다.
+  playSfx(SFX.KILL_HIDDEN);
 }
 
 function checkWinLose(rules) {
