@@ -17,7 +17,7 @@
 //   상단 주석) — 새 장치를 만들 필요가 없었다.
 
 import { config } from '../config.js';
-import { state } from '../core/state.js';
+import { state, setPhase } from '../core/state.js';
 import { playSfx, refreshSfxVolume, SFX } from '../systems/sound.js';
 import { refreshBgmVolume } from '../systems/bgm.js';
 import { applyCrtSteadyVars } from './crtTransition.js';
@@ -136,7 +136,7 @@ export function initSettingsPanel() {
   // 따로 안 치워도 된다(같은 전례, bsodScreen.js 주석 참고) — title 단계에선
   // 캔버스가 애초에 아무것도 안 그린다(ui/render.js).
   document.getElementById('settings-title')?.addEventListener('click', () => {
-    state.phase = 'title';
+    setPhase('title');
     closeSettings();
   });
 

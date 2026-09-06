@@ -1,7 +1,7 @@
 // 이 파일 역할: 판의 시작/진행/승패를 총괄한다. 매 프레임 각 시스템을 정해진 순서로 부르는 지휘자.
 
 import { config, gameData, createRules } from '../config.js';
-import { state, emptyStats } from './state.js';
+import { state, emptyStats, setPhase } from './state.js';
 import { Spawner, buildPool } from '../enemies/spawner.js';
 import { splitEnemy, applyExpiryEffect, triggerSelfDestruct, updateFakeCursors } from '../enemies/effects.js';
 import { clearJuice } from '../systems/juice.js';
@@ -89,7 +89,7 @@ export function startGame(stageIndex = 0) {
 
   spawner.reset(rules);
   grantFile();
-  state.phase = 'playing';
+  setPhase('playing');
   playSfx(SFX.START);
 }
 
@@ -249,11 +249,11 @@ function checkWinLose(rules) {
   //   판이 안 끝난 프레임을 전부 걸러내고, 끝난 뒤로는 update() 맨 위 가드에
   //   막혀 이 함수 자체가 다시 안 불린다. 그래서 별도의 엣지 추적이 필요 없다.
   if (state.uploaded >= rules.quota) {
-    state.phase = 'cleared';
+    setPhase('cleared');
     playSfx(SFX.STAGE_CLEAR);
   } else if (state.timeLeft <= 0) {
     state.timeLeft = 0;
-    state.phase = 'failed';
+    setPhase('failed');
     playSfx(SFX.GAMEOVER);
   } else {
     return; // 판이 안 끝났다 — 아래 정리는 phase가 실제로 바뀔 때만 필요하다

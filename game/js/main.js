@@ -3,7 +3,7 @@
 import { config, gameData, loadGameData, reloadGameData, applyStageToConfig, applyEnemyFallbacks, createRules } from './config.js';
 import { loadEnemyImages } from './assets.js';
 import { buildAssetKeys } from './sprite/animator.js';
-import { state } from './core/state.js';
+import { state, setPhase, settlePhase } from './core/state.js';
 import { startLoop } from './core/gameLoop.js';
 import { update, getPlayArea, startGame } from './core/stageManager.js';
 import { consumeHitStop, updateParticles, clearJuice } from './systems/juice.js';
@@ -58,10 +58,14 @@ async function applyLoadedData() {
 
   await loadEnemyImages(buildAssetKeys(gameData.enemies));
 
-  // 최초 로드가 끝나면 타이틀로 착지한다(loading → title). 리로드 버튼으로 다시
-  // 불러올 때도 이 함수가 다시 불리는데, 그때도 title로 보내는 게 자연스럽다 —
-  // 이미 게임이 진행 중이면(playing) 리로드는 debug 전용 기능이라 잦지 않다.
-  state.phase = 'title';
+  // 최초 로드가 끝나면 타이틀로 착지한다(loading → title).
+  // ★ settlePhase는 "아직 판이 시작 안 됐을 때만" 적용된다(core/state.js의 정착
+  //   가드) — 이 함수는 fetch와 이미지 프리로드를 await한 뒤에야 여기 도달하므로,
+  //   그 사이에 판이 시작됐다면(지금은 그런 경로가 없지만 세이브 [이어하기]가
+  //   붙으면 생긴다) 뒤늦은 이 대입이 'playing'을 덮어써선 안 된다.
+  //   리로드 버튼처럼 "일부러 타이틀로 돌아가는" 경로는 자기 자리에서 setPhase를
+  //   따로 부른다(아래 initReloadButton) — 그래야 의도한 복귀는 그대로 살아있다.
+  settlePhase('title');
 
   // 대기 화면에서도 디버그 슬라이더가 그럴듯한 숫자를 보여주도록 미리 채워둔다.
   // 지금 대기 중인 구간(state.stageIndex)의 값을 쓴다.
@@ -121,6 +125,10 @@ async function main() {
   initReloadButton(async () => {
     await reloadGameData();
     await applyLoadedData();
+    // 리로드는 "지금 판을 접고 새 숫자로 다시 본다"는 뜻이라 진행 중이었어도
+    // 타이틀로 되돌린다(기존 동작 그대로) — 위 settlePhase는 이 의도까지는
+    // 모르므로 여기서 명시적으로 한 번 더 찍는다.
+    setPhase('title');
   });
 
   startLoop({

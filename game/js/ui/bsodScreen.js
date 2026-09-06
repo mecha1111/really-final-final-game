@@ -1,7 +1,7 @@
 // 이 파일 역할: 실패 화면(BSOD, .layer-bsod) — 수치 채우기(매 프레임, failed일 때만)와
 // 버튼 3개(재도전/로비/나가기) 클릭 훅. ui/titleScreen.js와 같은 패턴이다.
 
-import { state } from '../core/state.js';
+import { state, setPhase } from '../core/state.js';
 import { startGame } from '../core/stageManager.js';
 import { playSfx, SFX } from '../systems/sound.js';
 
@@ -67,7 +67,7 @@ export function initBsodScreen() {
   // main.js의 applyLoadedData()가 'loading' → 'title'로 착지시키는 것과 같은 방식).
   document.getElementById('bsod-lobby')?.addEventListener('click', () => {
     playSfx(SFX.UI_CLICK, { ui: true });
-    state.phase = 'title';
+    setPhase('title');
   });
 
   // 나가기 — Verse8 iframe 배포본에서는 window.close()가 무효다(스크립트가 열지
@@ -75,7 +75,7 @@ export function initBsodScreen() {
   // 같은 톤으로 로비로 보낸다(배포 맥락에서 "나가기"가 할 수 있는 가장 정직한 동작).
   document.getElementById('bsod-quit')?.addEventListener('click', () => {
     playSfx(SFX.UI_CLICK, { ui: true });
-    state.phase = 'title';
+    setPhase('title');
   });
 }
 

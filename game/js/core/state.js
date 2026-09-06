@@ -24,6 +24,9 @@ export const state = {
   // 'title'은 HTML 오버레이(.layer-title, ui/titleScreen.js)가 전담한다 — 캔버스는
   // 아무것도 안 그리고 클릭도 안 받는다(ui/render.js·systems/input.js의 title 가드).
   // main.js가 최초 로드 완료 시 여기로 착지시킨다(loading → title).
+  //
+  // ★ 이 값은 직접 대입하지 말고 아래 setPhase()/settlePhase()로만 바꾼다 —
+  //   "누가 언제 phase를 바꾸나"를 한 곳으로 모아야 아래 정착 가드가 의미를 갖는다.
   phase: 'loading',
   rules: null, // 이번 판에 적용 중인 숫자 묶음 (config.createRules 결과)
 
@@ -138,3 +141,33 @@ export const state = {
 
   stats: emptyStats(),
 };
+
+// ---------------------------------------------------------------------------
+// phase 전이의 유일한 진입점
+//
+// 왜 함수로 감쌌나 — phase를 여기저기서 직접 대입하면 "늦게 도착한 대입이 이미
+// 진행 중인 판을 덮어쓰는" 사고를 막을 자리가 없다. 실제로 그 구멍이 있었다:
+// main.js의 applyLoadedData()는 밸런스 fetch와 이미지 프리로드를 await한 뒤에야
+// 'title'을 찍는데, 그 await가 끝나기 전에 누군가 startGame()을 부르면(지금은
+// 정상 흐름에 그런 경로가 없지만, 세이브 [이어하기]가 붙으면 로드 직후 바로
+// startGame()을 부르게 되어 실제로 겹친다) 뒤늦은 'title' 대입이 'playing'을
+// 조용히 덮어써 방해꾼 갱신이 통째로 멈춘다(update()가 playing에서만 도므로).
+// ---------------------------------------------------------------------------
+
+/** 명시적 전이 — 부르는 쪽이 "지금 이 화면으로 간다"를 확실히 아는 경우. */
+export function setPhase(next) {
+  state.phase = next;
+}
+
+/**
+ * "아직 아무 판도 시작 안 했을 때만" 착지시킨다(단일 정착 가드).
+ * 비동기 로딩이 끝나고 나서야 도착하는 'title' 착지 전용 — 그 사이에 판이
+ * 이미 시작됐으면(playing/cleared/failed) 조용히 무시한다. 되돌아갈 의도가
+ * 분명한 경로(리로드 버튼·메인으로·로비)는 setPhase()를 그대로 쓴다.
+ * @returns {boolean} 실제로 적용됐으면 true
+ */
+export function settlePhase(next) {
+  if (state.phase !== 'loading' && state.phase !== 'title') return false;
+  state.phase = next;
+  return true;
+}
