@@ -580,6 +580,23 @@ body {
 #desktop .layer-quit.open { display: flex; pointer-events: auto; }
 #desktop .layer-quit .win { position: relative; }
 #desktop .quit-win { width: 520px; }
+
+/* 공용 확인 대화상자 — 위 .layer-quit과 같은 규칙을 그대로 쓰고 z만 더 올린다.
+   설정창(11) 안에서도 열리기 때문에 나가기(12)보다도 위여야 한다. 본문은 역시
+   .cleared-dlg-*를 그대로 물려받으므로 여기 새로 정의할 것이 폭 말고는 없다. */
+#desktop .layer-confirm {
+  position: absolute; inset: 0; z-index: 13;
+  display: none;
+  align-items: center; justify-content: center;
+  background: rgba(10, 14, 30, 0.55);
+  pointer-events: none;
+}
+#desktop .layer-confirm.open { display: flex; pointer-events: auto; }
+#desktop .layer-confirm .win { position: relative; }
+#desktop .confirm-win { width: 560px; }
+/* 하단 버튼바는 우측정렬(XP 관례)이라 DOM 순서대로 [확인][취소]가 놓인다 —
+   되돌릴 수 없는 동작이므로 둘 사이를 조금 띄워 오조작을 줄인다. */
+#desktop .confirm-win .cleared-dlg-foot { gap: 10px; }
 /* 초록(완료) 대신 빨강(에러) — .cleared-dlg-icon/.cleared-dlg-title 위에 덧씌운다. */
 #desktop .cleared-dlg-icon.error-icon {
   background: radial-gradient(circle at 35% 30%, #ff6b5b, #c0392b);

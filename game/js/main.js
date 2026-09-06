@@ -19,11 +19,12 @@ import { render } from './ui/render.js';
 import { initReloadButton } from './ui/screens.js';
 import { initCanvasFit, fitCanvasToViewport } from './ui/canvasFit.js';
 import { initDesktop, syncDesktopPhase } from './ui/desktop.js';
-import { initTitleScreen } from './ui/titleScreen.js';
+import { initTitleScreen, updateTitleScreen } from './ui/titleScreen.js';
 import { initBsodScreen, updateBsodScreen } from './ui/bsodScreen.js';
 import { initClearScreen, updateClearScreen } from './ui/clearScreen.js';
 import { initCrtTransition, syncCrtTransition } from './ui/crtTransition.js';
 import { initSettingsPanel } from './ui/settingsPanel.js';
+import { initConfirmDialog } from './ui/confirmDialog.js';
 import { initCursor, updateCursor } from './ui/cursor.js';
 import { updateStatusWindows } from './ui/statusWindow.js';
 import { initUploadPicture, updateUploadPicture } from './ui/uploadPicture.js';
@@ -125,12 +126,13 @@ async function main() {
   initSound(); // 효과음 — AudioContext를 세우고 mp3 프리로드를 시작한다(await 안 함)
   initBgm(); // 배경음악 — sound.js가 만든 AudioContext를 재사용(반드시 initSound() 다음)
   initDesktop(); // HTML 바탕화면(창 드래그·개그 팝업·시계)
-  initTitleScreen(); // 타이틀 화면 버튼(시작/설정/나가기)
+  initTitleScreen(); // 타이틀 화면 버튼(이어하기/새 게임/설정/나가기)
   initBsodScreen(); // 실패 화면(BSOD) 버튼(재도전/로비/나가기)
   initClearScreen(); // 구간 클리어 화면(폴더 정리 연출) 버튼/스킵
   initUploadPicture(); // 완료 연출(반짝+팝+라벨) CSS 변수 세팅
   initCrtTransition(); // 화면 전환 CRT 킥 — config.crt.durationMs를 CSS 변수로 내려보낸다
   initSettingsPanel(); // ESC 설정 팝업(사운드값 저장/CRT 실시간 토글/전체화면)
+  initConfirmDialog(); // 공용 확인 대화상자(새 게임 덮어쓰기 등) — 설정창보다 뒤여도 무관
   initDebugPanel();
   exposeDebugHandle();
   initReloadButton(async () => {
@@ -166,6 +168,7 @@ async function main() {
       updateBgm(state.phase, now); // 화면(phase)에 맞는 곡으로 자동 크로스페이드
       updateStatusWindows(state);
       updateUploadPicture(state);
+      updateTitleScreen(); // 타이틀에 새로 들어온 프레임에만 [이어하기] 노출을 갱신
       updateBsodScreen();
       updateClearScreen(now);
       updateCursor(state.inputFreezeSec > 0); // hourglass 함정 발동 중엔 대기 커서로
