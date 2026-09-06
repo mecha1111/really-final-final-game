@@ -8,6 +8,7 @@ import { hasProgress, savedStageIndex } from '../core/save.js';
 import { playSfx, SFX } from '../systems/sound.js';
 import { openSettings } from './settingsPanel.js';
 import { openConfirm } from './confirmDialog.js';
+import { openGallery } from './galleryPanel.js';
 import { state } from '../core/state.js';
 
 // "나가기" 개그 대화상자 문구 — 누를수록 점점 짜증나는 톤으로. 마지막 문구에서
@@ -102,6 +103,11 @@ export function initTitleScreen() {
       okLabel: '새로 시작',
       onConfirm: startNewGame,
     });
+  });
+
+  document.getElementById('title-btn-gallery')?.addEventListener('click', () => {
+    playSfx(SFX.UI_CLICK, { ui: true });
+    openGallery();
   });
 
   document.getElementById('title-btn-settings')?.addEventListener('click', () => {

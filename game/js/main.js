@@ -25,6 +25,7 @@ import { initClearScreen, updateClearScreen } from './ui/clearScreen.js';
 import { initCrtTransition, syncCrtTransition } from './ui/crtTransition.js';
 import { initSettingsPanel, applySavedSettings } from './ui/settingsPanel.js';
 import { initConfirmDialog } from './ui/confirmDialog.js';
+import { initGallery } from './ui/galleryPanel.js';
 import { initCursor, updateCursor } from './ui/cursor.js';
 import { updateStatusWindows } from './ui/statusWindow.js';
 import { initUploadPicture, updateUploadPicture } from './ui/uploadPicture.js';
@@ -139,6 +140,7 @@ async function main() {
   initCrtTransition(); // 화면 전환 CRT 킥 — config.crt.durationMs를 CSS 변수로 내려보낸다
   initSettingsPanel(); // ESC 설정 팝업(사운드값 저장/CRT 실시간 토글/전체화면)
   initConfirmDialog(); // 공용 확인 대화상자(새 게임 덮어쓰기 등) — 설정창보다 뒤여도 무관
+  initGallery(); // 그림 갤러리(타이틀 전용) — 버튼/그리드/뷰어 핸들러
   // 저장된 설정(사운드 셋·환경 방해)을 입힌다. ★ 반드시 initSound()/initBgm() 뒤여야
   // 한다 — 볼륨 노드가 그때 만들어지고, 여기서 그 노드에 값을 흘려보낸다.
   applySavedSettings();
