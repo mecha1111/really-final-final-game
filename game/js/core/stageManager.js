@@ -2,6 +2,7 @@
 
 import { config, gameData, createRules } from '../config.js';
 import { state, emptyStats, setPhase } from './state.js';
+import { recordStageCleared, recordGameOver } from './save.js';
 import { Spawner, buildPool } from '../enemies/spawner.js';
 import { splitEnemy, applyExpiryEffect, triggerSelfDestruct, updateFakeCursors } from '../enemies/effects.js';
 import { clearJuice } from '../systems/juice.js';
@@ -259,10 +260,18 @@ function checkWinLose(rules) {
   if (state.uploaded >= rules.quota) {
     setPhase('cleared');
     playSfx(SFX.STAGE_CLEAR);
+    // ★ 세이브 기록을 [다음 구간] 버튼(advanceStage)이 아니라 여기서 한다 — 판이
+    //   끝나는 바로 그 프레임이라 advanceStage보다 확실히 앞서면서, 클리어 화면을
+    //   보다가 브라우저를 껐다 켠 경우까지 덮는다(버튼을 눌러야만 저장되면 방금
+    //   깬 구간이 통째로 날아간다). 여기서 state.completedPictures는 아직 그대로다
+    //   — 비우는 건 다음 startGame()이라, 해금 목록 합치기도 이 자리가 맞다.
+    recordStageCleared();
   } else if (state.timeLeft <= 0) {
     state.timeLeft = 0;
     setPhase('failed');
     playSfx(SFX.GAMEOVER);
+    // 실패도 최고 기록과 해금은 남긴다(이어할 구간은 안 건드린다 — core/save.js).
+    recordGameOver();
   } else {
     return; // 판이 안 끝났다 — 아래 정리는 phase가 실제로 바뀔 때만 필요하다
   }

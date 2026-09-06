@@ -60,9 +60,17 @@ export const state = {
   settingsOpen: false,
   // 마스터/효과음/배경음 슬라이더 값(0~100). systems/sound.js·systems/bgm.js가
   // 매 프레임이 아니라 슬라이더가 바뀌는 순간에만 이 값을 읽어 각자의 볼륨 노드에
-  // 반영한다(refreshSfxVolume/refreshBgmVolume). localStorage는 안 쓴다(Verse8
-  // iframe/artifact 환경에서 못 쓰거나 세션마다 초기화될 수 있어 기대를 못
-  // 지킨다) — 새로고침하면 셋 다 기본값(100)으로 돌아간다.
+  // 반영한다(refreshSfxVolume/refreshBgmVolume).
+  //
+  // ★ 2026-09-06 전제 정정 — 여기 오래 붙어 있던 "localStorage는 안 쓴다(Verse8
+  //   iframe/artifact 환경에서 못 쓰거나 세션마다 초기화될 수 있어 기대를 못
+  //   지킨다)"는 문장은 이제 거짓이다. 제출·배포처가 Netlify(일반 도메인)로 바뀌었고
+  //   Verse8 배포는 보류다 — 그래서 이 프로젝트는 localStorage를 채택했다
+  //   (core/save.js가 유일한 영속 계층이다).
+  //   옛 주석이 경고하던 환경 자체가 사라진 건 아니라서, 그 경우는 없애지 않고
+  //   save.js가 흡수한다: 저장소가 막혀 있으면 조용히 메모리 세이브로 강등하고
+  //   게임은 그대로 진행된다(그 브라우저에서만 옛 동작대로 새로고침 시 초기값).
+  //   ★ 이 판단을 다시 하게 되면 "지금 어디에 배포하나"부터 확인할 것.
   settings: {
     soundMaster: 100,
     soundSfx: 100,
