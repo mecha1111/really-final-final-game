@@ -59,6 +59,10 @@ export const FRAME_SETS = {
   clone: { tier: ['clone/big', 'clone/mid', 'clone/small'] },
   // 모래시계 함정. 루프 없이 정지 그림 한 장.
   hourglass: { single: 'hourglass/hourglass_1' },
+  // 좀비 프로세스. 루프 애니가 아니라 부활 여부(enemy.reviveCount)로 정적 프레임
+  // 둘 중 하나를 고른다(clone의 tier 선택과 같은 결) — 평상시/부활 후 두 장뿐이고
+  // 부활한 뒤로는 그 판 끝까지 revive 그림을 유지한다(재처치돼도 안 돌아간다).
+  zombie: { normal: 'zombie/zombie_1', revive: 'zombie/zombie_revive' },
   // copier가 안착 시 뿌리는 가짜 커서. 방해꾼(enemies 시트)이 아니라 effects.js가
   // 직접 그리는 소품이라 enemyAssetKeys 대신 EXTRA_ASSET_KEYS로 미리 불러둔다.
   cursor: { single: 'cursor/cursor' },
@@ -104,6 +108,13 @@ export function getFrameKey(enemy, now) {
     return pickLoopFrame(FRAME_SETS.basic.alive(v), now);
   }
 
+  // zombie: 부활 여부만으로 정적 프레임 둘 중 하나 — reviveCount는 부활한 순간
+  // 1이 되고 그 뒤로 다시 0으로 안 돌아가므로(enemies/Enemy.js), 재처치돼서
+  // 죽어가는 동안(corpseTimer)에도 자연히 revive 그림 그대로 보인다.
+  if (id === 'zombie') {
+    return enemy.reviveCount > 0 ? FRAME_SETS.zombie.revive : FRAME_SETS.zombie.normal;
+  }
+
   if (id === 'ransom') {
     if (enemy.hitFrameTimer > 0) return FRAME_SETS.ransom.hit;
     return pickLoopFrame(FRAME_SETS.ransom.stage[ransomStage(enemy)], now);
@@ -147,6 +158,8 @@ export function enemyAssetKeys(spec) {
   if (set.single) keys.add(set.single);
   if (set.hit) keys.add(set.hit);
   if (set.tier) set.tier.forEach((k) => keys.add(k));
+  if (set.normal) keys.add(set.normal); // zombie: 평상시 그림
+  if (set.revive) keys.add(set.revive); // zombie: 부활 후 그림
   if (set.variants) {
     for (const v of set.variants) {
       set.alive(v).forEach((k) => keys.add(k));

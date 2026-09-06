@@ -79,10 +79,8 @@ export class Enemy {
     this.shakeTimer = 0;
 
     // === 애니 전용 상태(sprite/animator.js가 읽는다) ===
-    // basic만 잡몹 얼굴(1/2/3)이 스폰 시 하나로 고정된다. zombie는 그림을 새로 안 그리고
-    // basic 그림을 그대로 재활용하므로(초록 틴트만 위에 얹는다, ui/renderEnemies.js) 여기서
-    // 같이 고른다 — sprite/animator.js의 getFrameKey가 'zombie'도 'basic'과 똑같이 취급한다.
-    this.basicVariant = spec.id === 'basic' || spec.id === 'zombie' ? pickBasicVariant() : null;
+    // basic만 잡몹 얼굴(1/2/3)이 스폰 시 하나로 고정된다.
+    this.basicVariant = spec.id === 'basic' ? pickBasicVariant() : null;
     // a/b 두 벌 그림을 가진 종류(popup의 노랑/핑크 광고)는 스폰 시 한쪽으로 고정된다.
     // ★ 이 값은 그림만 고르는 게 아니다 — popup은 a와 b의 X 버튼 위치가 서로 달라서
     //   클릭 판정(enemies/hitbox.js의 artRect)도 이걸 보고 갈라진다.

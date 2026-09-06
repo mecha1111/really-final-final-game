@@ -271,6 +271,14 @@ export const config = {
       'clone:0': { l: 1 / 128, t: 17 / 128, r: 126 / 128, b: 116 / 128 }, // big
       'clone:1': { l: 30 / 128, t: 20 / 128, r: 110 / 128, b: 105 / 128 }, // mid
       'clone:2': { l: 13 / 128, t: 19 / 128, r: 115 / 128, b: 109 / 128 }, // small
+      // zombie: 실제 아트(assets/enemies/zombie/zombie_1.png, 128x128) 알파채널
+      // 실측값(alpha>32 기준, center 63,66) — 그대로 쓴다.
+      // ★ zombie_revive.png(부활 후 그림)는 실측이 다르지만(center 64,64) 여기 안
+      //   쓴다 — 부활 전후로 히트박스가 바뀌면 안 되므로(요구사항) artHitboxKey가
+      //   그림 상태와 무관하게 항상 spec.id 그대로("zombie")라 이 표 한 줄만
+      //   쓰인다(enemies/Enemy.js의 artHitboxKey 계산 참고). 아래는 참고 기록용.
+      //   zombie_revive 실측: l 0.0547, t 0.0391, r 0.9453, b 0.9609.
+      zombie: { l: 0.1172, t: 0.0703, r: 0.8672, b: 0.9688 },
       // hourglass: assets/enemies/hourglass/hourglass_1.png 알파채널 실측값
       // (center 62,62).
       hourglass: { l: 0.0078, t: 0.0547, r: 0.9688, b: 0.9141 },
@@ -349,7 +357,7 @@ export const config = {
         unplug: '#35c8ff', // --color-hitbox(플러그 = 전기 하늘색)
         hidden: '#7a4dff', // --color-enemy-fallback(숨은놈 = 보라)
         bomb: '#ff4d4d', // --color-danger(폭탄 = 빨강)
-        zombie: '#2ecc71', // config.enemy.zombie.tintColor와 같은 값(부활 틴트와 통일)
+        zombie: '#2ecc71', // 좀비다운 초록(실제 아트도 초록 톤이라 처치 파편도 맞췄다)
       },
     },
 
@@ -386,10 +394,11 @@ export const config = {
     },
 
     // zombie(좀비 프로세스) — 처치해도 reviveDelaySec 뒤 같은 자리에서 한 번 더 살아난다.
-    // 임시 아트는 새로 안 그리고 basic 스프라이트를 그대로 재사용한 뒤 초록 틴트만
-    // 얹는다(ui/renderEnemies.js — bait 글리치의 틴트 레이어 캐시 방식과 같은 원리,
-    // ui/baitRender.js의 getTinted 참고). 부활/재처치 상태기계는 core/stageManager.js의
-    // processDeaths(제거 대신 부활 예약)와 enemies/Enemy.js(reviveCount 등)에 있다.
+    // 그림은 평상시(zombie/zombie_1)와 부활 후(zombie/zombie_revive) 두 장뿐인 상태
+    // 표시라 sprite/animator.js가 enemy.reviveCount(0=평상시, 1 이상=부활함)로 고른다
+    // (루프 애니 아님 — clone의 tier 선택과 같은 결). 부활/재처치 상태기계는
+    // core/stageManager.js의 processDeaths(제거 대신 부활 예약)와
+    // enemies/Enemy.js(reviveCount 등)에 있다.
     zombie: {
       // 몇 번까지 부활하는가. 1이면 "처치 → 부활 → (다시 처치하면 완전 제거)"까지 한 사이클.
       maxRevives: 1,
@@ -399,11 +408,6 @@ export const config = {
       // reviveFadeSec에 걸쳐 1(완전 불투명)까지 밝아진다.
       reviveStartAlpha: 0.3,
       reviveFadeSec: 1.0,
-      // basic 그림 위에 얹는 초록 틴트. tintAlpha가 1이면 원본이 안 보이는 완전한
-      // 초록 실루엣이 되어버려 "basic을 재활용했다"는 티가 안 난다 — 원본이 은은히
-      // 비치는 선에서 얹는다. kill.particleColors.zombie와 같은 색으로 맞춰뒀다.
-      tintColor: '#2ecc71',
-      tintAlpha: 0.55,
     },
   },
 

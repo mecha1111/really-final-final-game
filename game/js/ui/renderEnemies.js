@@ -78,16 +78,6 @@ export function drawEnemy(ctx, e, showHitbox, now) {
 
   if (img) {
     ctx.drawImage(img, x, y, w, h);
-    if (e.id === 'zombie') {
-      // basic 그림 위에 초록 실루엣을 얹어 "감염돼 재활용됐다" 톤을 낸다(임시 아트 —
-      // 요구사항: bait 글리치의 틴트 레이어 캐시 방식 재사용, 아래 getZombieTintCanvas).
-      // 현재 걸린 filter(피격 번쩍임 등)와 globalAlpha를 그대로 물려받아서 zombie도
-      // 다른 상태 연출과 똑같이 반응한다.
-      ctx.save();
-      ctx.globalAlpha *= config.enemy.zombie.tintAlpha;
-      ctx.drawImage(getZombieTintCanvas(img), x, y, w, h);
-      ctx.restore();
-    }
   } else {
     // PNG를 못 읽었을 때의 대체 표시
     ctx.fillStyle = cssColor('--color-enemy-fallback');
@@ -195,33 +185,6 @@ function drawPopupHintOutline(ctx, e, now) {
   // 반픽셀 어긋나 흐려지는 걸 막는다.
   ctx.strokeRect(r.x + 0.5, r.y + 0.5, r.w, r.h);
   ctx.restore();
-}
-
-// ── zombie 초록 틴트 캐시 ─────────────────────────────────────────────────────
-// bait 글리치 색수차(ui/baitRender.js의 getTinted)와 같은 방식 — 원본 이미지를
-// 통째로 한 색으로 물들인 오프스크린 캔버스를 (원본 img) 조합별로 딱 한 번만
-// 만들어 재사용한다. zombie는 basic 그림 3종(variant)만 재활용하므로 캐시 항목도
-// 최대 3개로 끝난다. 색은 항상 config.enemy.zombie.tintColor 하나뿐이라 키를
-// img.src만으로 잡아도 충분하다(bait처럼 색이 여러 개였다면 색까지 키에 넣어야 한다).
-const zombieTintCache = new Map(); // key: img.src -> canvas
-
-function getZombieTintCanvas(img) {
-  let canvas = zombieTintCache.get(img.src);
-  if (canvas) return canvas;
-
-  canvas = document.createElement('canvas');
-  canvas.width = img.naturalWidth || img.width;
-  canvas.height = img.naturalHeight || img.height;
-  const tctx = canvas.getContext('2d');
-  tctx.drawImage(img, 0, 0);
-  // source-in: 이미 그려진 이미지의 알파(실루엣)만 남기고 그 자리를 단색으로 덮는다
-  // → "이미지 모양 그대로, 색만 초록인" 레이어가 된다(getTinted와 동일 원리).
-  tctx.globalCompositeOperation = 'source-in';
-  tctx.fillStyle = config.enemy.zombie.tintColor;
-  tctx.fillRect(0, 0, canvas.width, canvas.height);
-
-  zombieTintCache.set(img.src, canvas);
-  return canvas;
 }
 
 /**
