@@ -121,7 +121,9 @@ export class Enemy {
       spec.dps > 0 && !this.isEventType
         ? {
             interval: config.enemy.atkIntervalSec,
-            damage: spec.dps * config.enemy.atkIntervalSec,
+            // 세기는 atkDamageScale이 정한다 — atkIntervalSec은 리듬만 정하고
+            // 초당 피해량을 안 바꾼다(그 상수 주석 참고).
+            damage: spec.dps * config.enemy.atkIntervalSec * config.enemy.atkDamageScale,
             timer: config.enemy.atkIntervalSec,
           }
         : null;
