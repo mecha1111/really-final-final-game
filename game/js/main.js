@@ -10,6 +10,9 @@ import { consumeHitStop, updateParticles, clearJuice } from './systems/juice.js'
 import { updateRipples } from './systems/clickRipple.js';
 import { initInput } from './systems/input.js';
 import { initHazards, triggerHazard, hazardIds } from './systems/hazard.js';
+// 환경 방해 정의 등록(부수효과 import) — 이 한 줄이 ui/hazards/index.js에 나열된
+// 방해들을 전부 등록표에 올린다. 새 방해가 늘어도 여기는 안 바뀐다.
+import './ui/hazards/index.js';
 import { initSound } from './systems/sound.js';
 import { initBgm, updateBgm } from './systems/bgm.js';
 import { render } from './ui/render.js';

@@ -1602,3 +1602,49 @@ body {
   white-space: pre;
   color: var(--color-text-muted);
 }
+
+/* ===========================================================================
+   환경 방해(hazard) — .layer-hazard(z7) 안에 systems/hazard.js가 넣고 빼는 DOM.
+   ★ pointer-events 규칙: 레이어 컨테이너는 위(z-index 목록)에서 이미 none이다.
+     "해제 조작을 받아야 하는 요소"만 여기서 auto로 연다 — .layer-win > * /
+     .layer-bsod 버튼이 쓰는 관례 그대로다. 그래야 방해가 떠 있어도 그 바깥
+     클릭은 캔버스(z5)의 방해꾼 판정으로 평소와 똑같이 내려간다.
+   =========================================================================== */
+
+/* 화면 한가운데 정렬용 껍데기 — 자기 자신은 클릭을 안 먹는다(none 유지). */
+#desktop .hz-center {
+  position: absolute; inset: 0;
+  display: flex; align-items: center; justify-content: center;
+  pointer-events: none;
+}
+
+/* .win은 원래 position:absolute(창 좌표를 .winA/.winB가 박는다) — 설정 팝업이
+   쓰는 것과 똑같이 이 안에서만 relative로 덮어써 위 flex 가운데 정렬을 따르게
+   한다. 배경·테두리·그림자·안쪽 테두리(.win::after)는 전부 원래 규칙 그대로. */
+#desktop .hz-center .win { position: relative; }
+/* ★ 이 창만 클릭을 받는다(그래서 창 아래 방해꾼은 가려지고 클릭도 안 샌다).
+   창 바깥은 .hz-center가 none이라 그대로 캔버스로 통과한다. */
+#desktop .hz-win { pointer-events: auto; }
+/* .tbar 기본값이 창 드래그용 cursor:move인데 이 창은 안 끌린다. */
+#desktop .hz-win .tbar { cursor: default; }
+/* 폼 요소는 브라우저 기본 스타일시트가 조상 폰트를 안 물려주는 경우가 있다 —
+   설정 팝업과 같은 이유로 상속만 명시한다(폰트를 다시 나열하지 않는다). */
+#desktop .hz-win button { font-family: inherit; -webkit-font-smoothing: inherit; }
+
+/* ── A. 재부팅 카운트다운 ─────────────────────────────────────────────────── */
+#desktop .hz-reboot { width: 620px; }
+#desktop .hz-reboot .tbar .ico { background: #ffd34d; font-size: 20px; }
+#desktop .hz-body { background: #ece9d8; padding: 22px 26px 18px; }
+#desktop .hz-row { display: flex; gap: 18px; align-items: flex-start; }
+/* XP 업데이트 알림의 노란 방패 — 이모지 하나로 충분하다(새 이미지 에셋 없이). */
+#desktop .hz-shield { font-size: 46px; line-height: 1; flex-shrink: 0; }
+#desktop .hz-msg { color: #111; font-size: 19px; line-height: 1.55; }
+#desktop .hz-msg p { margin: 0; }
+#desktop .hz-sub { margin-top: 12px !important; color: #444; font-size: 17px; }
+/* 카운트다운 — XP 대화상자의 남은 시간 표기. 숫자만 크게 도드라지게. */
+#desktop .hz-count { margin-top: 4px !important; font-size: 34px; color: #0a327a; }
+/* 하단 버튼바(우측 정렬 = XP 관례). 색·질감은 .settings-btn을 그대로 물려받는다. */
+#desktop .hz-foot {
+  margin-top: 20px; padding-top: 14px; border-top: 1px solid #aca899;
+  display: flex; justify-content: flex-end; gap: 10px;
+}

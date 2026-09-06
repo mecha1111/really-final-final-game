@@ -153,7 +153,14 @@ function pickEligible(stage) {
   if (eligible.length === 0) return null;
 
   const fresh = eligible.filter((d) => d.id !== lastFiredId);
-  const pool = fresh.length > 0 ? fresh : eligible;
+  const relaxed = fresh.length === 0;
+  // 완화가 실제로 걸린 순간만 한 줄 남긴다 — 나중에 밸런스를 볼 때 "같은 게 두 번
+  // 연속 나왔다"가 의도된 완화인지 스케줄러 버그인지 로그로 바로 갈린다.
+  // config.debug.enabled일 때만 — 배포본 콘솔을 더럽히지 않는다.
+  if (relaxed && config.debug.enabled) {
+    console.debug(`[hazard] 이 구간(stage ${stage})에 해금된 종류가 ${eligible.length}개뿐이라 연속 허용 — ${lastFiredId} 재발동`);
+  }
+  const pool = relaxed ? eligible : fresh;
   return pool[Math.floor(Math.random() * pool.length)];
 }
 

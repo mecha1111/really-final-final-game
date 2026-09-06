@@ -76,9 +76,16 @@ export function triggerHitFeedback(text, opts) {
 }
 
 /**
- * 업로드 바를 즉시 깎는다. 주기 공격, bomb 폭발, 함정 오클릭이 모두 이걸 쓴다.
+ * 업로드 바를 즉시 깎는다. 주기 공격, bomb 폭발, 함정 오클릭, 환경 방해(재부팅)가
+ * 모두 이걸 쓴다 — 피해는 종류가 몇이든 이 함수 하나만 거친다(그래야 번쩍임·비네트·
+ * 수치 표시를 종류마다 따로 챙기지 않아도 자동으로 붙는다).
  * @param {number} pct 깎을 퍼센트 포인트
- * @param {{silent?: boolean}} [opts] triggerHitFeedback로 그대로 넘긴다(silent 참고).
+ * @param {{silent?: boolean, cause?: string}} [opts]
+ *   silent — triggerHitFeedback로 그대로 넘긴다(위 주석 참고).
+ *   cause  — HUD 피해 캡션 앞에 붙일 원인 이름("재부팅 -15%"). 방해꾼에게 맞은 건
+ *            화면에 그 놈이 보이니 원인이 자명하지만, 환경 방해처럼 "무엇 때문에
+ *            깎였는지"가 안 보이는 경우엔 이름을 같이 띄워야 납득이 된다.
+ *            ★ 진행 "정지" 배지(state.blocked)와는 무관하다 — 여기선 절대 안 건드린다.
  */
 export function damageUpload(pct, x, y, opts) {
   if (!state.file) return;
@@ -87,8 +94,10 @@ export function damageUpload(pct, x, y, opts) {
   state.file.progress = clamp(before - pct, 0, 100);
   state.stats.drainedPct += before - state.file.progress;
 
-  addFloat(`-${Math.round(pct)}%`, x, y, false);
-  triggerHitFeedback(`-${Math.round(pct)}%`, opts);
+  const label = `-${Math.round(pct)}%`;
+  // 화면에 떠오르는 글씨(addFloat)는 짧아야 읽히므로 수치만, HUD 캡션에만 원인을 붙인다.
+  addFloat(label, x, y, false);
+  triggerHitFeedback(opts?.cause ? `${opts.cause} ${label}` : label, opts);
 
   // 방금 깎이기 직전 값을 "손실분" 빨간 잔상으로 잠깐 남긴다(ui/statusWindow.js가
   // 그린다). 이미 더 큰 손실분이 표시 중이면(짧은 시간에 연타로 맞은 경우) 안
