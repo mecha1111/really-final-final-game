@@ -97,6 +97,20 @@ export function fitCanvasToViewport(canvas) {
     canvas.height = targetH;
   }
 
+  // ── 화면 회전(환경 방해 "모니터 세로모드")이 화면을 넘치지 않게 하는 추가 배율 ──
+  // 16:9를 90° 돌리면 세로가 가로보다 길어져 위아래가 잘린다 — 잘린 자리의 방해꾼은
+  // 보이지도 눌리지도 않아(화면 밖) 그냥 불공정해진다. 그래서 회전 상태에서는 이만큼
+  // 더 줄여서 통째로 담는다(실제 모니터를 세로로 돌리면 바탕화면이 새 방향에 맞게
+  // 다시 맞춰지는 것과 같은 결).
+  //
+  // ★ 여기서 계산해 CSS 변수로 내려보내는 이유: 회전 CSS(ui/hazards/portrait.js)가
+  //   이 값을 직접 계산하면 리사이즈 때 갱신할 사람이 없다. 화면 맞춤 계산은 원래
+  //   이 파일 소유고 리사이즈마다 여기가 다시 도니까, 값도 여기서 낸다.
+  //   회전 후 크기는 shownH × shownW(가로세로가 뒤바뀐다)이므로 그게 뷰포트에
+  //   들어가는 배율을 구한다. 1을 넘지 않게 막는다(굳이 키울 이유가 없다).
+  const rotFit = Math.min(1, viewportW / shownH, viewportH / shownW);
+  document.documentElement.style.setProperty('--rot-fit', String(rotFit));
+
   if (USE_CSS_ZOOM) {
     stage?.classList.remove('no-zoom');
     desktop.style.transform = '';
