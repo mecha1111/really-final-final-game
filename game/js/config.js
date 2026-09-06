@@ -79,8 +79,49 @@ export const config = {
     // ★ 이 숫자 하나만 고치면 6구간·7구간으로 늘어난다 — 구간 수를 코드 어디에도
     //   직접 박지 않는다(nextStageIndex/완주 판정/무한모드 진입이 전부 이 값을
     //   읽는다). 늘릴 때 같이 볼 곳은 "그 구간에서 뭐가 새로 나오나"뿐이다
-    //   (enemies 시트 min_stage / 아래 hazard.*.minStage / debug.js의 STAGE_JUMPS).
+    //   (아래 enemyUnlockPlan / hazard.*.minStage / debug.js의 STAGE_JUMPS).
     finiteCount: 5,
+
+    // ── 해금 배치의 정본 ───────────────────────────────────────────────────
+    // ★ 설계 원칙: 누적이다. 한 번 등장한 요소는 절대 빠지지 않는다 — 학습 곡선
+    //   (하나씩 차분히)이 아니라 혼돈 누적(계속 쌓이기)이고, 1구간부터 이미
+    //   시끄러워야 한다. 그래서 아래 값은 "그 구간에서 새로 추가되는 것"이고,
+    //   판정은 min_stage <= 지금 구간이라 한 번 열리면 계속 나온다.
+    //
+    //   구간(0-based) — 새로 추가되는 것 / 그때 함께 열리는 환경 방해
+    //     1구간(0): basic, clone, ransom, popup
+    //     2구간(1): bomb, fake_btn          / hazard: screensaver
+    //     3구간(2): unplug, hourglass       / hazard: powersave, reboot
+    //     4구간(3): copier, hidden, zombie
+    //     5구간(4): bait (예비 슬롯)
+    //     무한(5+): 전부 활성
+    //
+    // 아래 숫자는 enemies 시트의 min_stage와 같은 1-based 값이다(구간 n → n+1).
+    //
+    // ★ 원칙적으로 해금은 구글시트 enemies 탭의 min_stage가 정한다. 그런데 지금
+    //   시트 값은 5구간 구조를 확정하기 전에 짜인 것이라 위 표와 다섯 군데가
+    //   어긋난다(clone 2→1, unplug 2→3, copier 3→4, hidden 3→4, bait 1→5).
+    //   시트를 고치기 전까지 게임이 설계와 다르게 돌아가면 이후 밸런스 실측이
+    //   통째로 무의미해지므로, 로드 직후 applyEnemyUnlockPlan()이 이 표로
+    //   min_stage를 덮어쓴다. 덮어쓴 항목은 config.debug.enabled일 때 콘솔에
+    //   한 줄씩 찍어 "시트와 코드가 다르다"는 사실이 조용히 묻히지 않게 한다.
+    //   ★ 시트를 위 표대로 고치고 나면 이 표는 값이 같아져 아무 것도 안 바꾸게
+    //     된다(그대로 둬도 되고 지워도 된다). 그때가 되면 해금의 진실은 다시
+    //     시트 하나로 돌아간다.
+    enemyUnlockPlan: {
+      basic: 1,
+      clone: 1,
+      ransom: 1,
+      popup: 1,
+      bomb: 2,
+      fake_btn: 2,
+      unplug: 3,
+      hourglass: 3,
+      copier: 4,
+      hidden: 4,
+      zombie: 4,
+      bait: 5,
+    },
   },
 
   // HUD는 캔버스에서 HTML 창(ui/statusWindow.js)으로 옮겨갔다.
@@ -479,7 +520,9 @@ export const config = {
     // XP 자동 업데이트의 "시스템 설정 변경" 재시작 알림 그대로. 화면 한가운데를
     // 차지해 그 아래 방해꾼을 가린다 — 시야를 막는 게 이 방해의 본체다.
     reboot: {
-      minStage: 1,
+      // 3구간(index 2)부터. 아래 powersave와 같은 구간에 함께 열린다 —
+      // 해금 배치의 정본은 config.stage.enemyUnlockPlan 위의 표 주석이다.
+      minStage: 3,
       // 카운트다운 길이(초) = 자동 종료 시간. 이 시간을 다 흘려보내면(방치) 벌칙.
       countdownSec: 10,
       // 방치했을 때 / [지금 다시 시작]을 눌렀을 때 깎이는 진행도(%p).
@@ -496,7 +539,8 @@ export const config = {
     // XP 기본 스크린세이버 "별 필드(비행)" 패러디 — 검은 화면 한가운데서 별이
     // 사방으로 쏟아져 나온다. 완전 실명은 아니고 방해꾼이 흐릿하게 비친다.
     screensaver: {
-      minStage: 1,
+      // 2구간(index 1)부터 — 환경 방해 중 가장 먼저 등장하는 종류.
+      minStage: 2,
       // 해제 안 하면 이 시간(초) 뒤 저절로 꺼진다.
       durationSec: 8,
       // 검은 막의 불투명도. 1이면 아무것도 안 보여 "그냥 못 하는" 시간이 되므로,
@@ -517,7 +561,8 @@ export const config = {
     // 다시 밝아진다. 위 둘과 달리 "한 번 해제하고 끝"이 아니라 계속 움직여야
     // 유지되는 방해라, 조준(정지)과 회피(움직임)가 서로 충돌하는 게 핵심이다.
     powersave: {
-      minStage: 1,
+      // 3구간(index 2)부터(reboot와 동시 해금).
+      minStage: 3,
       // 해제 못 해도 이 시간(초) 뒤엔 저절로 풀린다.
       durationSec: 7,
       // 완전히 어두워지기까지 걸리는 시간(초). 0에서 maxOpacity까지 이 시간에 걸쳐.
@@ -1000,6 +1045,39 @@ export function applyEnemyFallbacks() {
       gameData.enemies.push(fallback);
     }
   }
+}
+
+/**
+ * config.stage.enemyUnlockPlan(해금 배치의 정본)을 로드된 enemies 데이터에 입힌다.
+ * main.js가 applyEnemyFallbacks() 바로 뒤에 부른다(폴백으로 채워 넣은 행까지
+ * 함께 맞추기 위해 순서가 중요하다).
+ *
+ * 표에 없는 id는 손대지 않는다 — 나중에 시트에 새 방해꾼이 생겨도 여기 표에
+ * 올리기 전까지는 시트 값 그대로 돈다(모르는 놈을 임의로 0구간에 풀어놓지 않는다).
+ *
+ * @returns {Array<{id: string, from: number, to: number}>} 실제로 덮어쓴 항목
+ */
+export function applyEnemyUnlockPlan() {
+  const plan = config.stage.enemyUnlockPlan;
+  const changed = [];
+  for (const spec of gameData.enemies) {
+    const want = plan[spec.id];
+    if (want === undefined) continue;
+    const had = spec.min_stage ?? 1;
+    if (had === want) continue;
+    spec.min_stage = want;
+    changed.push({ id: spec.id, from: had, to: want });
+  }
+  // 시트와 코드가 다르다는 사실을 조용히 묻지 않는다 — 시트를 고치면 이 줄이
+  // 저절로 사라지므로, 로그가 없어지는 것이 곧 "시트가 정본과 같아졌다"는 신호다.
+  if (changed.length && config.debug.enabled) {
+    console.warn(
+      `[unlock] 시트 min_stage를 config.stage.enemyUnlockPlan으로 덮어썼다(${changed.length}건) — ` +
+        `시트를 이 값으로 고치면 이 경고는 사라진다: ` +
+        changed.map((c) => `${c.id} ${c.from}→${c.to}`).join(', '),
+    );
+  }
+  return changed;
 }
 
 /**

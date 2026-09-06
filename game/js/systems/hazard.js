@@ -73,6 +73,16 @@ export function hazardIds() {
 }
 
 /**
+ * 그 구간(rules.stage, 1부터)에 해금돼 있는 환경 방해 id 목록.
+ * 실제 발동 후보를 고르는 pickEligible()과 정확히 같은 조건을 쓴다 — 디버그
+ * 패널이 "지금 구간에 뭐가 활성인가"를 보여줄 때 그 목록이 실제와 갈리면
+ * 확인 자체가 무의미해지므로, 판정을 여기 한 곳에서만 한다.
+ */
+export function eligibleHazardIds(stage) {
+  return [...DEFS.values()].filter((d) => (d.minStage ?? 1) <= stage).map((d) => d.id);
+}
+
+/**
  * 지금 떠 있는 것 전부를 정리하고 스케줄러도 처음으로 되돌린다.
  * ★ core/stageManager.js의 startGame()이 부른다 — 판을 넘어 잔존하면 새 판이
  *   시작하자마자 지난 판의 대화상자가 화면 한가운데 남아있게 된다.
@@ -149,7 +159,10 @@ function endHazard(inst, reason) {
  *   안 나오는 조용한 고장이 된다.
  */
 function pickEligible(stage) {
-  const eligible = [...DEFS.values()].filter((d) => (d.minStage ?? 1) <= stage);
+  // 해금 판정은 eligibleHazardIds() 한 곳에만 둔다(디버그 표시와 실제 발동이
+  // 갈리지 않게) — 여기선 그 결과로 def 객체를 다시 집어올 뿐이다.
+  const ids = new Set(eligibleHazardIds(stage));
+  const eligible = [...DEFS.values()].filter((d) => ids.has(d.id));
   if (eligible.length === 0) return null;
 
   const fresh = eligible.filter((d) => d.id !== lastFiredId);

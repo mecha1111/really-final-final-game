@@ -332,7 +332,15 @@ body {
   bottom: 9%;
   display: flex;
   flex-direction: column;
-  gap: 46px; /* 원본 2.4vw = 1920 기준 46.08px */
+  /* 원래 46px(원본 2.4vw = 1920 기준 46.08px)이었는데, 버튼이 6개(이어하기/
+     새 게임/무한 모드/갤러리/설정/나가기)가 되면서 맨 위 항목이 로고(노란
+     메모지) 그림 위로 올라타는 걸 실측으로 확인해 26px로 좁혔다.
+     ★ #desktop은 1920x1080 고정 좌표계라 계산이 딱 떨어진다:
+       버튼 높이 65px × 6 + 간격 × 5 = 메뉴 높이.
+       gap 46 → 620px(로고와 겹침) / gap 26 → 520px(로고 아래에 안착).
+     ★ 버튼이 7개가 되면 다시 91px가 더해져 또 겹친다 — 그때는 이 간격만
+       줄이지 말고 .layer-title .btn의 font-size(65px)도 같이 낮출 것. */
+  gap: 26px;
   align-items: flex-end;
   text-align: right;
 }

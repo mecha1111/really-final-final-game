@@ -8,12 +8,16 @@ import { config } from './config.js';
 //   서로를 쓰므로 문제없다 — ES 모듈 순환참조는 "당장 평가 시점에 값이 필요한지"만
 //   문제가 된다.
 import { startGame } from './core/stageManager.js';
+import { buildPool } from './enemies/spawner.js';
+import { eligibleHazardIds } from './systems/hazard.js';
 
 const DEBUG = config.debug.enabled;
 
 // 구간 즉시 이동 버튼 — 밸런스 확인용. 표시는 1구간부터(사람이 읽는 번호),
 // startGame()에 넘기는 n은 0부터(코드 규칙, progression.js 주석 참고).
-const STAGE_JUMPS = [0, 1, 2];
+// ★ 유한 구간 전부 + 무한모드 첫 구간 하나. config.stage.finiteCount에서 뽑으므로
+//   구간 수를 늘려도 여기는 안 고친다(그게 finiteCount를 둔 이유다).
+const STAGE_JUMPS = [...Array(config.stage.finiteCount).keys(), config.stage.finiteCount];
 
 // 슬라이더로 조절할 값들. key는 rules 객체의 속성 이름과 같아야 한다.
 // live=false인 항목은 이미 시작된 판에는 영향이 없고 다음 판부터 적용된다.
@@ -73,7 +77,8 @@ export function initDebugPanel() {
   for (const n of STAGE_JUMPS) {
     const btn = document.createElement('button');
     btn.type = 'button';
-    btn.textContent = `${n + 1}구간`;
+    // 무한모드 첫 구간은 번호만 쓰면 유한 구간과 구분이 안 된다.
+    btn.textContent = n >= config.stage.finiteCount ? `무한(${n + 1})` : `${n + 1}구간`;
     btn.addEventListener('click', () => startGame(n));
     jumpRow.appendChild(btn);
   }
@@ -150,6 +155,21 @@ export function handleDebugKey(code) {
   return false;
 }
 
+/** 지금 구간에 스폰 후보인 방해꾼 id 목록(스폰이 실제로 쓰는 buildPool 그대로). */
+function activeEnemyIds(state, gameData) {
+  if (!state.rules) return '-';
+  const ids = buildPool(gameData.enemies, state.rules.stage).map((s) => s.id);
+  return ids.length ? `${ids.length}종 ${ids.join(',')}` : '없음';
+}
+
+/** 지금 구간에 해금된 환경 방해 id 목록(발동이 실제로 쓰는 판정 그대로). */
+function activeHazardIds(state) {
+  if (!state.rules) return '-';
+  const ids = eligibleHazardIds(state.rules.stage);
+  const off = config.hazard.enabled ? '' : ' (설정에서 끔)';
+  return (ids.length ? `${ids.length}종 ${ids.join(',')}` : '없음') + off;
+}
+
 /** 매 프레임 호출. 현재 수치를 패널 아래쪽에 찍는다. */
 export function updateDebugStats(state, gameData, fps) {
   if (!DEBUG || !statsEl || panel.hidden) return;
@@ -162,7 +182,13 @@ export function updateDebugStats(state, gameData, fps) {
     `fps        ${fps}`,
     `balance    ${gameData.loading ? 'loading' : gameData.source}`,
     `phase      ${state.phase}`,
-    `구간       n=${state.stageIndex} (표시 ${state.stageIndex + 1}구간)`,
+    `구간       n=${state.stageIndex} (표시 ${state.stageIndex + 1}구간)${state.stageIndex >= config.stage.finiteCount ? ' [무한]' : ''}`,
+    // ★ 해금 배치 확인용 — 지금 구간에 "실제로 스폰 후보인" 목록을 그대로 보여준다.
+    //   설정값을 다시 읽어 계산하는 게 아니라 스폰이 쓰는 buildPool()과 환경 방해가
+    //   쓰는 eligibleHazardIds()를 그대로 부른다. 표시와 실제가 갈리면 확인 자체가
+    //   무의미해지므로, 판정은 언제나 그 한 곳에서만 한다.
+    `활성적    ${activeEnemyIds(state, gameData)}`,
+    `활성방해  ${activeHazardIds(state)}`,
     `살아있음   ${alive} / ${state.rules?.maxAlive ?? '-'}`,
     `공격임박   ${state.attackWarning ? 'YES' : 'no'}`,
     `누적피해   ${state.stats.drainedPct.toFixed(1)}%`,

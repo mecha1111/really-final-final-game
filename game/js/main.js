@@ -1,6 +1,15 @@
 // 이 파일 역할: 진입점. 밸런스를 불러오고 각 모듈을 연결한 뒤 루프를 돌린다. 게임 규칙은 여기 없다.
 
-import { config, gameData, loadGameData, reloadGameData, applyStageToConfig, applyEnemyFallbacks, createRules } from './config.js';
+import {
+  config,
+  gameData,
+  loadGameData,
+  reloadGameData,
+  applyStageToConfig,
+  applyEnemyFallbacks,
+  applyEnemyUnlockPlan,
+  createRules,
+} from './config.js';
 import { loadEnemyImages } from './assets.js';
 import { buildAssetKeys } from './sprite/animator.js';
 import { state, setPhase, settlePhase } from './core/state.js';
@@ -57,6 +66,9 @@ async function applyLoadedData() {
   // (config.js의 ENEMY_SHEET_FALLBACK 주석 참고) — 시트에 실제 행이 생기면 자동으로
   // 그쪽이 우선된다. 최초 로드·리로드 버튼 둘 다 이 함수를 거치므로 여기 한 곳이면 된다.
   applyEnemyFallbacks();
+  // 해금 배치의 정본(config.stage.enemyUnlockPlan)을 입힌다. ★ 폴백으로 채워 넣은
+  // 행까지 함께 맞춰야 하므로 반드시 applyEnemyFallbacks() 다음이다.
+  applyEnemyUnlockPlan();
   applyStageToConfig();
   // 논리 해상도(시트의 canvas_w/h)가 바뀌었을 수 있으니 표시 크기와 백킹스토어를
   // 다시 맞춘다 — 리로드 때도 창을 꽉 채운 채로 유지된다.
