@@ -149,6 +149,14 @@ body {
   transform-origin: top left;
 }
 
+/* ===== 아이콘(ui/icons.js) =====
+   name→SVG 맵 하나가 만들어내는 모든 아이콘이 이 클래스를 달고 나온다. 이모지가
+   부모의 font-size를 그대로 따라 크기가 정해지던 것과 같은 체감을 주려고, 개별
+   icon(name, size)가 넘긴 px 크기와 무관하게 여기서 1em으로 강제한다 — 그래서
+   .h/.ico/.start처럼 이미 font-size를 정해둔 자리에 얹기만 하면 자동으로
+   맞는 크기가 나온다(호출부가 매번 정확한 px를 골라줄 필요가 없다). */
+#desktop .xicon { width: 1em; height: 1em; flex-shrink: 0; vertical-align: -0.15em; }
+
 #desktop {
   position: relative;
   width: 1920px;
