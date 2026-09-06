@@ -451,6 +451,21 @@
           <div class="ending-slide-count" id="ending-slide-count">수집한 그림 0 / 36</div>
           <button type="button" class="settings-btn ending-slide-skip" id="ending-slide-skip">건너뛰기</button>
         </div>
+
+        <!-- 장면 3: 크레딧 — 정적 표시(XP 스크롤 대신, 심사위원이 기다릴 필요 없이
+             버튼이 처음부터 바로 눌린다). -->
+        <div class="ending-scene ending-scene-credits" id="ending-scene-credits">
+          <div class="ending-credits-inner">
+            <div class="ending-credits-game">진짜_최종_final_수정_진짜최종(5).exe</div>
+            <div class="ending-credits-row"><span class="role">기획</span><span class="name">김주안</span></div>
+            <div class="ending-credits-row"><span class="role">PM</span><span class="name">조예린</span></div>
+            <div class="ending-credits-row"><span class="role">아트</span><span class="name">황유정 · 황다은</span></div>
+          </div>
+          <div class="ending-credits-buttons">
+            <button type="button" class="settings-btn settings-btn-primary" id="ending-btn-infinite">무한 모드</button>
+            <button type="button" class="settings-btn" id="ending-btn-title">메인으로</button>
+          </div>
+        </div>
       </div>
 
       <!-- 콤보 카운터는 이제 HTML이 아니라 캔버스에서 그린다(ui/renderEnemies.js의
