@@ -11,7 +11,7 @@ import { pointInRect } from '../ui/draw.js';
 import { getStartButton } from '../ui/screens.js';
 import { handleDebugKey, debugState } from '../debug.js';
 import { handleSettingsKey } from '../ui/settingsPanel.js';
-import { clientToWorld, worldToClient, getCanvasGeometry } from '../ui/canvasGeometry.js';
+import { clientToWorld, worldToClient, getCanvasGeometry, isRotationSettling } from '../ui/canvasGeometry.js';
 
 // pointerdown에서 "방해꾼을 못 맞혀 아래로 흘려보낸" 대상. 이어서 오는 click을
 // 같은 곳으로 보내기 위해 한 입력 동안만 들고 있는다(forwardClickThrough 주석 참고).
@@ -141,6 +141,13 @@ function onPointerDown(canvas, pt, evt) {
   }
 
   if (state.phase !== 'playing') return;
+
+  // 화면이 돌아가는 중(환경 방해 "모니터 세로모드"의 0.4초 전환)엔 클릭을 안 받는다.
+  // ★ 판정을 못 해서가 아니라, 전환 중에는 "화면에 보이는 각도"와 "계산에 쓸 수 있는
+  //   각도"가 한두 프레임 어긋날 수 있어서다 — 그 상태로 받으면 클릭이 살짝 빗나간다
+  //   (ui/canvasGeometry.js의 isRotationSettling 주석에 근거를 적어뒀다).
+  //   회전이 끝나 각도가 확정되면 그때부터는 평소와 똑같이 정확하게 받는다.
+  if (isRotationSettling()) return;
 
   // hourglass 함정이 발동시킨 조작 불능 — 남아있는 동안은 클릭 자체를 통째로
   // 무시한다(요구사항: 다른 방해꾼을 눌러도 아무 반응이 없어야 한다). 얼어있는

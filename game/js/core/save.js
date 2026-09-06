@@ -61,7 +61,8 @@ function defaultSave() {
 
     // 지금까지 메모리에만 있던 설정값(core/state.js의 state.settings + 환경 방해
     // 토글 config.hazard.enabled). 슬라이더 셋은 state.settings와 같은 이름을 쓴다.
-    settings: { soundMaster: 100, soundSfx: 100, soundBgm: 100, hazardEnabled: true },
+    // rotationEnabled는 [환경 방해]와 별개인 접근성 토글이다(화면 회전만 끄기).
+    settings: { soundMaster: 100, soundSfx: 100, soundBgm: 100, hazardEnabled: true, rotationEnabled: true },
 
     // ★ 자리만 잡아둔 필드 — 지금 아무도 읽지도 쓰지도 않는다. 공모전 뒤 상점이
     //   붙을 때 schemaVersion을 올리고 마이그레이션을 짜는 일 없이 그냥 채워 넣기만
@@ -138,6 +139,9 @@ function sanitize(raw) {
       soundSfx: vol(st.soundSfx, d.settings.soundSfx),
       soundBgm: vol(st.soundBgm, d.settings.soundBgm),
       hazardEnabled: bool(st.hazardEnabled, d.settings.hazardEnabled),
+      // 옛 세이브엔 이 필드가 없다 — bool()이 기본값(켜짐)으로 채운다. 새 필드가
+      // 하나 늘었을 뿐 스키마 세대를 올릴 일은 아니다(sanitize가 흡수한다).
+      rotationEnabled: bool(st.rotationEnabled, d.settings.rotationEnabled),
     },
     coins: Math.max(0, Math.floor(num(raw.coins, d.coins))),
     upgrades:
@@ -335,6 +339,7 @@ export function saveSettings() {
       soundSfx: state.settings.soundSfx,
       soundBgm: state.settings.soundBgm,
       hazardEnabled: config.hazard.enabled,
+      rotationEnabled: config.hazard.rotationEnabled,
     };
   });
 }

@@ -1897,3 +1897,29 @@ body {
      그려두고 CSS가 화면 크기에 맞춰 늘린다(스크린세이버 캔버스와 같은 방식). */
 #desktop .hz-cracked { position: absolute; inset: 0; pointer-events: none; }
 #desktop .hz-cracked canvas { position: absolute; inset: 0; width: 100%; height: 100%; }
+
+/* ── F. 모니터 세로모드 ────────────────────────────────────────────────────
+   풍선만 얹는다(회전 자체는 아래 #stage 규칙이 한다). 다른 방해와 같은 이유로
+   컨테이너·풍선 전부 pointer-events:none — 해제 조작이 없는(시간이 지나면 저절로
+   돌아오는) 방해라 클릭을 받을 이유가 없다. */
+#desktop .hz-portrait { position: absolute; inset: 0; pointer-events: none; }
+
+/* ★ 회전은 #desktop이 아니라 #stage에 건다.
+   ui/canvasFit.js가 리사이즈마다 desktop.style.transform을 통째로 다시 쓰기
+   때문에, 거기 얹으면 방해가 떠 있는 도중 창 크기만 바뀌어도 회전이 지워진다.
+   소유권을 갈라둔다: #desktop = 화면 맞춤 배율(canvasFit) / #stage = 회전(hazard).
+
+   ★ scale(--rot-fit)은 16:9를 90° 돌렸을 때 세로로 넘쳐 잘리는 걸 막는 배율이다
+   (canvasFit.js가 리사이즈마다 계산해 내려보낸다). 잘리면 그 자리의 방해꾼이
+   보이지도 눌리지도 않아 그냥 불공정해진다.
+
+   ★ transform 하나만 쓴다(GPU 합성 경로). SVG 필터·blur는 절대 안 쓴다 —
+   이 프로젝트에 성능 랙의 주범으로 전부 걷어낸 이력이 있다(ui/icons.js 주석). */
+#stage {
+  transition: transform var(--rot-sec, 0.4s) ease-in-out;
+  transform-origin: center center;
+  will-change: transform;
+}
+#stage.rot-portrait {
+  transform: rotate(var(--rot-deg, 90deg)) scale(var(--rot-fit, 1));
+}

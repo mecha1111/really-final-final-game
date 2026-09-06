@@ -79,7 +79,12 @@ export function hazardIds() {
  * 확인 자체가 무의미해지므로, 판정을 여기 한 곳에서만 한다.
  */
 export function eligibleHazardIds(stage) {
-  return [...DEFS.values()].filter((d) => (d.minStage ?? 1) <= stage).map((d) => d.id);
+  // canFire()는 선택 사항이다 — 구간 해금(minStage) 말고 "지금 이 방해를 낼 수
+  // 있는 다른 조건"이 있는 방해만 정의한다(지금은 화면 회전 접근성 토글을 보는
+  // portrait 하나뿐). 없으면 늘 낼 수 있는 것으로 친다.
+  return [...DEFS.values()]
+    .filter((d) => (d.minStage ?? 1) <= stage && d.canFire?.() !== false)
+    .map((d) => d.id);
 }
 
 /**
@@ -224,4 +229,15 @@ export function updateHazards(dt, rules) {
  */
 export function clearActiveHazards() {
   for (const inst of [...state.hazards]) endHazard(inst, 'dismissed');
+}
+
+/**
+ * 특정 종류만 지금 즉시 치운다 — 설정창의 [화면 회전] 토글처럼 "이 방해 하나만"
+ * 끄는 접근성 스위치가 쓴다(clearActiveHazards는 전부 치우므로 너무 세다).
+ * 안 떠 있으면 아무 일도 안 한다.
+ */
+export function dismissHazardById(id) {
+  for (const inst of [...state.hazards]) {
+    if (inst.id === id) endHazard(inst, 'dismissed');
+  }
 }

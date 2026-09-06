@@ -26,7 +26,7 @@ import { getSave, saveSettings, clearSave } from '../core/save.js';
 import { playSfx, refreshSfxVolume, SFX } from '../systems/sound.js';
 import { refreshBgmVolume } from '../systems/bgm.js';
 import { applyCrtSteadyVars } from './crtTransition.js';
-import { clearActiveHazards } from '../systems/hazard.js';
+import { clearActiveHazards, dismissHazardById } from '../systems/hazard.js';
 import { openConfirm } from './confirmDialog.js';
 
 // ESC로 "열 수" 있는 phase. 이미 열려 있으면 phase와 무관하게 항상 닫을 수 있다
@@ -39,6 +39,7 @@ const DEFAULTS = {
   crtEnabled: true,
   crtIntensity: 'mid',
   hazardEnabled: true,
+  rotationEnabled: true,
 };
 
 let layer = null;
@@ -73,6 +74,10 @@ function syncCrtControls() {
 function syncHazardControl() {
   const box = document.getElementById('set-hazard-on');
   if (box) box.checked = config.hazard.enabled;
+  // 화면 회전은 [환경 방해]와 독립된 접근성 토글이라 따로 맞춘다 — 환경 방해를
+  // 꺼도 이 체크는 자기 값을 그대로 유지한다(다시 켰을 때 기억이 남아 있어야 한다).
+  const rot = document.getElementById('set-rotation-on');
+  if (rot) rot.checked = config.hazard.rotationEnabled;
 }
 
 function syncFullscreenControl() {
@@ -116,6 +121,7 @@ export function applySavedSettings() {
   refreshSfxVolume();
   refreshBgmVolume();
   config.hazard.enabled = saved.hazardEnabled;
+  config.hazard.rotationEnabled = saved.rotationEnabled;
 }
 
 // ★ 여닫는 소리를 버튼 핸들러가 아니라 이 두 함수 안에 둔다 — 팝업을 여는 길이
@@ -188,6 +194,7 @@ export function initSettingsPanel() {
     config.crt.intensity = DEFAULTS.crtIntensity;
     applyCrtSteadyVars();
     config.hazard.enabled = DEFAULTS.hazardEnabled;
+    config.hazard.rotationEnabled = DEFAULTS.rotationEnabled;
     if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
     syncAllControls();
     // 복원한 기본값도 저장해야 새로고침 후에 되돌아오지 않는다(슬라이더를 거치지
@@ -238,6 +245,15 @@ export function initSettingsPanel() {
   document.getElementById('set-hazard-on')?.addEventListener('change', (evt) => {
     config.hazard.enabled = evt.target.checked;
     if (!config.hazard.enabled) clearActiveHazards();
+    saveSettings();
+  });
+
+  // 화면 회전만 따로 끄기(접근성 — 멀미). 위 [환경 방해]와 독립이라 다른 방해는
+  // 그대로 나온다. 끄면 지금 돌아가 있는 화면도 즉시 되돌린다 — "다음 판부터"만
+  // 듣는 건 끄는 이유(지금 당장 어지럽다)와 안 맞는다(위 환경 방해와 같은 원칙).
+  document.getElementById('set-rotation-on')?.addEventListener('change', (evt) => {
+    config.hazard.rotationEnabled = evt.target.checked;
+    if (!config.hazard.rotationEnabled) dismissHazardById('portrait');
     saveSettings();
   });
 

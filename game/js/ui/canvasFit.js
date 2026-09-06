@@ -108,7 +108,13 @@ export function fitCanvasToViewport(canvas) {
   //   이 파일 소유고 리사이즈마다 여기가 다시 도니까, 값도 여기서 낸다.
   //   회전 후 크기는 shownH × shownW(가로세로가 뒤바뀐다)이므로 그게 뷰포트에
   //   들어가는 배율을 구한다. 1을 넘지 않게 막는다(굳이 키울 이유가 없다).
-  const rotFit = Math.min(1, viewportW / shownH, viewportH / shownW);
+  //
+  //   ★ ROT_MARGIN: 딱 맞게(=1.0으로) 채우면 실측에서 월드 (0,0)이 화면 y=-0.34px로
+  //     아슬아슬하게 걸쳤다 — 부동소수점 반올림이 어느 쪽으로 떨어지느냐에 따라
+  //     가장자리 한두 픽셀이 잘릴 수 있다는 뜻이다. 몇 px 여유를 두면 그 경계 자체가
+  //     사라지고, 보기에도 화면 끝에 딱 붙지 않아 낫다.
+  const ROT_MARGIN = 0.97;
+  const rotFit = Math.min(1, viewportW / shownH, viewportH / shownW) * ROT_MARGIN;
   document.documentElement.style.setProperty('--rot-fit', String(rotFit));
 
   if (USE_CSS_ZOOM) {

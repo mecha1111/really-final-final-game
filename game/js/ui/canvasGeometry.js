@@ -87,6 +87,13 @@ function ancestorScale(el) {
 /** 지금 화면 회전각(라디안, CSS 기준 시계방향). 0이면 회전 없음(평소). */
 let rotationRad = 0;
 
+// 회전 전환(0.4초 CSS transition)이 끝나는 시각(performance.now 기준 ms).
+// ★ 이 값은 좌표 계산에 절대 안 들어간다 — "지금 돌아가는 중인가" 참/거짓을 재는
+//   데만 쓴다. (이 프로젝트가 성능 타이머와 rAF 시계를 섞지 말라고 못박은 건
+//   두 시계로 잰 경과시간을 서로 비교할 때의 이야기라, 여기처럼 한 시계 안에서
+//   "지났나"만 보는 용도는 그 함정과 무관하다.)
+let settleUntilMs = 0;
+
 /**
  * 화면 회전각을 설정한다(도 단위). ui/hazards/portrait.js가 켜고 끈다.
  * ★ 여기서 CSS를 건드리지 않는다 — 이 값은 "판정이 알아야 하는 각도"일 뿐이고,
@@ -94,13 +101,28 @@ let rotationRad = 0;
  *   "화면은 돌았는데 판정은 안 돌았다"(또는 그 반대)가 조용히 생길 수 있어서,
  *   hazard가 두 줄을 나란히 부르게 두고 여기서는 각도만 기억한다.
  */
-export function setScreenRotation(deg) {
+export function setScreenRotation(deg, settleMs = 0) {
   rotationRad = (deg * Math.PI) / 180;
+  settleUntilMs = settleMs > 0 ? performance.now() + settleMs : 0;
 }
 
 /** 지금 회전 중인가(판정을 쓰는 쪽이 알아야 할 때만). */
 export function isScreenRotated() {
   return rotationRad !== 0;
+}
+
+/**
+ * 화면이 "돌아가는 중"인가 — CSS 전환(0.4초)이 아직 끝나지 않았는가.
+ *
+ * ★ 이 창 동안은 클릭 판정을 통째로 무시한다(systems/input.js). 이유:
+ *   중간각에서는 rect가 부풀어 오르는 축정렬 bbox라 원점 복원이 정확하지 않고,
+ *   무엇보다 transform 전환은 컴포지터에서 도는 경우가 있어 getComputedStyle이
+ *   실제로 화면에 그려진 각도와 한두 프레임 어긋날 수 있다. "클릭이 살짝
+ *   빗나간다"는 이 프로젝트가 가장 여러 번 데인 버그 부류라, 0.4초씩 두 번은
+ *   그냥 안 받는 쪽이 정직하다(화면이 눈에 띄게 돌아가는 중이라 조준할 수도 없다).
+ */
+export function isRotationSettling() {
+  return settleUntilMs > 0 && performance.now() < settleUntilMs;
 }
 
 /** 뷰포트 중심 — 회전의 기준점(#stage가 뷰포트를 꽉 채우고 transform-origin이 center). */

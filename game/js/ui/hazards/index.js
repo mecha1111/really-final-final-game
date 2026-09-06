@@ -9,3 +9,4 @@ import './screensaver.js';
 import './powersave.js';
 import './driver.js';
 import './cracked.js';
+import './portrait.js';
