@@ -23,12 +23,44 @@ function loadImage(src) {
   });
 }
 
-function randomSrc(tierKey) {
+const TIERS = ['small', 'medium', 'large'];
+
+/**
+ * 이 게임에 존재하는 완성 그림 src 전체 목록 — 등급 순서 고정(소→중→대, 각 등급
+ * 안에서는 번호순), 총 countPerTier×3장(현재 12×3=36).
+ *
+ * ★ 파일 스캔이 아니다. config.filePicture.countPerTier와 위 명명 규칙(폴더/
+ *   접두사)의 조합으로 "있어야 할" 경로를 만드는 것뿐이다 — 브라우저는 폴더
+ *   목록을 못 읽으므로 실제 개수와 다르면 없는 파일을 가리키게 된다(config.js의
+ *   countPerTier 주석과 같은 함정).
+ *
+ * ★ 단일 진실원: 갤러리(ui/galleryPanel.js)가 36칸을 그릴 때도 이 함수를 그대로
+ *   쓴다. randomSrc()도 매번 새로 조합하지 않고 이 함수가 만든 목록에서 골라
+ *   쓰도록 바꿨다 — 목록을 만드는 규칙이 두 곳으로 갈리면 언젠가 반드시
+ *   어긋난다(갤러리엔 있는데 실제로는 안 뽑히는 그림, 혹은 그 반대).
+ */
+export function allPictureSrcs() {
   const cfg = config.filePicture;
+  const list = [];
+  for (const tier of TIERS) {
+    const folder = FOLDER_BY_TIER[tier];
+    const prefix = PREFIX_BY_TIER[tier];
+    for (let n = 1; n <= cfg.countPerTier; n++) {
+      list.push(`${cfg.dir}${folder}/${prefix}${String(n).padStart(2, '0')}.png`);
+    }
+  }
+  return list;
+}
+
+function randomSrc(tierKey) {
   const folder = FOLDER_BY_TIER[tierKey] ?? FOLDER_BY_TIER.small;
-  const prefix = PREFIX_BY_TIER[tierKey] ?? PREFIX_BY_TIER.small;
-  const n = 1 + Math.floor(Math.random() * cfg.countPerTier);
-  return `${cfg.dir}${folder}/${prefix}${String(n).padStart(2, '0')}.png`;
+  // allPictureSrcs()가 만든 전체 목록에서 이 등급 폴더에 해당하는 것만 추려 그중
+  // 하나를 고른다 — 매 호출마다 36개를 다시 만들지만(문자열 조합뿐이라 비용은
+  // 무시할 만하다), 목록을 만드는 코드가 정확히 한 곳(allPictureSrcs)뿐이라는
+  // 이득이 그보다 크다.
+  const tierList = allPictureSrcs().filter((src) => src.includes(`/${folder}/`));
+  if (tierList.length === 0) return allPictureSrcs()[0]; // 설정이 깨진 극단적인 경우의 안전망
+  return tierList[Math.floor(Math.random() * tierList.length)];
 }
 
 /**
