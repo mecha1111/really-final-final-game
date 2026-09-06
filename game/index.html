@@ -404,6 +404,45 @@
         <div class="cleared-skip-hint">클릭 또는 아무 키나 눌러 건너뛰기</div>
       </div>
 
+      <!-- 엔딩 화면(레이어6, 유한 5구간 완주 전용). .layer-cleared와 완전히 같은
+           원리 — phase==='ending'일 때만 보이고(ui/desktop.js의 syncDesktopPhase),
+           배경 전체가 pointer-events:auto라 클릭을 물리적으로 가로챈다. 3장면을
+           새 오버레이 없이 이 레이어 하나 안에서 클래스(.scene-msg/.scene-slides/
+           .scene-credits)로 전환한다(설정창·클리어 화면과 같은 패턴). 진입은
+           core/stageManager.js의 advanceStage() → ui/endingScreen.js의
+           openEnding() 한 곳뿐이다. -->
+      <div class="layer-ending" id="layer-ending">
+        <!-- 장면 1: 완주 메시지 — XP "업데이트 완료" 대화상자 톤. 구간 클리어
+             화면의 XP 대화상자 클래스(.cleared-dlg-*)를 그대로 재사용한다(레이아웃을
+             또 안 만든다는 원칙 — .layer-quit/.layer-confirm과 같은 전례). -->
+        <div class="ending-scene ending-scene-msg" id="ending-scene-msg">
+          <div class="win ending-msg-win">
+            <div class="tbar">
+              <div class="ico"><span data-icon="check"></span></div>
+              <div class="t">시스템</div>
+              <div class="wb"><span class="min disabled">_</span><span class="disabled">□</span><span class="x disabled">×</span></div>
+            </div>
+            <div class="cleared-dlg-body">
+              <div class="cleared-dlg-icon"><span data-icon="check"></span></div>
+              <div class="cleared-dlg-main">
+                <div class="cleared-dlg-title">업데이트 완료</div>
+                <div class="cleared-dlg-sub">업데이트가 성공적으로 완료되었습니다.</div>
+                <div class="cleared-dlg-list">
+                  <div class="cleared-dlg-row"><span class="k">완성한 파일</span><span class="v" id="ending-stat-files">0</span></div>
+                  <div class="cleared-dlg-row"><span class="k">제거한 방해꾼</span><span class="v" id="ending-stat-killed">0</span></div>
+                  <div class="cleared-dlg-row"><span class="k">최고 콤보</span><span class="v" id="ending-stat-combo">x0</span></div>
+                </div>
+              </div>
+            </div>
+            <div class="cleared-dlg-foot">
+              <button type="button" class="settings-btn settings-btn-primary" id="ending-msg-next">다음</button>
+              <button type="button" class="settings-btn" id="ending-msg-skip">건너뛰기</button>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
       <!-- 콤보 카운터는 이제 HTML이 아니라 캔버스에서 그린다(ui/renderEnemies.js의
            drawCombo) — 커서를 따라다녀야 해서 매 프레임 world 좌표(state.pointer)에
            바로 그리는 쪽이 화면 좌표로 변환해 DOM을 매번 옮기는 것보다 훨씬

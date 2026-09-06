@@ -214,6 +214,15 @@ export const config = {
     rankThresholds: { s: 0.95, a: 0.85, b: 0.7 }, // 그 아래는 전부 C
   },
 
+  // === 엔딩(ui/endingScreen.js) — 유한 5구간 완주 전용 3장 화면 ===
+  // 완주 메시지 → 완성 그림 슬라이드쇼 → 크레딧. 슬라이드쇼만 시간 기반으로 자동
+  // 진행하고(clearScreen.js와 같은 원칙 — setInterval 없이 rAF now로만 잰다),
+  // 나머지 두 장면은 순전히 버튼/키 입력으로만 넘어간다.
+  endingScreen: {
+    slideSec: 2, // 슬라이드 한 장이 자동으로 머무는 시간(초). 클릭하면 그 전에 넘어간다.
+    slideFadeSec: 0.4, // 슬라이드 전환 페이드 시간(초)
+  },
+
   enemy: {
     // 클릭이 맞았을 때 번쩍이는 시간(초). 키우면 타격감이 길게 남는다.
     hitFlashSec: 0.12,

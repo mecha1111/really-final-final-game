@@ -19,11 +19,14 @@ export function emptyStats() {
 }
 
 export const state = {
-  // 'loading' | 'title' | 'select' | 'playing' | 'cleared' | 'failed'
+  // 'loading' | 'title' | 'select' | 'playing' | 'cleared' | 'failed' | 'ending'
   // ('select'는 이제 난이도 선택이 아니라 "시작/다음 구간" 대기 화면이다)
   // 'title'은 HTML 오버레이(.layer-title, ui/titleScreen.js)가 전담한다 — 캔버스는
   // 아무것도 안 그리고 클릭도 안 받는다(ui/render.js·systems/input.js의 title 가드).
   // main.js가 최초 로드 완료 시 여기로 착지시킨다(loading → title).
+  // 'ending'은 유한 5구간을 전부 깼을 때만 들어간다(core/stageManager.js의
+  // advanceStage() → ui/endingScreen.js의 openEnding()) — title/failed/cleared와
+  // 같은 자리(HTML 오버레이가 전담, systems/input.js가 캔버스 클릭을 막는다).
   //
   // ★ 이 값은 직접 대입하지 말고 아래 setPhase()/settlePhase()로만 바꾼다 —
   //   "누가 언제 phase를 바꾸나"를 한 곳으로 모아야 아래 정착 가드가 의미를 갖는다.

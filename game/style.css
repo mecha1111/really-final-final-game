@@ -209,6 +209,12 @@ body {
 /* .layer-title/.layer-bsod와 달리 자기 자신이 pointer-events:auto다 — 배경
    전체가 "연출 건너뛰기" 클릭 대상이어야 하기 때문(ui/clearScreen.js). */
 #desktop .layer-cleared { position: absolute; inset: 0; z-index: 6; pointer-events: auto; display: none; }
+/* 엔딩(유한 5구간 완주). title/failed/cleared와 같은 자리(phase 배타적). 컨테이너
+   자체는 none이고 지금 보이는 장면(.ending-scene)만 auto를 연다 — 슬라이드쇼
+   장면은 "그 안 아무 데나 클릭 = 다음 슬라이드"가 요구사항이라(ui/endingScreen.js)
+   버튼뿐 아니라 장면 전체가 클릭을 받아야 한다. */
+#desktop .layer-ending { position: absolute; inset: 0; z-index: 6; pointer-events: none; display: none; }
+#desktop .layer-ending .ending-scene { pointer-events: auto; }
 #desktop .layer-overload { position: absolute; inset: 0; z-index: 7; pointer-events: none; overflow: hidden; }
 /* 환경 방해(systems/hazard.js). 과밀 지지직과 같은 z7이지만 DOM에서 뒤에 와서 위에
    그려진다. ★ 컨테이너는 항상 pointer-events:none — 해제 조작을 받는 요소만 자기
@@ -236,6 +242,10 @@ body {
    ★ display:block이 아니라 flex — 이 레이어 자신이 안의 .win을 가운데 정렬한다
    (.layer-settings와 같은 패턴, 아래 "구간 클리어 화면" 섹션 주석 참고). */
 #desktop.phase-cleared .layer-cleared { display: flex; }
+/* 엔딩도 같은 방식 — ui/desktop.js가 .phase-ending을 토글한다. 이 레이어 자신은
+   flex가 아니다(안의 각 장면이 각자 가운데 정렬한다, 아래 "엔딩" 섹션 참고) —
+   block으로 충분하다. */
+#desktop.phase-ending .layer-ending { display: block; }
 /* 상시 CRT 질감도 같은 방식 — playing 중에만 보인다(대기·타이틀·BSOD엔 안 얹는다). */
 #desktop.phase-playing .layer-crt-steady { display: block; }
 
@@ -649,6 +659,34 @@ body {
   pointer-events: none;
 }
 #desktop .layer-cleared.done .cleared-skip-hint { display: none; }
+
+/* ---------------------------------------------------------------------------
+   ===== 엔딩(.layer-ending, ui/endingScreen.js) =====
+   title/failed/cleared와 같은 자리(z-index 6, phase 배타적). 배경은 구간 클리어
+   화면과 같은 Bliss 그라디언트를 그대로 써서 "그 클리어 화면의 연장"이라는 인상을
+   준다 — 새 배경을 또 안 만든다. 3장면(.ending-scene)을 이 레이어 하나 안에서
+   클래스(.scene-msg/.scene-slides/.scene-credits)로 전환한다: 지금 켜진 장면만
+   display:flex, 나머지는 기본값(none)으로 숨는다.
+   --------------------------------------------------------------------------- */
+#desktop .layer-ending {
+  font-family: 'DGM', 'Galmuri11', monospace;
+  -webkit-font-smoothing: none;
+  background: linear-gradient(180deg, #3f7fc8 0%, #5c9bd8 20%, #8fbfe8 38%, #bfe0f2 50%, #5aa832 50%, #4f9c2a 74%, #3f8420 100%);
+}
+#desktop .ending-scene {
+  position: absolute; inset: 0; display: none;
+  flex-direction: column; align-items: center; justify-content: center; gap: 20px;
+}
+#desktop .layer-ending.scene-msg .ending-scene-msg,
+#desktop .layer-ending.scene-slides .ending-scene-slides,
+#desktop .layer-ending.scene-credits .ending-scene-credits { display: flex; }
+
+/* --- 장면 1: 완주 메시지 — 구간 클리어 화면의 XP 대화상자 클래스(.cleared-dlg-*)를
+   그대로 재사용한다(.layer-quit/.layer-confirm과 같은 전례 — 새 레이아웃 금지).
+   .win은 원래 position:absolute라 이 장면 안에서만 relative로 덮어쓴다(다른 모달
+   레이어들과 같은 트릭). */
+#desktop .ending-scene-msg .win { position: relative; width: 640px; }
+#desktop .ending-msg-win .tbar { cursor: default; }
 
 /* ---------------------------------------------------------------------------
    ===== 상시 CRT 모니터 질감 (레이어9, playing 내내 계속) =====

@@ -3,6 +3,7 @@
 import { config, gameData, createRules } from '../config.js';
 import { state, emptyStats, setPhase } from './state.js';
 import { recordStageCleared, recordGameOver, recordRunCompleted } from './save.js';
+import { openEnding } from '../ui/endingScreen.js';
 import { Spawner, buildPool } from '../enemies/spawner.js';
 import { splitEnemy, applyExpiryEffect, triggerSelfDestruct, updateFakeCursors } from '../enemies/effects.js';
 import { clearJuice } from '../systems/juice.js';
@@ -139,13 +140,16 @@ export function nextStageIndex() {
  * 바뀐 뒤로는 "다시하기"만 혼자 옛 대기화면을 띄우는 꼴이 됐다. 두 진입점의
  * 흐름을 맞춰서 여기서도 바로 시작한다.
  *
- * ★ 마지막 유한 구간을 깼으면 다음 구간이 없다 — 전체 완주다. 지금은 엔딩 화면이
- *   아직 없어서 타이틀로 돌려보내는 것으로 대신한다(엔딩은 다음 단계에서 붙인다).
- *   완주 기록 자체는 이미 클리어 순간에 세이브에 찍혀 있다(checkWinLose).
+ * ★ 마지막 유한 구간을 깼으면 다음 구간이 없다 — 전체 완주다. 엔딩 화면
+ *   (ui/endingScreen.js)을 연다. 완주 기록 자체는 이미 클리어 순간에 세이브에
+ *   찍혀 있다(checkWinLose) — 여기는 화면 전환만 담당한다.
+ *   ★ 이 함수는 [다음 구간] 버튼(ui/clearScreen.js)과 R키 단축키
+ *   (systems/input.js) 둘 다의 공용 진입점이다 — 여기 한 곳만 고치면 두 경로가
+ *   같이 엔딩으로 간다.
  */
 export function advanceStage() {
   if (isRunCompleted()) {
-    setPhase('title');
+    openEnding();
     return;
   }
   startGame(nextStageIndex());

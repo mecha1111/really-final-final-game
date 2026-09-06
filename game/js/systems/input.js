@@ -117,14 +117,15 @@ function onPointerDown(canvas, pt, evt) {
     if (state.debugClicks.length > 6) state.debugClicks.shift();
   }
 
-  // [가드 0] title/failed/cleared 단계는 캔버스가 아무 것도 안 그리고(ui/render.js)
-  // 클릭도 안 받는다 — 그 버튼들은 HTML(.layer-title/.layer-bsod/.layer-cleared,
-  // z-index 6)이 캔버스보다 위라 애초에 이 핸들러까지 안 온다(브라우저가 버튼에서
-  // 이벤트를 끝낸다). 이 return이 없어도 아래 [가드 1]엔 안 걸리고 그다음
-  // `phase !== 'playing'` return에서 결국 막히긴 하지만, "이 단계엔 캔버스가 할
-  // 일이 없다"를 명시적으로 남겨서 나중에 select 분기가 늘어나도 여기가 실수로
-  // 거기 묶여 들어가는 걸 막는다.
-  if (state.phase === 'title' || state.phase === 'failed' || state.phase === 'cleared') return;
+  // [가드 0] title/failed/cleared/ending 단계는 캔버스가 아무 것도 안 그리고
+  // (ui/render.js) 클릭도 안 받는다 — 그 버튼들은 HTML(.layer-title/.layer-bsod/
+  // .layer-cleared/.layer-ending, z-index 6)이 캔버스보다 위라 애초에 이 핸들러까지
+  // 안 온다(브라우저가 버튼에서 이벤트를 끝낸다). 이 return이 없어도 아래 [가드 1]엔
+  // 안 걸리고 그다음 `phase !== 'playing'` return에서 결국 막히긴 하지만, "이
+  // 단계엔 캔버스가 할 일이 없다"를 명시적으로 남겨서 나중에 select 분기가 늘어나도
+  // 여기가 실수로 거기 묶여 들어가는 걸 막는다.
+  if (state.phase === 'title' || state.phase === 'failed' || state.phase === 'cleared' || state.phase === 'ending')
+    return;
 
   // [가드 1] 대기 화면(select)의 시작 버튼 — 사실상 도달하지 않는 단계지만
   // (advanceStage()가 항상 곧장 startGame()으로 넘어간다) 코드는 남겨둔다.
