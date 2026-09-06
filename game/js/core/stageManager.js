@@ -4,6 +4,7 @@ import { config, gameData, createRules } from '../config.js';
 import { state, emptyStats, setPhase } from './state.js';
 import { recordStageCleared, recordGameOver, recordRunCompleted } from './save.js';
 import { openEnding } from '../ui/endingScreen.js';
+import { resetRoverQueue } from '../ui/rover.js';
 import { Spawner, buildPool } from '../enemies/spawner.js';
 import { splitEnemy, applyExpiryEffect, triggerSelfDestruct, updateFakeCursors } from '../enemies/effects.js';
 import { clearJuice } from '../systems/juice.js';
@@ -93,6 +94,9 @@ export function startGame(stageIndex = 0) {
   // 스케줄러(유예·쿨타임·직전 종류 기억)까지 처음으로 되돌린다. 위 resetXxxEdges들과
   // 같은 이유·같은 자리다.
   resetHazards();
+  // 튜토리얼 도우미(러버)도 판을 넘어 남으면 안 된다 — 지난 판에서 표시 중이었거나
+  // 큐에 밀려 있던 팁이 새 판 첫 프레임에 뜨는 걸 막는다(위 resetHazards와 같은 자리).
+  resetRoverQueue();
   lastTickSec = null; // 시간 임박 똑딱 빗장 리셋
 
   spawner.reset(rules);

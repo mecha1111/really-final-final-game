@@ -225,6 +225,13 @@ body {
 #desktop .layer-urgent { position: absolute; inset: 0; z-index: 8; pointer-events: none; opacity: 0; }
 #desktop .layer-crt-steady { position: absolute; inset: 0; z-index: 9; pointer-events: none; display: none; overflow: hidden; }
 #desktop .layer-crt { position: absolute; inset: 0; z-index: 10; pointer-events: none; overflow: hidden; }
+/* 튜토리얼 도우미 "러버"(ui/rover.js) — hazard(z7)보다 위, 설정창(z11)보다 아래
+   (요구사항 그대로). .layer-crt와 같은 z10을 쓴다 — crt 킥은 phase 전환 순간만
+   반짝이는 pointer-events:none 오버레이라 실제로 겹칠 일이 거의 없고, 겹쳐도
+   해가 없다(DOM에서 이 레이어가 뒤에 오므로 그 찰나엔 러버가 위에 그려질 뿐).
+   컨테이너 자체는 none, 패널(.rover-panel)만 auto로 연다 — 다른 오버레이와
+   같은 관례(위 .layer-hazard 주석 참고). */
+#desktop .layer-rover { position: absolute; inset: 0; z-index: 10; pointer-events: none; }
 /* 레이어 자체는 클릭을 통과시키고, 그 안의 "실제" 것만 클릭을 받는다 —
    빈 공간을 눌렀을 때(그리고 캔버스가 방해꾼을 못 맞혔을 때) 아래로 통과되게 하려는 것. */
 #desktop .layer-gag > *,
@@ -1923,3 +1930,67 @@ body {
 #stage.rot-portrait {
   transform: rotate(var(--rot-deg, 90deg)) scale(var(--rot-fit, 1));
 }
+
+/* ---------------------------------------------------------------------------
+   ===== 튜토리얼 도우미 "러버"(.layer-rover, ui/rover.js) =====
+   XP 검색 도우미(Search Companion) 그대로 — 탐색기 좌측에 뜨던 그 사이드바
+   형태다. 파란 머리말 바(.tbar와 같은 그라디언트, 팔레트가 어긋나지 않게
+   재사용)와 밝은 본체, 강아지가 아래쪽에 앉고 그 위로 말풍선이 뜨는 배치
+   (요구사항 그대로). 등장/퇴장은 좌측에서 슬라이드 — GPU 합성 경로인 transform
+   하나만 쓴다(SVG 필터·blur 없음, 이 프로젝트의 성능 랙 금지 원칙).
+   --------------------------------------------------------------------------- */
+#desktop .rover-panel {
+  position: absolute; left: 0; bottom: 40px; width: 240px;
+  display: flex; flex-direction: column;
+  font-family: 'DGM', 'Galmuri11', monospace;
+  -webkit-font-smoothing: none;
+  border: 2px solid #003c9d; border-left: none; border-radius: 0 10px 10px 0;
+  box-shadow: 0 0 0 1px #0054e3, 4px 4px 0 rgba(0, 0, 0, 0.3);
+  overflow: hidden;
+  /* 슬라이드 인/아웃 — ui/rover.js가 --rover-slide-sec를 config.tutorial.slideSec로 채운다. */
+  transform: translateX(-100%);
+  transition: transform var(--rover-slide-sec, 0.35s) ease-out;
+  pointer-events: auto; /* 패널 자신만 클릭을 받는다(컨테이너는 위에서 none) */
+  cursor: pointer; /* 어디를 눌러도 즉시 닫힘(요구사항) */
+}
+#desktop .layer-rover.open .rover-panel { transform: translateX(0); }
+
+/* 머리말 — 기존 .tbar와 같은 파란 그라디언트를 그대로 물려받는다(새 팔레트 금지). */
+#desktop .rover-head {
+  height: 34px; background: linear-gradient(180deg, #3c91f2 0, #177bea 6%, #0f66d8 50%, #1a72e0 92%, #0f5fc8 100%);
+  display: flex; align-items: center; gap: 6px; padding: 0 10px;
+  color: #fff; flex-shrink: 0;
+}
+#desktop .rover-head .xicon { width: 15px; height: 15px; flex-shrink: 0; }
+#desktop .rover-head-t { font-size: 15px; text-shadow: 1px 1px 0 rgba(0, 0, 0, 0.5); }
+
+/* 본체 — XP 검색 도우미의 밝은 라벤더 톤(갤러리 카운트 줄이 이미 쓰는 팔레트와
+   같은 계열, style.css의 .gallery-count-row 참고 — 새 색을 또 안 만든다). */
+#desktop .rover-body {
+  background: linear-gradient(180deg, #eaf1fc 0%, #dfe6f2 100%);
+  padding: 14px 12px 16px;
+  display: flex; flex-direction: column; align-items: center; gap: 6px;
+}
+
+/* 말풍선 — 강아지 "위로" 뜬다(요구사항 배치 그대로). XP 풍선 도움말과 같은 노랑
+   (ui/hazards 공용 .hz-balloon과 같은 색, 다만 여긴 폭이 패널에 꽉 차야 해서
+   새로 정의한다 — 위치 기준(좌하단 고정 vs 패널 내부)이 달라 그대로 못 물려받는다). */
+#desktop .rover-bubble {
+  position: relative; width: 100%;
+  background: #ffffe1; border: 1px solid #000; border-radius: 3px;
+  padding: 10px 12px; margin-bottom: 10px;
+  box-shadow: 3px 3px 0 rgba(0, 0, 0, 0.3);
+}
+#desktop .rover-bubble::after {
+  content: ''; position: absolute; left: 50%; bottom: -11px; transform: translateX(-50%);
+  border: 6px solid transparent; border-top: 6px solid #ffffe1;
+  filter: drop-shadow(0 1px 0 #000);
+}
+#desktop .rover-bubble-text { font-size: 15px; line-height: 1.5; color: #111; }
+
+/* 강아지 — 128×128 원본을 그대로(업스케일 없음). 자산이 없거나 못 불러왔으면
+   (.broken, ui/rover.js의 onerror) 통째로 숨긴다 — 깨진 이미지 아이콘 대신
+   말풍선+텍스트만으로도 이 화면은 성립한다(크래시·흉한 자리표시 금지 원칙). */
+#desktop .rover-dog { width: 128px; height: 128px; }
+#desktop .rover-dog img { width: 100%; height: 100%; object-fit: contain; image-rendering: pixelated; }
+#desktop .rover-dog img.broken { display: none; }

@@ -107,6 +107,11 @@ const ICONS = {
 
   // === UI ===
   close: `<path d="M5 5 L19 19 M19 5 L5 19"/>`,
+  // XP "검색 도우미" 사이드바 머리말 아이콘(ui/rover.js) — 돋보기.
+  search: `
+    <circle cx="10.5" cy="10.5" r="6.5"/>
+    <path d="M15.3 15.3 L21 21"/>
+  `,
   lock: `
     <rect x="5" y="11" width="14" height="10" rx="2"/>
     <path d="M8 11 V7.5 A4 4 0 0 1 16 7.5 V11"/>

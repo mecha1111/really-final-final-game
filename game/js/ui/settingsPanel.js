@@ -22,11 +22,12 @@
 
 import { config } from '../config.js';
 import { state, setPhase } from '../core/state.js';
-import { getSave, saveSettings, clearSave } from '../core/save.js';
+import { getSave, saveSettings, clearSave, resetSeenTips } from '../core/save.js';
 import { playSfx, refreshSfxVolume, SFX } from '../systems/sound.js';
 import { refreshBgmVolume } from '../systems/bgm.js';
 import { applyCrtSteadyVars } from './crtTransition.js';
 import { clearActiveHazards, dismissHazardById } from '../systems/hazard.js';
+import { resetRoverQueue } from './rover.js';
 import { openConfirm } from './confirmDialog.js';
 
 // ESC로 "열 수" 있는 phase. 이미 열려 있으면 phase와 무관하게 항상 닫을 수 있다
@@ -40,6 +41,7 @@ const DEFAULTS = {
   crtIntensity: 'mid',
   hazardEnabled: true,
   rotationEnabled: true,
+  tutorialEnabled: true,
 };
 
 let layer = null;
@@ -78,6 +80,10 @@ function syncHazardControl() {
   // 꺼도 이 체크는 자기 값을 그대로 유지한다(다시 켰을 때 기억이 남아 있어야 한다).
   const rot = document.getElementById('set-rotation-on');
   if (rot) rot.checked = config.hazard.rotationEnabled;
+  // 튜토리얼(러버)도 같은 이유로 독립적으로 맞춘다 — [환경 방해]/[화면 회전]과
+  // 아예 다른 축(안내 vs 방해)이라 서로의 값에 영향을 안 받는다.
+  const tut = document.getElementById('set-tutorial-on');
+  if (tut) tut.checked = config.tutorial.enabled;
 }
 
 function syncFullscreenControl() {
@@ -122,6 +128,7 @@ export function applySavedSettings() {
   refreshBgmVolume();
   config.hazard.enabled = saved.hazardEnabled;
   config.hazard.rotationEnabled = saved.rotationEnabled;
+  config.tutorial.enabled = saved.tutorialEnabled;
 }
 
 // ★ 여닫는 소리를 버튼 핸들러가 아니라 이 두 함수 안에 둔다 — 팝업을 여는 길이
@@ -195,6 +202,7 @@ export function initSettingsPanel() {
     applyCrtSteadyVars();
     config.hazard.enabled = DEFAULTS.hazardEnabled;
     config.hazard.rotationEnabled = DEFAULTS.rotationEnabled;
+    config.tutorial.enabled = DEFAULTS.tutorialEnabled;
     if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
     syncAllControls();
     // 복원한 기본값도 저장해야 새로고침 후에 되돌아오지 않는다(슬라이더를 거치지
@@ -255,6 +263,22 @@ export function initSettingsPanel() {
     config.hazard.rotationEnabled = evt.target.checked;
     if (!config.hazard.rotationEnabled) dismissHazardById('portrait');
     saveSettings();
+  });
+
+  // 튜토리얼(러버) 힌트 끄기 — [환경 방해]/[화면 회전]과 독립. 끄는 순간 지금
+  // 떠 있는 팁도 즉시 치운다(같은 원칙: "다음부터"가 아니라 "지금 당장").
+  document.getElementById('set-tutorial-on')?.addEventListener('change', (evt) => {
+    config.tutorial.enabled = evt.target.checked;
+    if (!config.tutorial.enabled) resetRoverQueue();
+    saveSettings();
+  });
+
+  // 튜토리얼 다시 보기 — 본 기록(seenTips)만 지운다. 진행·해금 등 실제 진행에
+  // 영향이 없는 되돌릴 수 있는 조작이라 [저장 데이터 초기화]와 달리 확인
+  // 대화상자를 안 거친다(눌러도 잃을 게 없다 — 다음에 조건이 맞으면 다시 뜰 뿐).
+  document.getElementById('settings-tips-reset')?.addEventListener('click', () => {
+    playSfx(SFX.UI_CLICK, { ui: true });
+    resetSeenTips();
   });
 
   const fsBox = document.getElementById('set-fullscreen');

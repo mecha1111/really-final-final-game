@@ -36,6 +36,7 @@ import { initCrtTransition, syncCrtTransition } from './ui/crtTransition.js';
 import { initSettingsPanel, applySavedSettings } from './ui/settingsPanel.js';
 import { initConfirmDialog } from './ui/confirmDialog.js';
 import { initGallery } from './ui/galleryPanel.js';
+import { initRover, updateRover, showTip } from './ui/rover.js';
 import { initCursor, updateCursor } from './ui/cursor.js';
 import { updateStatusWindows } from './ui/statusWindow.js';
 import { initUploadPicture, updateUploadPicture } from './ui/uploadPicture.js';
@@ -128,6 +129,10 @@ function exposeDebugHandle() {
       state.enemies.push(enemy);
       return enemy;
     },
+    /** 러버 팁을 지금 당장 큐에 넣는다 — __game.showTip('test', '아무 문구') 식으로.
+     * showTip() 자체(ui/rover.js)와 완전히 같은 함수라 seenTips 규칙도 그대로 탄다 —
+     * 테스트용으로 반복 확인하려면 매번 다른 id를 쓰거나 [튜토리얼 다시 보기]로 지운다. */
+    showTip,
   };
 }
 
@@ -155,6 +160,7 @@ async function main() {
   initSettingsPanel(); // ESC 설정 팝업(사운드값 저장/CRT 실시간 토글/전체화면)
   initConfirmDialog(); // 공용 확인 대화상자(새 게임 덮어쓰기 등) — 설정창보다 뒤여도 무관
   initGallery(); // 그림 갤러리(타이틀 전용) — 버튼/그리드/뷰어 핸들러
+  initRover(); // 튜토리얼 도우미(러버) — 슬라이드 패널 DOM/클릭 배선
   // 저장된 설정(사운드 셋·환경 방해)을 입힌다. ★ 반드시 initSound()/initBgm() 뒤여야
   // 한다 — 볼륨 노드가 그때 만들어지고, 여기서 그 노드에 값을 흘려보낸다.
   applySavedSettings();
@@ -184,6 +190,10 @@ async function main() {
       // 터진 조각·클릭 리플은 게임 규칙과 무관한 순수 연출이라 stageManager 밖에서 돈다.
       updateParticles(dt);
       updateRipples(dt);
+      // 튜토리얼 도우미도 같은 자리 — 설정 일시정지·히트스톱 동안은 같이 멈추고
+      // (위 두 early return을 그대로 통과해 여기 왔다는 뜻이므로), 그 외엔
+      // 게임 진행과 완전히 독립적으로 자기 큐만 진행한다(진행바는 안 건드린다).
+      updateRover(dt);
     },
     render: (now) => {
       render({ ctx, canvas, state, gameData, now });
