@@ -1889,3 +1889,11 @@ body {
      풍선(.hz-balloon)도 그 값을 그대로 물려받는다(별도로 auto를 여는 규칙이
      없다 — 위 C. 절전 모드와 같은 이유). */
 #desktop .hz-driver { position: absolute; inset: 0; pointer-events: none; }
+
+/* ── E. 화면 깨짐 ──────────────────────────────────────────────────────────
+   ★ 이 방해는 "시야만 가리고 클릭은 통과"가 핵심이라, 컨테이너·캔버스 전부
+     pointer-events:none이다(해제 드래그는 ui/hazards/cracked.js가 window에
+     직접 걸어서 받는다 — 위 그 파일 상단 주석 참고). 캔버스는 논리 해상도로
+     그려두고 CSS가 화면 크기에 맞춰 늘린다(스크린세이버 캔버스와 같은 방식). */
+#desktop .hz-cracked { position: absolute; inset: 0; pointer-events: none; }
+#desktop .hz-cracked canvas { position: absolute; inset: 0; width: 100%; height: 100%; }

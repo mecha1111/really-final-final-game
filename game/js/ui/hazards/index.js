@@ -8,3 +8,4 @@ import './reboot.js';
 import './screensaver.js';
 import './powersave.js';
 import './driver.js';
+import './cracked.js';
