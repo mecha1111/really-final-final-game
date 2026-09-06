@@ -17,7 +17,7 @@
 
 import { config } from '../config.js';
 import { state } from '../core/state.js';
-import { advanceStage } from '../core/stageManager.js';
+import { advanceStage, isRunCompleted } from '../core/stageManager.js';
 import { playSfx, SFX } from '../systems/sound.js';
 import { setBar } from './statusWindow.js';
 
@@ -40,6 +40,7 @@ let statAccEl = null;
 let statComboEl = null;
 let rowUnlocksEl = null;
 let statUnlocksEl = null;
+let nextBtnEl = null;
 
 // 이번 클리어 화면에서 보여줄 사진 목록(스냅샷) — completeFile()이 못 채운
 // pictureImg=null인 파일은 systems/file.js가 이미 걸러서 안 넣으므로 여기서
@@ -196,6 +197,11 @@ function goToDone(now) {
   if (rowUnlocksEl) rowUnlocksEl.classList.toggle('show', newUnlocks > 0);
   if (newUnlocks > 0) countUpTargets.push({ el: statUnlocksEl, target: newUnlocks, prefix: '+', suffix: '장' });
 
+  // 마지막 유한 구간을 깼으면 다음 구간이 없다 — 버튼이 거짓말을 하면 안 되므로
+  // 문구를 바꾼다(누르면 실제로 타이틀로 간다, core/stageManager.js의 advanceStage).
+  // 엔딩 화면이 붙으면 이 자리는 그대로 두고 advanceStage 쪽만 바뀌면 된다.
+  if (nextBtnEl) nextBtnEl.textContent = isRunCompleted() ? '완주! 메인으로' : '다음 구간 ▶';
+
   for (const t of countUpTargets) if (t.el) t.el.textContent = t.prefix + '0' + t.suffix;
   countUpDone = false;
 
@@ -327,7 +333,8 @@ export function initClearScreen() {
   rowUnlocksEl = document.getElementById('cleared-row-unlocks');
   statUnlocksEl = document.getElementById('cleared-stat-unlocks');
 
-  document.getElementById('cleared-next-btn')?.addEventListener('click', (evt) => {
+  nextBtnEl = document.getElementById('cleared-next-btn');
+  nextBtnEl?.addEventListener('click', (evt) => {
     evt.stopPropagation(); // 배경 클릭(건너뛰기) 핸들러까지 같이 안 불리게
     playSfx(SFX.UI_CLICK, { ui: true });
     advanceStage();

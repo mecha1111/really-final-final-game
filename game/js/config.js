@@ -67,6 +67,22 @@ export const config = {
   // 바깥에서는 지금처럼 config.progression 으로 그대로 읽으면 된다.
   progression: PROGRESSION,
 
+  // ── 구간 구조(유한 5구간 + 무한모드) ──────────────────────────────────────
+  // ★ 이름이 셋이나 비슷해서 헷갈리기 쉽다. 서로 완전히 다른 것이다:
+  //     config.stage      = 여기. "구간이 몇 개까지 있나"라는 구조.
+  //     gameData.stage    = 구글시트 stage 탭(key-value: 할당량·제한시간·해상도…).
+  //     rules.stage       = 방해꾼 해금 판정용 1-based 구간 번호(= n+1).
+  //                         enemies 시트의 min_stage와 비교하는 값이다.
+  stage: {
+    // 유한 구간의 개수. 구간 인덱스로는 0 … finiteCount-1 이 유한 구간이고,
+    // finiteCount 이상은 전부 무한모드다.
+    // ★ 이 숫자 하나만 고치면 6구간·7구간으로 늘어난다 — 구간 수를 코드 어디에도
+    //   직접 박지 않는다(nextStageIndex/완주 판정/무한모드 진입이 전부 이 값을
+    //   읽는다). 늘릴 때 같이 볼 곳은 "그 구간에서 뭐가 새로 나오나"뿐이다
+    //   (enemies 시트 min_stage / 아래 hazard.*.minStage / debug.js의 STAGE_JUMPS).
+    finiteCount: 5,
+  },
+
   // HUD는 캔버스에서 HTML 창(ui/statusWindow.js)으로 옮겨갔다.
   // 레이아웃 숫자는 전부 style.css로 갔고, 여기엔 게임 로직이 읽는 값만 남는다.
   hud: {

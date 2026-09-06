@@ -21,7 +21,10 @@ import { config } from '../config.js';
 // 옮기고 옛 키는 그냥 버린다). schemaVersion = 그 형태 안에서의 세부 변경(필드
 // 추가·의미 변경)으로, 아래 sanitize()가 마이그레이션을 태우는 기준이다.
 const STORAGE_KEY = 'rff-save-v1';
-const SCHEMA_VERSION = 1;
+// v2(2026-09-06): 유한 5구간 + 무한모드 구조가 들어오면서 completed와
+// best.infiniteStage가 생겼다. 아래 migrate()가 v1 세이브를 그대로 물려받는다
+// (해금 그림·이어할 구간을 잃지 않는 게 이 마이그레이션의 존재 이유다).
+const SCHEMA_VERSION = 2;
 
 /** 세이브의 초기값 = 스키마의 정의 그 자체. 손상·구버전·저장소 없음이 전부 여기로 온다. */
 function defaultSave() {
@@ -39,13 +42,20 @@ function defaultSave() {
     // 쓸 새 추적 코드가 아예 필요 없다.
     unlockedPictures: [],
 
+    // 유한 구간(0 … config.stage.finiteCount-1)을 전부 깼는가 = 전체 완주.
+    // 무한모드 해금 조건이고, 한 번 true가 되면 다시 false로 안 내려간다
+    // (완주 기록을 되돌릴 이유가 없다 — [저장 데이터 초기화]로만 사라진다).
+    completed: false,
+
     // 최고 기록. stage는 "끝까지 가 본 가장 높은 구간"(0-based, 클리어/실패 무관),
     // score는 그 판에서 번 크레딧(state.reward)의 최고값이다.
+    // infiniteStage는 무한모드에서 도달한 최고 구간(0-based, 유한 구간은 안 센다) —
+    // 유한 구간과 섞어 재면 "5구간까지 깬 사람"과 "무한 1층"이 구분이 안 된다.
     // ★ 이 게임엔 아직 "점수" 개념이 없어서 무엇을 score로 삼을지는 판단이었다.
     //   uploaded는 할당량에 수렴해 사실상 구간 번호를 따라가고, reward는 피해로
     //   깎이지 않는 "그 판에 실제로 해낸 양"이라 판끼리 비교가 된다. 아래 coins가
     //   붙을 때 그게 곧 크레딧이라 자연스럽게 이어지기도 한다.
-    best: { stage: 0, score: 0 },
+    best: { stage: 0, score: 0, infiniteStage: 0 },
 
     // 지금까지 메모리에만 있던 설정값(core/state.js의 state.settings + 환경 방해
     // 토글 config.hazard.enabled). 슬라이더 셋은 state.settings와 같은 이름을 쓴다.
@@ -70,13 +80,41 @@ const vol = (v, fallback) => Math.max(0, Math.min(100, Math.round(num(v, fallbac
  * 필드 단위로 초기값으로 되돌린다 — 어느 한 필드가 망가졌다고 세이브 전체를 버리면
  * 멀쩡한 해금 목록까지 같이 날아간다.
  */
+/**
+ * 옛 세대의 세이브를 현재 세대 모양으로 끌어올린다. 못 올리면 null(= 초기값 폴백).
+ *
+ * ★ 여기서 옛 세이브를 그냥 버리면 안 된다 — 해금한 그림과 이어할 구간이 통째로
+ *   날아간다. 그래서 "새로 생긴 필드만 기본값으로 채우고 나머지는 그대로 물려받는"
+ *   변환을 세대마다 하나씩 쌓는다(아래 필드 정합성 검사는 어차피 sanitize가
+ *   한 번 더 하므로, 여기서는 모양만 맞춰주면 된다).
+ */
+function migrate(raw) {
+  let cur = raw;
+  // v1 → v2: completed / best.infiniteStage 신설(유한 5구간 + 무한모드 구조).
+  if (cur.schemaVersion === 1) {
+    cur = {
+      ...cur,
+      schemaVersion: 2,
+      // 옛 세이브에는 완주 개념 자체가 없었다 — 5구간을 다 깼는지 알 방법이 없으니
+      // 안전한 쪽(아직 완주 안 함)으로 둔다. 5구간을 다시 깨면 그때 true가 된다.
+      completed: false,
+      best: { ...(cur.best && typeof cur.best === 'object' ? cur.best : {}), infiniteStage: 0 },
+    };
+  }
+  return cur.schemaVersion === SCHEMA_VERSION ? cur : null;
+}
+
 function sanitize(raw) {
   const d = defaultSave();
   if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return d;
 
-  // 모르는 세대의 세이브는 억지로 읽지 않고 통째로 초기값으로 되돌린다. 지금은 v1
-  // 하나뿐이라 마이그레이션 표가 없다 — v2가 생기면 여기서 v1→v2 변환을 태운다.
-  if (raw.schemaVersion !== SCHEMA_VERSION) return d;
+  // 세대가 다르면 마이그레이션을 태운다. 그래도 안 맞으면(미래 세대·정체불명)
+  // 그때는 통째로 초기값으로 되돌린다 — 모르는 모양을 억지로 읽지 않는다.
+  if (raw.schemaVersion !== SCHEMA_VERSION) {
+    const migrated = migrate(raw);
+    if (!migrated) return d;
+    raw = migrated;
+  }
 
   const best = raw.best && typeof raw.best === 'object' ? raw.best : {};
   const st = raw.settings && typeof raw.settings === 'object' ? raw.settings : {};
@@ -87,9 +125,11 @@ function sanitize(raw) {
     unlockedPictures: Array.isArray(raw.unlockedPictures)
       ? [...new Set(raw.unlockedPictures.filter((s) => typeof s === 'string'))]
       : d.unlockedPictures,
+    completed: bool(raw.completed, d.completed),
     best: {
       stage: Math.max(0, Math.floor(num(best.stage, d.best.stage))),
       score: Math.max(0, Math.round(num(best.score, d.best.score))),
+      infiniteStage: Math.max(0, Math.floor(num(best.infiniteStage, d.best.infiniteStage))),
     },
     settings: {
       soundMaster: vol(st.soundMaster, d.settings.soundMaster),
@@ -218,6 +258,27 @@ function mergeUnlockedPictures(save) {
 function mergeBest(save) {
   save.best.stage = Math.max(save.best.stage, state.stageIndex);
   save.best.score = Math.max(save.best.score, Math.round(state.reward));
+  // 무한모드 구간에서만 infiniteStage를 올린다 — 유한 구간(0..finiteCount-1)까지
+  // 같이 세면 "5구간을 깬 것"과 "무한 1층까지 간 것"이 한 숫자에 섞여버린다.
+  if (state.stageIndex >= config.stage.finiteCount) {
+    save.best.infiniteStage = Math.max(save.best.infiniteStage, state.stageIndex);
+  }
+}
+
+/**
+ * 전체 완주(마지막 유한 구간 클리어)를 못박는다 — 무한모드 해금 조건.
+ * core/stageManager.js의 checkWinLose()가 그 순간에 부른다.
+ * 한 번 true가 되면 다시 내려가지 않는다(디버그로 낮은 구간을 다시 깨도 그대로).
+ */
+export function recordRunCompleted() {
+  return updateSave((save) => {
+    save.completed = true;
+  });
+}
+
+/** 유한 구간을 전부 깼는가 — 타이틀의 [무한 모드] 노출 조건. */
+export function hasCompletedRun() {
+  return getSave().completed === true;
 }
 
 /**
@@ -230,9 +291,19 @@ function mergeBest(save) {
 export function recordStageCleared() {
   let newUnlocks = 0;
   const savedToStorage = updateSave((save) => {
-    // Math.max로 덮는다 — 디버그 구간 점프(debug.js)로 낮은 구간을 다시 깨더라도
-    // 이미 열어둔 진행이 뒤로 밀리면 안 된다.
-    save.stageIndex = Math.max(save.stageIndex, state.stageIndex + 1);
+    // ★ 이어할 구간(save.stageIndex)은 "유한 캠페인의 진행도"만 가리킨다.
+    //   - 유한 구간을 깼으면 다음 유한 구간으로 올리되, 마지막 구간을 넘지 않게
+    //     클램프한다. 안 그러면 완주 직후 이 값이 finiteCount(=무한모드 첫 구간)가
+    //     되어, 플레이어가 [무한 모드]를 고르지도 않았는데 [이어하기]가 조용히
+    //     무한모드로 데려가버린다(실측으로 잡은 문제다).
+    //   - 무한모드에서 깬 것은 이 값을 아예 안 건드린다. 무한 진행은 best.infiniteStage가
+    //     따로 기록한다 — 두 축을 한 숫자에 섞으면 캠페인 진행도를 잃는다.
+    if (state.stageIndex < config.stage.finiteCount) {
+      const next = Math.min(state.stageIndex + 1, config.stage.finiteCount - 1);
+      // Math.max로 덮는다 — 디버그 구간 점프(debug.js)로 낮은 구간을 다시 깨더라도
+      // 이미 열어둔 진행이 뒤로 밀리면 안 된다.
+      save.stageIndex = Math.max(save.stageIndex, next);
+    }
     mergeBest(save);
     newUnlocks = mergeUnlockedPictures(save);
   });

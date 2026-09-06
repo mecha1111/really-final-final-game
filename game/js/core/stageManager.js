@@ -2,7 +2,7 @@
 
 import { config, gameData, createRules } from '../config.js';
 import { state, emptyStats, setPhase } from './state.js';
-import { recordStageCleared, recordGameOver } from './save.js';
+import { recordStageCleared, recordGameOver, recordRunCompleted } from './save.js';
 import { Spawner, buildPool } from '../enemies/spawner.js';
 import { splitEnemy, applyExpiryEffect, triggerSelfDestruct, updateFakeCursors } from '../enemies/effects.js';
 import { clearJuice } from '../systems/juice.js';
@@ -100,14 +100,35 @@ export function startGame(stageIndex = 0) {
   playSfx(SFX.START);
 }
 
+/** 이 구간이 무한모드인가(유한 구간을 넘어선 인덱스인가). */
+export function isInfiniteStage(stageIndex = state.stageIndex) {
+  return stageIndex >= config.stage.finiteCount;
+}
+
+/**
+ * 방금 클리어한 판이 "마지막 유한 구간"인가 = 전체 완주인가.
+ * 무한모드에는 끝이 없으므로 여기선 항상 false다(위 isInfiniteStage 참고).
+ */
+export function isRunCompleted() {
+  return state.phase === 'cleared' && state.stageIndex === config.stage.finiteCount - 1;
+}
+
 /**
  * 결과 화면에서 "계속" 눌렀을 때 다음에 시작할 구간.
  * 클리어 → 다음 구간(n+1) / 실패 → 처음(0)으로 리셋.
  * 그리기(ui/screens.js)와 클릭 처리(systems/input.js)가 같은 답을 보게
  * 여기 한 곳에서만 정한다 — 갈라지면 "버튼엔 다음 구간인데 실제론 리셋" 류 버그가 난다.
+ *
+ * ★ 유한 구간에는 상한이 있다(예전엔 없어서 무한히 올라갔다). 마지막 유한 구간을
+ *   깬 경우는 애초에 여기로 오지 않고 advanceStage()가 완주로 처리하지만, 혹시
+ *   다른 경로로 불려도 구간이 유한 범위를 넘지 않게 여기서도 한 번 더 막는다.
+ *   무한모드(stageIndex >= finiteCount)는 일부러 상한을 안 둔다 — 그게 정의다.
  */
 export function nextStageIndex() {
-  return state.phase === 'cleared' ? state.stageIndex + 1 : 0;
+  if (state.phase !== 'cleared') return 0;
+  const next = state.stageIndex + 1;
+  if (isInfiniteStage()) return next; // 무한모드는 그대로 계속 오른다
+  return Math.min(next, config.stage.finiteCount - 1);
 }
 
 /**
@@ -117,8 +138,16 @@ export function nextStageIndex() {
  * 미리 보여주려는 의도였는데, 타이틀의 "게임 시작"이 이미 바로 플레이로 들어가게
  * 바뀐 뒤로는 "다시하기"만 혼자 옛 대기화면을 띄우는 꼴이 됐다. 두 진입점의
  * 흐름을 맞춰서 여기서도 바로 시작한다.
+ *
+ * ★ 마지막 유한 구간을 깼으면 다음 구간이 없다 — 전체 완주다. 지금은 엔딩 화면이
+ *   아직 없어서 타이틀로 돌려보내는 것으로 대신한다(엔딩은 다음 단계에서 붙인다).
+ *   완주 기록 자체는 이미 클리어 순간에 세이브에 찍혀 있다(checkWinLose).
  */
 export function advanceStage() {
+  if (isRunCompleted()) {
+    setPhase('title');
+    return;
+  }
   startGame(nextStageIndex());
 }
 
@@ -267,6 +296,10 @@ function checkWinLose(rules) {
     //   깬 구간이 통째로 날아간다). 여기서 state.completedPictures는 아직 그대로다
     //   — 비우는 건 다음 startGame()이라, 해금 목록 합치기도 이 자리가 맞다.
     state.newUnlockedPictures = recordStageCleared().newUnlocks;
+    // 마지막 유한 구간을 깼으면 "전체 완주"를 여기서 못박는다 — 무한모드 해금
+    // 조건이라, [다음 구간] 버튼을 누르지 않고 나가도 남아야 한다(세이브 기록을
+    // 버튼이 아니라 판이 끝나는 프레임에 두는 위 원칙과 같은 이유).
+    if (isRunCompleted()) recordRunCompleted();
   } else if (state.timeLeft <= 0) {
     state.timeLeft = 0;
     setPhase('failed');
