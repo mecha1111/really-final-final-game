@@ -81,16 +81,16 @@
       <!-- 클릭 무반응 장식. pointer-events:none이라 위를 클릭해도 캔버스(방해꾼)로 통과한다. -->
       <div class="layer-deco">
         <div class="icons">
-          <div class="icon"><div class="ib">🐬</div><div class="il">절대_바이러스<br />아님_진짜_전<br />_돌고래임.exe</div></div>
-          <div class="icon"><div class="ib">📁</div><div class="il">숙제(안함)</div></div>
-          <div class="icon"><div class="ib">🛡️</div><div class="il">V3보다좋음.exe</div></div>
-          <div class="icon"><div class="ib">💾</div><div class="il">야한거아님.zip</div></div>
-          <div class="icon"><div class="ib">🎮</div><div class="il">공부자료.exe</div></div>
-          <div class="icon"><div class="ib">🗑️</div><div class="il">휴지통</div></div>
+          <div class="icon"><div class="ib"><span data-icon="question"></span></div><div class="il">절대_바이러스<br />아님_진짜_전<br />_돌고래임.exe</div></div>
+          <div class="icon"><div class="ib"><span data-icon="folder"></span></div><div class="il">숙제(안함)</div></div>
+          <div class="icon"><div class="ib"><span data-icon="shield"></span></div><div class="il">V3보다좋음.exe</div></div>
+          <div class="icon"><div class="ib"><span data-icon="save"></span></div><div class="il">야한거아님.zip</div></div>
+          <div class="icon"><div class="ib"><span data-icon="game"></span></div><div class="il">공부자료.exe</div></div>
+          <div class="icon"><div class="ib"><span data-icon="recycle"></span></div><div class="il">휴지통</div></div>
         </div>
 
         <div class="taskbar">
-          <div class="start">🪟 시작</div>
+          <div class="start"><span data-icon="xp_flag"></span> 시작</div>
           <div class="ti">■ 상태.dat</div>
           <div class="ti">! 진짜_최종…(5).exe</div>
           <div class="clock" id="tb-clock">오후 11:59</div>
@@ -226,12 +226,12 @@
       <div class="layer-quit" id="layer-quit">
         <div class="win quit-win">
           <div class="tbar">
-            <div class="ico">⚠</div>
+            <div class="ico"><span data-icon="warning"></span></div>
             <div class="t">시스템</div>
             <div class="wb"><span class="min disabled">_</span><span class="disabled">□</span><span class="x" id="quit-dlg-close">×</span></div>
           </div>
           <div class="cleared-dlg-body">
-            <div class="cleared-dlg-icon error-icon">❌</div>
+            <div class="cleared-dlg-icon error-icon"><span data-icon="error"></span></div>
             <div class="cleared-dlg-main">
               <div class="cleared-dlg-title error-title" id="quit-dlg-title">못나가요 ㅋㅋ</div>
               <div class="cleared-dlg-sub" id="quit-dlg-sub">이 프로그램은 종료할 수 없습니다.</div>
@@ -256,12 +256,12 @@
       <div class="layer-confirm" id="layer-confirm">
         <div class="win confirm-win">
           <div class="tbar">
-            <div class="ico">⚠</div>
+            <div class="ico"><span data-icon="warning"></span></div>
             <div class="t">확인</div>
             <div class="wb"><span class="min disabled">_</span><span class="disabled">□</span><span class="x" id="confirm-dlg-close">×</span></div>
           </div>
           <div class="cleared-dlg-body">
-            <div class="cleared-dlg-icon error-icon">⚠</div>
+            <div class="cleared-dlg-icon error-icon"><span data-icon="warning"></span></div>
             <div class="cleared-dlg-main">
               <div class="cleared-dlg-title error-title" id="confirm-dlg-title">확인</div>
               <div class="cleared-dlg-sub" id="confirm-dlg-sub"></div>
@@ -330,7 +330,7 @@
       <div class="layer-cleared" id="layer-cleared">
         <div class="win cleared-win" id="cleared-win">
           <div class="tbar">
-            <div class="ico">🖼</div>
+            <div class="ico"><span data-icon="image"></span></div>
             <div class="t" id="cleared-wtitle">1 구간 정리 중...</div>
             <div class="wb"><span class="min disabled">_</span><span class="disabled">□</span><span class="x disabled">×</span></div>
           </div>
@@ -358,7 +358,7 @@
                기본은 숨김(.layer-cleared.done일 때만 보인다, style.css). -->
           <div class="cleared-scene2 hidden" id="cleared-scene2">
             <div class="cleared-dlg-body">
-              <div class="cleared-dlg-icon">✓</div>
+              <div class="cleared-dlg-icon"><span data-icon="check"></span></div>
               <div class="cleared-dlg-main">
                 <div class="cleared-dlg-title" id="cleared-dlg-title">1 구간 정리 완료</div>
                 <div class="cleared-dlg-sub">이 구간의 파일을 모두 정리했습니다.</div>
@@ -478,13 +478,13 @@
       <div class="layer-settings" id="layer-settings">
         <div class="win settings-modal">
           <div class="tbar">
-            <div class="ico">⚙</div>
+            <div class="ico"><span data-icon="gear"></span></div>
             <div class="t">설정</div>
             <div class="wb"><span class="x" id="settings-close">×</span></div>
           </div>
           <div class="settings-body">
             <div class="grp">
-              <div class="h">🔊 사운드</div>
+              <div class="h"><span data-icon="sound"></span> 사운드</div>
               <div class="c">
                 <!-- 슬라이더는 표준 <input type="range"> 그대로다(트랙 아무 데나
                      클릭/드래그하면 그 값으로 바로 이동하는 게 브라우저 기본
@@ -512,7 +512,7 @@
             </div>
 
             <div class="grp">
-              <div class="h">🖥 화면</div>
+              <div class="h"><span data-icon="monitor"></span> 화면</div>
               <div class="c">
                 <div class="settings-row settings-row-check">
                   <label for="set-crt-on">CRT 효과</label>
@@ -555,7 +555,7 @@
                  마지막 그룹이 스크롤 밖으로 나간다. 스크롤해야만 닿는 자리에 실제로
                  눌러야 하는 버튼을 두면 안 되므로, 잘려도 되는 쪽(조작법)을 뒤로 뺐다. -->
             <div class="grp">
-              <div class="h">💾 저장 데이터</div>
+              <div class="h"><span data-icon="save"></span> 저장 데이터</div>
               <div class="c">
                 <div class="settings-row settings-row-check">
                   <label for="settings-wipe">진행·해금·설정</label>
@@ -566,7 +566,7 @@
             </div>
 
             <div class="grp">
-              <div class="h">🎮 조작법</div>
+              <div class="h"><span data-icon="game"></span> 조작법</div>
               <div class="c">
                 <ul class="settings-controls">
                   <li><b>마우스 클릭</b> — 처치</li>

@@ -22,6 +22,7 @@ import { config } from '../../config.js';
 import { registerHazard, dismissHazard } from '../../systems/hazard.js';
 import { damageUpload } from '../../systems/upload.js';
 import { playSfx, SFX } from '../../systems/sound.js';
+import { icon } from '../icons.js';
 
 /** 남은 초 → XP 대화상자 표기("00:09"). */
 function mmss(totalSec) {
@@ -61,7 +62,7 @@ registerHazard({
         </div>
         <div class="hz-body">
           <div class="hz-row">
-            <div class="hz-shield">🛡</div>
+            <div class="hz-shield">${icon('shield', 46)}</div>
             <div class="hz-msg">
               <p>업데이트를 완료하려면 컴퓨터를 다시 시작해야 합니다.</p>
               <p class="hz-sub">다시 시작하기까지 남은 시간:</p>

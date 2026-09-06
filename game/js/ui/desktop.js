@@ -6,6 +6,7 @@
 //   - 방해꾼 popup: 캔버스, enemies 시트의 적, X 버튼 클릭으로 잡아야 업로드가 산다
 
 import { config } from '../config.js';
+import { icon } from './icons.js';
 
 // #desktop의 고정 좌표계 크기. index.html/style.css와 같은 값이어야 한다.
 const BASE_W = 1920;
@@ -95,7 +96,7 @@ export function toast(msg) {
 
 // 개그 팝업 문구들 — [제목, 본문(HTML), 버튼]
 const GAG_LINES = [
-  ['알림', '🎉 축하합니다!<br>당신은 100만번째<br>방문자입니다!', '지금 받기'],
+  ['알림', `${icon('star', 20)} 축하합니다!<br>당신은 100만번째<br>방문자입니다!`, '지금 받기'],
   ['메시지', '안에 사람들이<br>있잖아!!', '확인'],
   ['경고', '바이러스가 3809개<br>발견되었습니다', '치료(가짜)'],
   ['돌고래', '절대 바이러스<br>아닙니다...<br>전 돌고래입니다', '믿어주세요'],

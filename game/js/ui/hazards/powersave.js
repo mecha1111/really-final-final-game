@@ -18,6 +18,7 @@
 import { config } from '../../config.js';
 import { registerHazard } from '../../systems/hazard.js';
 import { playSfx, SFX } from '../../systems/sound.js';
+import { icon } from '../icons.js';
 
 const clamp = (v, min, max) => Math.max(min, Math.min(max, v));
 
@@ -39,7 +40,7 @@ registerHazard({
     el.innerHTML = `
       <div class="hz-dim"></div>
       <div class="hz-balloon">
-        <div class="hz-balloon-ico">🔌</div>
+        <div class="hz-balloon-ico">${icon('plug', 26)}</div>
         <div class="hz-balloon-txt">
           <b>절전 모드</b>
           <span>디스플레이 전원을 절약하는 중입니다</span>
