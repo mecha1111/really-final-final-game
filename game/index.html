@@ -377,6 +377,16 @@
                   <div class="cleared-dlg-row">
                     <span class="k">최대 콤보</span><span class="v" id="cleared-stat-combo" data-count="0" data-prefix="x">0</span>
                   </div>
+                  <!-- 새로 해금한 그림이 있을 때만(N>0) ui/clearScreen.js가
+                       .show를 붙인다 — 기본은 숨김. .cleared-dlg-row가 이미
+                       #desktop .cleared-dlg-row{display:flex}로 못박혀 있어서
+                       HTML hidden 속성으로는 안 가려진다(그 규칙이 [hidden]보다
+                       구체적이라 이긴다 — 그림 갤러리 뷰어에서 실측으로 잡은
+                       것과 같은 함정, style.css 참고) — 그래서 클래스 토글로
+                       뺐다. -->
+                  <div class="cleared-dlg-row cleared-row-unlocks" id="cleared-row-unlocks">
+                    <span class="k"><span data-icon="star"></span> 새로 해금한 그림</span><span class="v" id="cleared-stat-unlocks" data-count="0" data-prefix="+" data-suffix="장">0</span>
+                  </div>
                 </div>
               </div>
             </div>

@@ -38,6 +38,8 @@ let statFilesEl = null;
 let statKilledEl = null;
 let statAccEl = null;
 let statComboEl = null;
+let rowUnlocksEl = null;
+let statUnlocksEl = null;
 
 // 이번 클리어 화면에서 보여줄 사진 목록(스냅샷) — completeFile()이 못 채운
 // pictureImg=null인 파일은 systems/file.js가 이미 걸러서 안 넣으므로 여기서
@@ -185,6 +187,15 @@ function goToDone(now) {
     { el: statAccEl, target: acc, prefix: '', suffix: '%' },
     { el: statComboEl, target: s.comboBest, prefix: 'x', suffix: '' },
   ];
+
+  // 새로 해금한 그림이 있을 때만 그 줄을 보여준다(core/stageManager.js가
+  // checkWinLose에서 찍어둔 값 — 이번 판에서 "갤러리 기준 처음으로" 해금된
+  // 수, 재획득은 안 센다). 요구사항대로 기존 대화상자에 한 줄만 얹는다 —
+  // 새 연출은 안 만들고 다른 스탯과 같은 카운트업 리스트에 그냥 낀다.
+  const newUnlocks = state.newUnlockedPictures;
+  if (rowUnlocksEl) rowUnlocksEl.classList.toggle('show', newUnlocks > 0);
+  if (newUnlocks > 0) countUpTargets.push({ el: statUnlocksEl, target: newUnlocks, prefix: '+', suffix: '장' });
+
   for (const t of countUpTargets) if (t.el) t.el.textContent = t.prefix + '0' + t.suffix;
   countUpDone = false;
 
@@ -313,6 +324,8 @@ export function initClearScreen() {
   statKilledEl = document.getElementById('cleared-stat-killed');
   statAccEl = document.getElementById('cleared-stat-acc');
   statComboEl = document.getElementById('cleared-stat-combo');
+  rowUnlocksEl = document.getElementById('cleared-row-unlocks');
+  statUnlocksEl = document.getElementById('cleared-stat-unlocks');
 
   document.getElementById('cleared-next-btn')?.addEventListener('click', (evt) => {
     evt.stopPropagation(); // 배경 클릭(건너뛰기) 핸들러까지 같이 안 불리게

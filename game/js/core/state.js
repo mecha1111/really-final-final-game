@@ -43,6 +43,13 @@ export const state = {
   // completeFile()이 완성 순간마다 밀어 넣는다. ui/clearScreen.js가 구간 클리어
   // 화면에서 이 순서 그대로 폴라로이드로 보여준다(완성한 순서 = 등장 순서).
   completedPictures: [],
+  // 방금 클리어한 판에서 "갤러리 기준 처음으로" 해금된 그림 수(core/save.js의
+  // recordStageCleared 반환값을 core/stageManager.js가 여기 찍는다). 위
+  // completedPictures와 다른 값이다 — 이번 판에 완성한 파일 중에는 진작
+  // 해금돼 있던 그림(재획득)도 섞일 수 있어서, "진짜 새로 갤러리에 추가된
+  // 것"만 세려면 세이브와 대조가 필요하다(그 대조를 하는 곳이 save.js다).
+  // ui/clearScreen.js가 "새 그림 해금!" 한 줄을 보여줄지 판단하는 값.
+  newUnlockedPictures: 0,
 
   enemies: [],
   fakeCursors: [],

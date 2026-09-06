@@ -195,14 +195,23 @@ export function savedStageIndex() {
   return getSave().stageIndex;
 }
 
-/** 이번 판에 완성한 그림들을 해금 목록에 합친다(중복 없이). */
+/** 이번 판에 완성한 그림들을 해금 목록에 합친다(중복 없이).
+ * @returns {number} 그중 "이번에 처음" 해금된 것의 수(이미 해금돼 있던 것 제외) —
+ *   클리어 화면의 "새 그림 해금!" 표시가 이 값을 그대로 쓴다.
+ */
 function mergeUnlockedPictures(save) {
-  if (!state.completedPictures.length) return;
+  if (!state.completedPictures.length) return 0;
+  const before = new Set(save.unlockedPictures);
+  let newCount = 0;
+  for (const pic of state.completedPictures) {
+    if (typeof pic?.src === 'string' && !before.has(pic.src)) newCount++;
+  }
   const seen = new Set(save.unlockedPictures);
   for (const pic of state.completedPictures) {
     if (typeof pic?.src === 'string') seen.add(pic.src);
   }
   save.unlockedPictures = [...seen];
+  return newCount;
 }
 
 /** 최고 기록 갱신 — 클리어/게임오버 양쪽이 같은 규칙을 쓴다. */
@@ -214,15 +223,20 @@ function mergeBest(save) {
 /**
  * 구간 클리어 순간의 기록(core/stageManager.js의 checkWinLose에서 호출).
  * 이어할 구간을 방금 깬 구간의 다음으로 올린다.
+ * @returns {{ savedToStorage: boolean, newUnlocks: number }} newUnlocks는 이번
+ *   판에서 "처음으로" 해금된 그림 수 — 클리어 화면의 "새 그림 해금!" 한 줄이
+ *   이 값을 그대로 쓴다(ui/clearScreen.js).
  */
 export function recordStageCleared() {
-  return updateSave((save) => {
+  let newUnlocks = 0;
+  const savedToStorage = updateSave((save) => {
     // Math.max로 덮는다 — 디버그 구간 점프(debug.js)로 낮은 구간을 다시 깨더라도
     // 이미 열어둔 진행이 뒤로 밀리면 안 된다.
     save.stageIndex = Math.max(save.stageIndex, state.stageIndex + 1);
     mergeBest(save);
-    mergeUnlockedPictures(save);
+    newUnlocks = mergeUnlockedPictures(save);
   });
+  return { savedToStorage, newUnlocks };
 }
 
 /**

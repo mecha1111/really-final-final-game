@@ -51,6 +51,7 @@ export function startGame(stageIndex = 0) {
   state.reward = 0;
   state.nextFilePenaltyMb = 0;
   state.completedPictures = []; // 지난 구간에 완성한 그림 목록을 새 구간으로 안 넘긴다
+  state.newUnlockedPictures = 0; // 지난 클리어 화면의 "새 그림 해금!" 표시가 다음 판까지 새지 않게
   state.enemies = [];
   state.fakeCursors = [];
   state.blocked = false;
@@ -265,7 +266,7 @@ function checkWinLose(rules) {
     //   보다가 브라우저를 껐다 켠 경우까지 덮는다(버튼을 눌러야만 저장되면 방금
     //   깬 구간이 통째로 날아간다). 여기서 state.completedPictures는 아직 그대로다
     //   — 비우는 건 다음 startGame()이라, 해금 목록 합치기도 이 자리가 맞다.
-    recordStageCleared();
+    state.newUnlockedPictures = recordStageCleared().newUnlocks;
   } else if (state.timeLeft <= 0) {
     state.timeLeft = 0;
     setPhase('failed');

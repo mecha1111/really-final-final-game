@@ -562,6 +562,13 @@ body {
 #desktop .cleared-dlg-row:last-child { border-bottom: none; }
 #desktop .cleared-dlg-row .k { color: #444; }
 #desktop .cleared-dlg-row .v { font-weight: 700; color: #1a1a1a; }
+/* 새로 해금한 그림이 없으면(N=0) 아예 안 보인다 — .show가 붙어야 나타난다.
+   ui/clearScreen.js가 goToDone()에서 한 번만 토글한다(위 index.html 주석 —
+   [hidden] 속성이 아니라 클래스인 이유는 .cleared-dlg-row의 display:flex가
+   더 구체적이라 [hidden]을 이겨버리기 때문). */
+#desktop .cleared-row-unlocks { display: none; }
+#desktop .cleared-row-unlocks.show { display: flex; }
+#desktop .cleared-row-unlocks .k .xicon { color: #c47f00; margin-right: 2px; }
 /* 하단 버튼바(회색, 우측정렬 = XP 관례) — 색·질감은 .settings-btn을 그대로 쓰고
    (index.html에서 이미 그 클래스를 같이 붙였다) 여기서는 이 버튼만 더 키운다는
    요구사항(버튼 ~22px)만 얹는다. */
