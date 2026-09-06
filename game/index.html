@@ -210,6 +210,10 @@
           <div id="title-menu">
             <div class="btn" id="title-btn-continue" hidden>이어하기</div>
             <div class="btn" id="title-btn-start">새 게임</div>
+            <!-- [무한 모드]는 유한 5구간을 전부 깬 뒤에만 보인다(세이브의
+                 completed). [이어하기]와 같은 방식으로 ui/titleScreen.js가
+                 title로 들어올 때마다 hidden을 토글한다. -->
+            <div class="btn" id="title-btn-infinite" hidden>무한 모드</div>
             <div class="btn" id="title-btn-gallery">갤러리</div>
             <div class="btn" id="title-btn-settings">설정</div>
             <div class="btn" id="title-btn-quit">나가기</div>

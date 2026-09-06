@@ -4,7 +4,8 @@
 // 배경·로고 애니(floaty, hover 확대)는 순수 CSS(style.css)라 여기선 클릭 훅만 담당한다.
 
 import { startGame } from '../core/stageManager.js';
-import { hasProgress, savedStageIndex } from '../core/save.js';
+import { config } from '../config.js';
+import { hasProgress, savedStageIndex, hasCompletedRun } from '../core/save.js';
 import { playSfx, SFX } from '../systems/sound.js';
 import { openSettings } from './settingsPanel.js';
 import { openConfirm } from './confirmDialog.js';
@@ -44,18 +45,23 @@ function closeQuitModal() {
 }
 
 let continueBtnEl = null;
+let infiniteBtnEl = null;
 
 // 지난 프레임에 title이었는지 — "이번에 새로 타이틀로 들어왔다"를 판별해 그때만
 // [이어하기] 노출을 갱신한다(ui/bsodScreen.js의 wasFailed, ui/clearScreen.js의
 // wasCleared와 같은 idiom). 매 프레임 세이브를 들여다볼 이유가 없다.
 let wasTitle = false;
 
-/** 세이브에 진행이 있을 때만 [이어하기]를 보여준다. */
-function syncContinueButton() {
-  if (!continueBtnEl) return;
-  // display를 직접 만지지 않고 hidden 속성만 토글한다 — #title-menu는 flex-column
-  // 이라 항목 하나가 빠지면 나머지가 자연스럽게 자리를 메운다(레이아웃 손 안 댐).
-  continueBtnEl.hidden = !hasProgress();
+/** 세이브 상태에 따라 조건부 버튼들의 노출을 맞춘다.
+ * display를 직접 만지지 않고 hidden 속성만 토글한다 — #title-menu는 flex-column
+ * 이라 항목이 빠지면 나머지가 자연스럽게 자리를 메운다(레이아웃 손 안 댐).
+ * ★ .btn에는 display를 못박은 CSS 규칙이 없어서 hidden이 정상적으로 먹는다
+ *   (갤러리 뷰어/클리어 화면의 새 줄처럼 display가 박힌 곳은 클래스로 토글해야
+ *   한다 — 같은 함정을 두 번 겪었다, style.css 주석 참고). */
+function syncConditionalButtons() {
+  if (continueBtnEl) continueBtnEl.hidden = !hasProgress();
+  // [무한 모드]는 유한 구간을 전부 깬 뒤에만 — 그 전엔 존재 자체를 안 알린다.
+  if (infiniteBtnEl) infiniteBtnEl.hidden = !hasCompletedRun();
 }
 
 /** 첫 구간(n=0)으로 새 판을 시작한다. [새 게임]과 그 덮어쓰기 확인이 함께 쓴다. */
@@ -78,7 +84,8 @@ function startNewGame() {
 /** 최초 1회. 타이틀 화면 버튼에 핸들러를 붙인다. */
 export function initTitleScreen() {
   continueBtnEl = document.getElementById('title-btn-continue');
-  syncContinueButton(); // 첫 프레임 전에 한 번 맞춰둔다(로딩 중엔 어차피 안 보인다)
+  infiniteBtnEl = document.getElementById('title-btn-infinite');
+  syncConditionalButtons(); // 첫 프레임 전에 한 번 맞춰둔다(로딩 중엔 어차피 안 보인다)
 
   continueBtnEl?.addEventListener('click', () => {
     playSfx(SFX.UI_CLICK, { ui: true });
@@ -88,6 +95,16 @@ export function initTitleScreen() {
     //   여기서 추가로 방어할 게 없다 — 이미지 프리로드가 늦게 끝나 뒤늦게 도착하는
     //   'title' 대입은 playing을 못 덮는다.
     startGame(savedStageIndex());
+  });
+
+  infiniteBtnEl?.addEventListener('click', () => {
+    playSfx(SFX.UI_CLICK, { ui: true });
+    // 무한모드의 첫 구간 = 유한 구간 바로 다음(config.stage.finiteCount).
+    // 여기서부터는 상한이 없어 공식이 계속 오른다(core/stageManager.js의
+    // nextStageIndex가 무한 구간만 클램프를 안 건다).
+    // ★ 세이브를 안 건드린다 — 무한모드 진행은 이어할 구간(유한 캠페인 진행도)과
+    //   별개로 best.infiniteStage에만 남는다(core/save.js).
+    startGame(config.stage.finiteCount);
   });
 
   document.getElementById('title-btn-start')?.addEventListener('click', () => {
@@ -150,5 +167,5 @@ export function updateTitleScreen() {
   }
   if (wasTitle) return;
   wasTitle = true;
-  syncContinueButton();
+  syncConditionalButtons();
 }

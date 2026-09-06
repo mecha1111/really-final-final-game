@@ -49,8 +49,10 @@ function defaultSave() {
 
     // 최고 기록. stage는 "끝까지 가 본 가장 높은 구간"(0-based, 클리어/실패 무관),
     // score는 그 판에서 번 크레딧(state.reward)의 최고값이다.
-    // infiniteStage는 무한모드에서 도달한 최고 구간(0-based, 유한 구간은 안 센다) —
-    // 유한 구간과 섞어 재면 "5구간까지 깬 사람"과 "무한 1층"이 구분이 안 된다.
+    // infiniteStage는 무한모드에서 "끝까지 가 본"(클리어든 실패든 판이 끝난) 가장
+    // 높은 구간이다 — 위 stage와 같은 규칙이고, 유한 구간은 안 센다. 유한과 섞어
+    // 재면 "5구간까지 깬 사람"과 "무한 1층"이 한 숫자에 뭉개져 구분이 안 된다.
+    // (지금 플레이 중인 구간은 아직 안 센다. 판이 끝나야 기록된다.)
     // ★ 이 게임엔 아직 "점수" 개념이 없어서 무엇을 score로 삼을지는 판단이었다.
     //   uploaded는 할당량에 수렴해 사실상 구간 번호를 따라가고, reward는 피해로
     //   깎이지 않는 "그 판에 실제로 해낸 양"이라 판끼리 비교가 된다. 아래 coins가
@@ -73,13 +75,6 @@ const num = (v, fallback) => (typeof v === 'number' && Number.isFinite(v) ? v : 
 const bool = (v, fallback) => (typeof v === 'boolean' ? v : fallback);
 const vol = (v, fallback) => Math.max(0, Math.min(100, Math.round(num(v, fallback))));
 
-/**
- * 저장소에서 읽은 아무 값이나 받아 "반드시 온전한 세이브 객체"로 만든다.
- * 손상된 JSON은 이 함수에 오기 전에 이미 걸러지고, 여기서는 "JSON으로는 읽혔지만
- * 내용이 이상한" 경우(숫자 자리에 문자열, 배열이어야 하는데 객체, 통째로 null 등)를
- * 필드 단위로 초기값으로 되돌린다 — 어느 한 필드가 망가졌다고 세이브 전체를 버리면
- * 멀쩡한 해금 목록까지 같이 날아간다.
- */
 /**
  * 옛 세대의 세이브를 현재 세대 모양으로 끌어올린다. 못 올리면 null(= 초기값 폴백).
  *
@@ -104,6 +99,13 @@ function migrate(raw) {
   return cur.schemaVersion === SCHEMA_VERSION ? cur : null;
 }
 
+/**
+ * 저장소에서 읽은 아무 값이나 받아 "반드시 온전한 세이브 객체"로 만든다.
+ * 손상된 JSON은 이 함수에 오기 전에 이미 걸러지고, 여기서는 "JSON으로는 읽혔지만
+ * 내용이 이상한" 경우(숫자 자리에 문자열, 배열이어야 하는데 객체, 통째로 null 등)를
+ * 필드 단위로 초기값으로 되돌린다 — 어느 한 필드가 망가졌다고 세이브 전체를 버리면
+ * 멀쩡한 해금 목록까지 같이 날아간다.
+ */
 function sanitize(raw) {
   const d = defaultSave();
   if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return d;
