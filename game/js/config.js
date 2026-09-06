@@ -271,6 +271,9 @@ export const config = {
       'clone:0': { l: 1 / 128, t: 17 / 128, r: 126 / 128, b: 116 / 128 }, // big
       'clone:1': { l: 30 / 128, t: 20 / 128, r: 110 / 128, b: 105 / 128 }, // mid
       'clone:2': { l: 13 / 128, t: 19 / 128, r: 115 / 128, b: 109 / 128 }, // small
+      // hourglass: assets/enemies/hourglass/hourglass_1.png 알파채널 실측값
+      // (center 62,62).
+      hourglass: { l: 0.0078, t: 0.0547, r: 0.9688, b: 0.9141 },
     },
     // 위 판정 사각형 사방에 더하는 여유(원본 캔버스 대비 비율). 그림에 딱 맞추면
     // 가장자리가 아슬아슬해서 누르기 답답하다 — 3px(=3/128) 정도만 넉넉히 준다.
@@ -380,10 +383,6 @@ export const config = {
       // "다시 발동시킬 클릭" 자체가 들어올 수 없다 — 그래도 나중에 그 가드가 느슨해질
       // 경우를 대비해 대입 방식 자체를 규칙으로 못박아 둔다.
       freezeSec: 1.0,
-      // 임시 코드드로잉(ui/renderEnemies.js의 drawHourglassPlaceholder) 색 — XP 아이콘
-      // 톤의 금속 마개(어두운 청동)와 호박색 모래. png로 교체되면 이 값은 그냥 안 읽힌다.
-      frameColor: '#8a7048',
-      sandColor: '#e8b923',
     },
 
     // zombie(좀비 프로세스) — 처치해도 reviveDelaySec 뒤 같은 자리에서 한 번 더 살아난다.
