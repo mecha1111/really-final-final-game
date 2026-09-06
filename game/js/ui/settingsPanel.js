@@ -1,7 +1,11 @@
 // 이 파일 역할: ESC로 여닫는 설정 팝업(.layer-settings) — 사운드 슬라이더(값은
 // state.settings에 저장하고, systems/sound.js·systems/bgm.js의 볼륨 노드에 실시간
 // 반영), CRT 효과 on/off·강도(config.crt와 실시간 연결), 전체화면 토글, 조작법
-// 안내, 하단 계속하기/메인으로/기본값복원.
+// 안내, 저장 데이터 초기화, 하단 계속하기/메인으로/기본값복원.
+//
+// ★ 영속화되는 설정은 사운드 셋 + 환경 방해 토글뿐이다(core/save.js의 스키마).
+//   저장은 슬라이더의 input이 아니라 change에서 한다 — 드래그 도중 수십 번 쓰지
+//   않으려고. CRT/전체화면은 저장 항목이 아니라 매 실행 기본값으로 돌아간다.
 //
 // ui/titleScreen.js·ui/bsodScreen.js와 같은 패턴이다 — index.html에 이미 있는
 // 정적 마크업에 핸들러만 붙인다(debug.js처럼 DOM을 직접 만들지 않는다. 이건 dev
@@ -18,10 +22,12 @@
 
 import { config } from '../config.js';
 import { state, setPhase } from '../core/state.js';
+import { getSave, saveSettings, clearSave } from '../core/save.js';
 import { playSfx, refreshSfxVolume, SFX } from '../systems/sound.js';
 import { refreshBgmVolume } from '../systems/bgm.js';
 import { applyCrtSteadyVars } from './crtTransition.js';
 import { clearActiveHazards } from '../systems/hazard.js';
+import { openConfirm } from './confirmDialog.js';
 
 // ESC로 "열 수" 있는 phase. 이미 열려 있으면 phase와 무관하게 항상 닫을 수 있다
 // (아래 handleSettingsKey). failed(BSOD)는 뺐다 — 그 화면은 이미 자기 버튼
@@ -92,6 +98,26 @@ function syncAllControls() {
   syncFullscreenControl();
 }
 
+/**
+ * 저장된 설정을 지금 게임에 입힌다(main.js가 부팅 때 1회, 저장 데이터 초기화 때 1회).
+ *
+ * ★ initSound()/initBgm() 뒤에 불러야 한다 — 아래 refresh*Volume()이 그때 만들어진
+ *   볼륨 노드에 값을 흘려보내기 때문이다. 값 자체는 state.settings에 먼저 들어가므로
+ *   순서가 어긋나도 조용히 틀리지는 않지만, 그 세션 내내 볼륨만 반영이 안 된다.
+ *
+ * CRT(config.crt)는 일부러 안 넣었다 — 이번에 영속화하기로 한 항목이 사운드 셋과
+ * 환경 방해 토글뿐이라, 저장 스키마에 없는 값을 여기서 몰래 건드리지 않는다.
+ */
+export function applySavedSettings() {
+  const saved = getSave().settings;
+  state.settings.soundMaster = saved.soundMaster;
+  state.settings.soundSfx = saved.soundSfx;
+  state.settings.soundBgm = saved.soundBgm;
+  refreshSfxVolume();
+  refreshBgmVolume();
+  config.hazard.enabled = saved.hazardEnabled;
+}
+
 // ★ 여닫는 소리를 버튼 핸들러가 아니라 이 두 함수 안에 둔다 — 팝업을 여는 길이
 //   여러 갈래(타이틀의 설정 버튼, ESC)고 닫는 길은 더 많다(닫기 X, 계속하기,
 //   메인으로, ESC). 각 핸들러에 하나씩 붙이면 새 진입점이 생길 때마다 빠뜨리게 된다.
@@ -130,6 +156,10 @@ function wireSoundSlider(key, inputId, outId) {
     refreshSfxVolume();
     refreshBgmVolume();
   });
+  // 저장은 input이 아니라 change에서 한다 — input은 드래그하는 동안 수십 번 나므로
+  // 그때마다 localStorage에 쓰면 쓸데없는 직렬화/쓰기가 쏟아진다. change는 손을
+  // 뗄 때 한 번만 난다(키보드 조작·트랙 클릭도 마찬가지).
+  input?.addEventListener('change', saveSettings);
 }
 
 /** 최초 1회. 버튼·슬라이더·체크박스에 핸들러를 붙인다. */
@@ -160,6 +190,28 @@ export function initSettingsPanel() {
     config.hazard.enabled = DEFAULTS.hazardEnabled;
     if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
     syncAllControls();
+    // 복원한 기본값도 저장해야 새로고침 후에 되돌아오지 않는다(슬라이더를 거치지
+    // 않고 값이 바뀌는 경로라 여기서 직접 부른다 — 위 refresh*Volume과 같은 이유).
+    saveSettings();
+  });
+
+  // 저장 데이터 초기화 — 되돌릴 수 없으므로 공용 확인 대화상자를 반드시 거친다
+  // (ui/confirmDialog.js, 타이틀 [새 게임]과 같은 창을 재사용한다).
+  document.getElementById('settings-wipe')?.addEventListener('click', () => {
+    playSfx(SFX.UI_CLICK, { ui: true });
+    openConfirm({
+      title: '저장 데이터를 지울까요?',
+      sub: '이어할 구간, 완성한 그림, 최고 기록, 설정이 모두 사라집니다. 되돌릴 수 없습니다.',
+      okLabel: '모두 삭제',
+      onConfirm: () => {
+        clearSave();
+        // "모두"라고 했으니 설정도 같이 초기값으로 되돌린다 — 세이브만 비우고 지금
+        // 켜져 있는 설정을 남기면 다음 저장 때 그 값이 그대로 다시 쓰여서, 사용자가
+        // 본 것과 실제 결과가 어긋난다.
+        applySavedSettings();
+        syncAllControls();
+      },
+    });
   });
 
   wireSoundSlider('soundMaster', 'set-sound-master', 'set-sound-master-out');
@@ -186,6 +238,7 @@ export function initSettingsPanel() {
   document.getElementById('set-hazard-on')?.addEventListener('change', (evt) => {
     config.hazard.enabled = evt.target.checked;
     if (!config.hazard.enabled) clearActiveHazards();
+    saveSettings();
   });
 
   const fsBox = document.getElementById('set-fullscreen');

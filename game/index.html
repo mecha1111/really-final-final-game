@@ -546,6 +546,25 @@
               </div>
             </div>
 
+            <!-- 저장 데이터 — 되돌릴 수 없는 동작이라 실행은 반드시 확인 대화상자
+                 (.layer-confirm)를 거친다. 아래 푸터의 [기본값 복원] 옆에 두지 않은
+                 이유가 있다: 이름이 비슷한 두 버튼이 붙어 있으면 "설정만 되돌리려다
+                 세이브를 날리는" 오조작이 난다.
+                 ★ 조작법(정보만 있는 그룹)보다 위에 둔 것은 실측 결과다 — 세로가
+                 짧은 화면(900px 안팎)에서는 .settings-body의 max-height:70vh에 걸려
+                 마지막 그룹이 스크롤 밖으로 나간다. 스크롤해야만 닿는 자리에 실제로
+                 눌러야 하는 버튼을 두면 안 되므로, 잘려도 되는 쪽(조작법)을 뒤로 뺐다. -->
+            <div class="grp">
+              <div class="h">💾 저장 데이터</div>
+              <div class="c">
+                <div class="settings-row settings-row-check">
+                  <label for="settings-wipe">진행·해금·설정</label>
+                  <button type="button" class="settings-btn" id="settings-wipe">저장 데이터 초기화</button>
+                </div>
+                <div class="settings-hint">이어할 구간과 완성한 그림이 모두 사라집니다.</div>
+              </div>
+            </div>
+
             <div class="grp">
               <div class="h">🎮 조작법</div>
               <div class="c">

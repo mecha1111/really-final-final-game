@@ -14,6 +14,7 @@
 //   접근까지 통째로 try 안에 넣는다.
 
 import { state } from './state.js';
+import { config } from '../config.js';
 
 // 키 이름의 v1과 아래 schemaVersion은 층위가 다른 두 버전이라 일부러 같이 둔다.
 // 키의 v1 = "이 키가 담는 큰 형태"의 세대(형태를 통째로 갈아엎어야 하면 새 키로
@@ -232,6 +233,22 @@ export function recordGameOver() {
   return updateSave((save) => {
     mergeBest(save);
     mergeUnlockedPictures(save);
+  });
+}
+
+/**
+ * 지금 설정값을 세이브에 찍는다(ui/settingsPanel.js가 조작이 확정될 때마다 호출).
+ * 슬라이더 셋은 state.settings, 환경 방해 토글은 config.hazard.enabled에 있어서
+ * 출처가 둘로 갈린다 — 저장 형태를 아는 건 이 파일 하나뿐이라 모으는 것도 여기서 한다.
+ */
+export function saveSettings() {
+  return updateSave((save) => {
+    save.settings = {
+      soundMaster: state.settings.soundMaster,
+      soundSfx: state.settings.soundSfx,
+      soundBgm: state.settings.soundBgm,
+      hazardEnabled: config.hazard.enabled,
+    };
   });
 }
 

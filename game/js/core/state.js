@@ -71,6 +71,8 @@ export const state = {
   //   save.js가 흡수한다: 저장소가 막혀 있으면 조용히 메모리 세이브로 강등하고
   //   게임은 그대로 진행된다(그 브라우저에서만 옛 동작대로 새로고침 시 초기값).
   //   ★ 이 판단을 다시 하게 되면 "지금 어디에 배포하나"부터 확인할 것.
+  //   그래서 아래 세 값은 이제 실제로 저장된다 — ui/settingsPanel.js가 조작이
+  //   확정될 때마다 core/save.js에 찍고, 부팅 때 applySavedSettings()가 되돌린다.
   settings: {
     soundMaster: 100,
     soundSfx: 100,
