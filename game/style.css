@@ -202,6 +202,11 @@ body {
    전체가 "연출 건너뛰기" 클릭 대상이어야 하기 때문(ui/clearScreen.js). */
 #desktop .layer-cleared { position: absolute; inset: 0; z-index: 6; pointer-events: auto; display: none; }
 #desktop .layer-overload { position: absolute; inset: 0; z-index: 7; pointer-events: none; overflow: hidden; }
+/* 환경 방해(systems/hazard.js). 과밀 지지직과 같은 z7이지만 DOM에서 뒤에 와서 위에
+   그려진다. ★ 컨테이너는 항상 pointer-events:none — 해제 조작을 받는 요소만 자기
+   규칙에서 auto로 연다(아래 각 방해 CSS). 그래야 방해가 떠 있어도 그 바깥을 누른
+   클릭은 캔버스(z5)의 방해꾼 판정으로 평소와 똑같이 내려간다. */
+#desktop .layer-hazard { position: absolute; inset: 0; z-index: 7; pointer-events: none; overflow: hidden; }
 #desktop .layer-vignette { position: absolute; inset: 0; z-index: 8; pointer-events: none; }
 #desktop .layer-urgent { position: absolute; inset: 0; z-index: 8; pointer-events: none; opacity: 0; }
 #desktop .layer-crt-steady { position: absolute; inset: 0; z-index: 9; pointer-events: none; display: none; overflow: hidden; }

@@ -80,6 +80,12 @@ export const state = {
   // (config.enemy.hourglass.freezeSec 주석 참고).
   inputFreezeSec: 0,
 
+  // 지금 발동 중인 환경 방해(systems/hazard.js가 넣고 뺀다). 방해꾼(state.enemies)과
+  // 완전히 다른 축이다 — 클릭해서 없애는 대상이 아니라 화면·조작을 망가뜨리는 장치라,
+  // 배열도 갱신 경로도 따로 둔다. 판이 끝나면 resetHazards()가 DOM째 전부 치운다
+  // (core/stageManager.js의 startGame — 판을 넘어 잔존하면 안 된다).
+  hazards: [],
+
   // popup 몸통(= X가 아닌 곳)을 잘못 누른 누적 횟수 — 개체별이 아니라 판 전체
   // 하나로 센다(systems/input.js가 올린다). config.popupHintOutline.threshold에
   // 닿으면 ui/renderEnemies.js가 살아있는 모든 popup의 X 버튼 판정 영역에 테두리

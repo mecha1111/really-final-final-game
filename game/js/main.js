@@ -9,6 +9,7 @@ import { update, getPlayArea, startGame } from './core/stageManager.js';
 import { consumeHitStop, updateParticles, clearJuice } from './systems/juice.js';
 import { updateRipples } from './systems/clickRipple.js';
 import { initInput } from './systems/input.js';
+import { initHazards, triggerHazard, hazardIds } from './systems/hazard.js';
 import { initSound } from './systems/sound.js';
 import { initBgm, updateBgm } from './systems/bgm.js';
 import { render } from './ui/render.js';
@@ -86,6 +87,12 @@ function exposeDebugHandle() {
     config,
     startGame,
     getPlayArea,
+    /** 환경 방해를 지금 당장 하나 발동시킨다 — __game.hazard('reboot') 식으로. */
+    hazard(id) {
+      const inst = triggerHazard(id);
+      if (!inst) console.warn(`[hazard] 그런 id가 없다: ${id} (가능: ${hazardIds().join(', ') || '없음'})`);
+      return inst;
+    },
     /** 특정 id의 방해꾼을 지금 화면에 하나 띄운다 */
     spawn(id, at) {
       const spec = gameData.enemies.find((e) => e.id === id);
@@ -111,6 +118,7 @@ async function main() {
   initCursor(); // 게임 영역 커서(config.cursor) — hotspot이 클릭 좌표와 어긋나면 안 되므로 최대한 일찍
 
   initInput(canvas);
+  initHazards(); // 환경 방해가 DOM을 얹을 레이어(.layer-hazard)를 잡아둔다
   initSound(); // 효과음 — AudioContext를 세우고 mp3 프리로드를 시작한다(await 안 함)
   initBgm(); // 배경음악 — sound.js가 만든 AudioContext를 재사용(반드시 initSound() 다음)
   initDesktop(); // HTML 바탕화면(창 드래그·개그 팝업·시계)

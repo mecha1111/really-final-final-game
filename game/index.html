@@ -368,6 +368,16 @@
         <div class="ovl-c"></div>
       </div>
 
+      <!-- 환경 방해(레이어7 — 과밀 지지직과 같은 층이지만 DOM 순서상 뒤라 위에 그려진다).
+           systems/hazard.js가 여기에 방해 DOM을 넣고 뺀다. 비어 있는 게 기본이다.
+           ★ 컨테이너는 항상 pointer-events:none — 해제 조작을 받아야 하는 요소만
+             자기 CSS에서 auto로 연다(.layer-win > */.layer-bsod 버튼과 같은 관례).
+             그래야 방해가 떠 있어도 그 바깥 클릭은 캔버스(z5)의 방해꾼 판정으로
+             평소와 똑같이 내려간다. 캔버스의 pointer-events를 잠깐 껐다 켜는 식의
+             임시 상태 변경은 절대 안 쓴다(systems/input.js forwardClickThrough 주석의
+             "한 번 굳으면 새로고침 전까지 먹통" 사고). -->
+      <div class="layer-hazard" id="layer-hazard"></div>
+
       <!-- 피해를 입은 순간 화면 가장자리가 빨갛게 펄스(레이어8). systems/upload.js의
            triggerHitFeedback가 --vig-level만 흘려보낸다(ui/statusWindow.js가 매 프레임
            갱신). 과밀 지지직(레이어7)보다 위 — 둘이 겹쳐도 "지금 막 맞았다"가 묻히면
@@ -488,6 +498,14 @@
                 <div class="settings-row settings-row-check">
                   <label for="set-fullscreen">전체화면</label>
                   <input type="checkbox" id="set-fullscreen" />
+                </div>
+                <!-- 접근성: 환경 방해(재부팅 알림·스크린세이버·절전) 끄기. 기본은 켜짐이라
+                     체크박스는 "켜기" 쪽으로 뒀다(끄기 항목으로 두면 체크 상태와 실제
+                     동작이 반대라 헷갈린다). 끄면 systems/hazard.js가 새로 발동시키지
+                     않고, 이미 떠 있던 것도 그 자리에서 치운다. -->
+                <div class="settings-row settings-row-check">
+                  <label for="set-hazard-on">환경 방해</label>
+                  <input type="checkbox" id="set-hazard-on" />
                 </div>
               </div>
             </div>

@@ -10,6 +10,7 @@ import { clearShake } from '../systems/screenShake.js';
 import { updateUpload, resetUploadEdges } from '../systems/upload.js';
 import { resetOverloadEdges } from '../systems/overload.js';
 import { updateUrgency, resetUrgencyEdges } from '../systems/urgency.js';
+import { updateHazards, resetHazards } from '../systems/hazard.js';
 import { grantFile } from '../systems/file.js';
 import { playSfx, SFX } from '../systems/sound.js';
 import { updateFloats, clearFloats } from '../systems/floats.js';
@@ -85,6 +86,10 @@ export function startGame(stageIndex = 0) {
   // 긴박 경고 엣지 기억도 끊는다 — 위험 상태로 판이 끝났다가 새 판 첫 프레임에
   // 엉뚱하게 "위험!" 소리가 다시 나는 걸 막는다(위 두 resetEdges와 같은 이유).
   resetUrgencyEdges();
+  // 환경 방해도 판을 넘어 남으면 안 된다 — 떠 있던 대화상자/오버레이를 DOM째 치우고
+  // 스케줄러(유예·쿨타임·직전 종류 기억)까지 처음으로 되돌린다. 위 resetXxxEdges들과
+  // 같은 이유·같은 자리다.
+  resetHazards();
   lastTickSec = null; // 시간 임박 똑딱 빗장 리셋
 
   spawner.reset(rules);
@@ -152,6 +157,9 @@ export function update(dt) {
   updateCombo(dt); // 콤보 연출 타이머만 — 콤보 값은 클릭으로만 바뀐다
   updateFloats(dt);
   updateUrgency(rules); // 남은 시간·할당량으로 "지금 위험한가"를 다시 계산
+  // 환경 방해(화면·조작 방해). ★ 여기서 업로드 진행을 건드리는 일은 절대 없다 —
+  // 진행 정지는 unplug 전담(config.hazard 주석의 절대 규칙).
+  updateHazards(dt, rules);
 
   checkWinLose(rules);
 }

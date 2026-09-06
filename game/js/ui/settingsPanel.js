@@ -21,6 +21,7 @@ import { state, setPhase } from '../core/state.js';
 import { playSfx, refreshSfxVolume, SFX } from '../systems/sound.js';
 import { refreshBgmVolume } from '../systems/bgm.js';
 import { applyCrtSteadyVars } from './crtTransition.js';
+import { clearActiveHazards } from '../systems/hazard.js';
 
 // ESC로 "열 수" 있는 phase. 이미 열려 있으면 phase와 무관하게 항상 닫을 수 있다
 // (아래 handleSettingsKey). failed(BSOD)는 뺐다 — 그 화면은 이미 자기 버튼
@@ -31,6 +32,7 @@ const DEFAULTS = {
   sound: { soundMaster: 100, soundSfx: 100, soundBgm: 100 },
   crtEnabled: true,
   crtIntensity: 'mid',
+  hazardEnabled: true,
 };
 
 let layer = null;
@@ -61,6 +63,12 @@ function syncCrtControls() {
   });
 }
 
+/** 환경 방해 체크박스를 지금 config 값에 맞춘다(열 때, 기본값 복원 시 공용). */
+function syncHazardControl() {
+  const box = document.getElementById('set-hazard-on');
+  if (box) box.checked = config.hazard.enabled;
+}
+
 function syncFullscreenControl() {
   const box = document.getElementById('set-fullscreen');
   if (!box) return;
@@ -80,6 +88,7 @@ function syncAllControls() {
   syncSoundRow('soundSfx', 'set-sound-sfx', 'set-sound-sfx-out');
   syncSoundRow('soundBgm', 'set-sound-bgm', 'set-sound-bgm-out');
   syncCrtControls();
+  syncHazardControl();
   syncFullscreenControl();
 }
 
@@ -148,6 +157,7 @@ export function initSettingsPanel() {
     config.crt.enabled = DEFAULTS.crtEnabled;
     config.crt.intensity = DEFAULTS.crtIntensity;
     applyCrtSteadyVars();
+    config.hazard.enabled = DEFAULTS.hazardEnabled;
     if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
     syncAllControls();
   });
@@ -169,6 +179,13 @@ export function initSettingsPanel() {
       applyCrtSteadyVars();
       syncCrtControls(); // .segset-btn의 .active를 새로 고른 쪽으로 옮긴다
     });
+  });
+
+  // 환경 방해 on/off — 끄는 순간 이미 떠 있는 것도 같이 치운다(접근성 설정이
+  // "다음 판부터"만 듣는 건 끄는 이유와 안 맞는다). 켜면 스케줄러가 알아서 다시 돈다.
+  document.getElementById('set-hazard-on')?.addEventListener('change', (evt) => {
+    config.hazard.enabled = evt.target.checked;
+    if (!config.hazard.enabled) clearActiveHazards();
   });
 
   const fsBox = document.getElementById('set-fullscreen');
