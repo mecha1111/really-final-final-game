@@ -1664,3 +1664,37 @@ body {
 }
 /* 캔버스는 논리 해상도로 그려두고 CSS가 화면 크기에 맞춰 늘린다(좌표 변환 불필요). */
 #desktop .hz-saver canvas { position: absolute; inset: 0; width: 100%; height: 100%; }
+
+/* ── C. 절전 모드 ──────────────────────────────────────────────────────────
+   ★ 이 방해는 클릭이 아니라 "마우스 이동"으로 풀린다 — 그래서 막이 클릭을 받을
+     이유가 없고, 받으면 안 된다(어두운 동안에도 방해꾼은 평소처럼 눌려야 한다.
+     막이 클릭을 삼키면 "보기 힘들게"가 아니라 "못 하게"가 되어버린다).
+     컨테이너·막·풍선 전부 pointer-events:none으로 둔다. */
+#desktop .hz-powersave { position: absolute; inset: 0; pointer-events: none; }
+/* 실제 암전 막. 불투명도는 ui/hazards/powersave.js가 --hz-dim으로 흘려보낸다
+   (매 프레임 값이 바뀌는 연속값이라 클래스 토글이 아니라 CSS 변수 — 피해
+   비네트(--vig-level)가 이미 쓰는 방식과 같다). */
+#desktop .hz-powersave .hz-dim {
+  position: absolute; inset: 0;
+  background: #000; opacity: var(--hz-dim, 0);
+}
+/* XP 풍선 도움말 — 작업표시줄 알림 영역에서 튀어나오던 그 노란 말풍선.
+   좌하단 고정. 막(.hz-dim)보다 위라 어두워져도 계속 읽힌다. */
+#desktop .hz-powersave .hz-balloon {
+  position: absolute; left: 40px; bottom: 96px; width: 430px;
+  display: flex; gap: 12px; align-items: flex-start;
+  padding: 14px 16px;
+  background: #ffffe1; border: 1px solid #000; /* XP 툴팁 노랑 */
+  box-shadow: 4px 4px 0 rgba(0, 0, 0, 0.35);
+  color: #111;
+}
+/* 말풍선 꼬리(작업표시줄 쪽을 가리킨다) — 테두리 트릭으로 삼각형만 그린다. */
+#desktop .hz-powersave .hz-balloon::after {
+  content: ''; position: absolute; left: 34px; bottom: -13px;
+  border: 6px solid transparent; border-top: 7px solid #ffffe1;
+  filter: drop-shadow(0 1px 0 #000);
+}
+#desktop .hz-powersave .hz-balloon-ico { font-size: 26px; line-height: 1.1; flex-shrink: 0; }
+#desktop .hz-powersave .hz-balloon-txt { display: flex; flex-direction: column; gap: 3px; }
+#desktop .hz-powersave .hz-balloon-txt b { font-size: 18px; }
+#desktop .hz-powersave .hz-balloon-txt span { font-size: 16px; color: #333; }

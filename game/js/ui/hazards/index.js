@@ -6,3 +6,4 @@
 
 import './reboot.js';
 import './screensaver.js';
+import './powersave.js';
