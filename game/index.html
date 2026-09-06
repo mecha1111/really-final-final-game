@@ -441,6 +441,16 @@
           </div>
         </div>
 
+        <!-- 장면 2: 완성 그림 슬라이드쇼 — 그 판이 아니라 세이브 unlockedPictures[]
+             전체를 순회한다(ui/endingScreen.js). 한 장당 2초, 페이드 전환, 클릭으로
+             다음 장. 해금 0장이면 이 장면 자체를 건너뛴다(크래시 없이). -->
+        <div class="ending-scene ending-scene-slides" id="ending-scene-slides">
+          <div class="ending-slide-frame">
+            <img class="ending-slide-img" id="ending-slide-img" alt="" />
+          </div>
+          <div class="ending-slide-count" id="ending-slide-count">수집한 그림 0 / 36</div>
+          <button type="button" class="settings-btn ending-slide-skip" id="ending-slide-skip">건너뛰기</button>
+        </div>
       </div>
 
       <!-- 콤보 카운터는 이제 HTML이 아니라 캔버스에서 그린다(ui/renderEnemies.js의
