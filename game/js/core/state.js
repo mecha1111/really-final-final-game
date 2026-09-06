@@ -122,6 +122,14 @@ export const state = {
   nearGoal: false,
   hitFlash: 0, // 방금 피해를 입어 업로드 바가 번쩍이는 남은 시간(초) — systems/upload.js의 triggerHitFeedback
   cursorDisguise: 0, // copier 안착 후 진짜 커서가 가짜와 똑같이 위장되는 남은 시간(초)
+  // ★ cursorDisguise와 다른 것 — 저건 "진짜 위치에도 가짜와 똑같은 글자를 그려서
+  //   헷갈리게" 하는 copier 전용 연출이라, ui/render.js가 cursorDisguise>0이면
+  //   state.pointer 자리에도 커서 글자를 하나 더 그린다. driver 환경 방해(지연
+  //   커서)는 정반대로 "진짜 위치엔 아무것도 안 보이고, 늦게 따라오는 것 하나만"
+  //   이어야 해서 그 그리기를 같이 타면 안 된다 — 그래서 "시스템 커서를 숨긴다"만
+  //   따로 뗀 플래그를 뒀다(ui/hazards/driver.js가 켜고 끈다). ui/render.js는 이
+  //   값을 cursorDisguise와 OR로 묶어 캔버스 네이티브 커서만 같이 숨긴다.
+  hideSystemCursor: false,
 
   // === 피해 피드백(systems/upload.js의 triggerHitFeedback, config.hud) ===
   vignetteMs: 0, // 화면 가장자리 빨간 비네트가 남아있는 시간(ms)

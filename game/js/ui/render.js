@@ -144,6 +144,10 @@ export function render({ ctx, canvas, state, gameData, now }) {
 
   ctx.restore();
 
-  // 위장 중엔 브라우저 기본 커서를 숨겨야 캔버스가 그린 커서만 보인다
-  canvas.style.cursor = state.cursorDisguise > 0 ? 'none' : '';
+  // 위장 중(copier)이거나 시스템 커서를 숨겨야 하는 환경 방해(driver, 지연 커서)
+  // 중엔 브라우저 기본 커서를 숨긴다 — 어느 쪽이든 캔버스가 그린 커서(들)만 보여야
+  // 한다. state.hideSystemCursor는 cursorDisguise와 달리 "진짜 위치에 커서를 또
+  // 그리는" 부작용이 없다(state.js 주석 참고, driver는 늦게 따라오는 하나만 보여야
+  // 해서 그 부작용이 있으면 안 된다).
+  canvas.style.cursor = state.cursorDisguise > 0 || state.hideSystemCursor ? 'none' : '';
 }

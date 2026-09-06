@@ -92,7 +92,7 @@ export const config = {
     //     1구간(0): basic, clone, ransom, popup, bait   ← 5종으로 시작
     //     2구간(1): bomb, fake_btn                      / hazard: screensaver
     //     3구간(2): unplug, hourglass                   / hazard: powersave, reboot
-    //     4구간(3): copier, hidden, zombie
+    //     4구간(3): copier, hidden, zombie          / hazard: driver
     //     5구간(4): (신규 없음 — 4구간까지 나온 12종이 그대로 이어진다)
     //     무한(5+): 전부 활성
     //
@@ -633,6 +633,24 @@ export const config = {
       // "움직이면 곧바로 걷힌다"가 체감된다.
       wakeRecoverPerSec: 1.6,
     },
+
+    // ── D. 드라이버 오류(ui/hazards/driver.js) ──────────────────────────────
+    // XP "디스플레이 드라이버가 응답하지 않다가 복구됨" 알림 패러디. 보이는
+    // 커서만 delaySec만큼 늦게 따라오고(systems/pointerTrail.js + state.fakeCursors
+    // — copier의 가짜 커서 재생 로직을 그대로 재사용, 새 추종 로직을 안 만들었다),
+    // 클릭 판정은 항상 실제 위치 기준이다(systems/input.js가 애초에 state.pointer의
+    // 실시간 값만 보므로 손댈 곳이 없다 — 화면과 판정을 분리하는 게 이 방해의 핵심).
+    driver: {
+      // 4구간(index 3)부터 — copier/hidden/zombie와 함께 열린다.
+      minStage: 4,
+      // 방치 시 이 시간(초) 뒤 저절로 복구된다(요구사항의 "6초 경과").
+      durationSec: 6,
+      // 커서가 늦게 따라오는 시간차(초). config.cursor.trailMaxAgeSec(2.5)보다
+      // 훨씬 작아야 한다 — 궤적 기록이 그만큼 안 남아있으면 지연이 아니라
+      // "궤적 시작점에 멈춰있는" 것처럼 보인다.
+      delaySec: 0.25,
+    },
+
   },
 
   // 방해꾼이 너무 많아졌을 때 화면 전체가 지지직거리는 과부하 연출(systems/overload.js).
