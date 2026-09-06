@@ -5,3 +5,4 @@
 // main.js는 이 파일 하나만 import한다. 새 방해가 늘어도 main.js는 안 건드린다.
 
 import './reboot.js';
+import './screensaver.js';
