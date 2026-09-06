@@ -89,30 +89,35 @@ export const config = {
     //   판정은 min_stage <= 지금 구간이라 한 번 열리면 계속 나온다.
     //
     //   구간(0-based) — 새로 추가되는 것 / 그때 함께 열리는 환경 방해
-    //     1구간(0): basic, clone, ransom, popup
-    //     2구간(1): bomb, fake_btn          / hazard: screensaver
-    //     3구간(2): unplug, hourglass       / hazard: powersave, reboot
+    //     1구간(0): basic, clone, ransom, popup, bait   ← 5종으로 시작
+    //     2구간(1): bomb, fake_btn                      / hazard: screensaver
+    //     3구간(2): unplug, hourglass                   / hazard: powersave, reboot
     //     4구간(3): copier, hidden, zombie
-    //     5구간(4): bait (예비 슬롯)
+    //     5구간(4): (신규 없음 — 4구간까지 나온 12종이 그대로 이어진다)
     //     무한(5+): 전부 활성
+    //
+    // ★ 2026-09-07 정정: 전날(2026-09-06) 이 표를 처음 만들 때 bait를 5구간
+    //   (예비 슬롯)으로 늦춰뒀던 건 표의 실수였다(시트는 처음부터 1이었다 —
+    //   클릭해도 안 죽는 미끼 자체는 이미 완성된 기능이라 늦출 이유가 없었다).
+    //   시트가 맞고 이 표가 틀렸던 유일한 항목.
     //
     // 아래 숫자는 enemies 시트의 min_stage와 같은 1-based 값이다(구간 n → n+1).
     //
-    // ★ 원칙적으로 해금은 구글시트 enemies 탭의 min_stage가 정한다. 그런데 지금
-    //   시트 값은 5구간 구조를 확정하기 전에 짜인 것이라 위 표와 다섯 군데가
-    //   어긋난다(clone 2→1, unplug 2→3, copier 3→4, hidden 3→4, bait 1→5).
-    //   시트를 고치기 전까지 게임이 설계와 다르게 돌아가면 이후 밸런스 실측이
-    //   통째로 무의미해지므로, 로드 직후 applyEnemyUnlockPlan()이 이 표로
-    //   min_stage를 덮어쓴다. 덮어쓴 항목은 config.debug.enabled일 때 콘솔에
-    //   한 줄씩 찍어 "시트와 코드가 다르다"는 사실이 조용히 묻히지 않게 한다.
-    //   ★ 시트를 위 표대로 고치고 나면 이 표는 값이 같아져 아무 것도 안 바꾸게
-    //     된다(그대로 둬도 되고 지워도 된다). 그때가 되면 해금의 진실은 다시
-    //     시트 하나로 돌아간다.
+    // ★ 원칙적으로 해금은 구글시트 enemies 탭의 min_stage가 정한다. 이 표는 그
+    //   값이 설계와 어긋나 있는 동안 게임이 틀린 배치로 돌아가지 않게 하는
+    //   임시 덮어쓰기다 — applyEnemyUnlockPlan()이 로드 직후 이 표로 min_stage를
+    //   맞추고, 실제로 뭔가 덮어썼으면 config.debug.enabled일 때 콘솔에 찍어
+    //   "시트와 코드가 다르다"가 조용히 묻히지 않게 한다.
+    //   ★ 지금(2026-09-06 시트 정리 후)은 시트와 이 표가 완전히 같다 — 그래서
+    //     경고가 안 뜬다. 값이 같아도 표 자체는 지우지 않는다: 시트가 다시
+    //     바뀌면(누가 실수로 min_stage를 고치면) 그 순간 경고가 다시 뜨는 게
+    //     이 표의 존재 이유다.
     enemyUnlockPlan: {
       basic: 1,
       clone: 1,
       ransom: 1,
       popup: 1,
+      bait: 1,
       bomb: 2,
       fake_btn: 2,
       unplug: 3,
@@ -120,7 +125,6 @@ export const config = {
       copier: 4,
       hidden: 4,
       zombie: 4,
-      bait: 5,
     },
   },
 
