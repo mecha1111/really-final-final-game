@@ -4,7 +4,7 @@ import { config, gameData, createRules } from '../config.js';
 import { state, emptyStats, setPhase } from './state.js';
 import { recordStageCleared, recordGameOver, recordRunCompleted } from './save.js';
 import { openEnding } from '../ui/endingScreen.js';
-import { resetRoverQueue } from '../ui/rover.js';
+import { showTip, resetRoverQueue } from '../ui/rover.js';
 import { Spawner, buildPool } from '../enemies/spawner.js';
 import { splitEnemy, applyExpiryEffect, triggerSelfDestruct, updateFakeCursors } from '../enemies/effects.js';
 import { clearJuice } from '../systems/juice.js';
@@ -103,6 +103,11 @@ export function startGame(stageIndex = 0) {
   grantFile();
   setPhase('playing');
   playSfx(SFX.START);
+
+  // ★ 팁 1: 첫 게임 시작. showTip() 자체가 seenTips로 "평생 1회"를 보장하므로
+  //   startGame()을 몇 번을 거치든(재도전·다음 구간·이어하기 전부 이 함수를 탄다)
+  //   실제로는 정말 처음 한 번만 뜬다 — 여기서 n===0 같은 조건을 따로 안 걸어도 된다.
+  showTip('first_game', '방해꾼을 클릭해서 쫓아내세요!');
 }
 
 /** 이 구간이 무한모드인가(유한 구간을 넘어선 인덱스인가). */

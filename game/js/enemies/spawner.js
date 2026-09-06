@@ -4,6 +4,7 @@
 
 import { config, getScaleFactor } from '../config.js';
 import { Enemy } from './Enemy.js';
+import { showTip } from '../ui/rover.js';
 
 export class Spawner {
   constructor() {
@@ -55,7 +56,17 @@ export class Spawner {
   spawnOne(spec, world) {
     const { rules, playArea, enemies, pointer } = world;
     const pos = findSpawnPos(spec, enemies, playArea, rules);
-    return new Enemy(spec, { x: pos.x, y: pos.y, rules, playArea, pointer });
+    const enemy = new Enemy(spec, { x: pos.x, y: pos.y, rules, playArea, pointer });
+
+    // ★ 팁 2·3: bait/popup 첫 등장(요구사항 — "의도적으로 3개만", 나머지는 직접
+    //   당하면서 배워야 한다). 스포너가 실제로 뽑아 화면에 낸 순간에만 본다 —
+    //   디버그 소환(__game.spawn)은 여길 안 거치므로 테스트가 튜토리얼 진행을
+    //   조용히 소모하지 않는다. showTip() 자체가 "평생 1회"를 보장하므로 매번
+    //   조건 없이 불러도 실제로는 정말 처음 한 번만 뜬다.
+    if (spec.id === 'bait') showTip('bait_first', '쟤는 눌러도 안 죽어요. 무시하세요!');
+    else if (spec.id === 'popup') showTip('popup_first', '팝업은 X 버튼만 눌러야 해요!');
+
+    return enemy;
   }
 }
 
