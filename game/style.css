@@ -1299,6 +1299,10 @@ body {
 }
 #desktop .gallery-cell.unlocked { cursor: pointer; }
 #desktop .gallery-cell.unlocked:hover { outline: 2px solid #4a9bf5; outline-offset: -2px; }
+/* 확대 팝업에서 이동(◀▶/← →)하면 뒤 격자 선택도 따라간다(2026-09-07) —
+   새 색 없이 hover와 같은 시각 언어를 그대로 쓴다. hover와 겹쳐도(마우스가
+   selected 칸 위에 있는 동안) 규칙이 같아서 안 튄다. */
+#desktop .gallery-cell.unlocked.sel { outline: 2px solid #4a9bf5; outline-offset: -2px; }
 #desktop .gallery-thumb { width: 100%; height: 100%; object-fit: cover; display: block; }
 /* 잠금 칸 — "실루엣"은 흐린 그림 아이콘으로 대신한다(실제 그림 대신 그림의
    자리만 암시), lock 배지는 우하단에 얹는다. 이미지 자체가 없으므로(=<img>가
@@ -1332,12 +1336,18 @@ body {
 #desktop .dex-count { font-size: 15px; color: #7a7550; padding: 0 8px 7px; text-align: right; }
 #desktop .dex-unknown-name { font-size: 15px; color: #a9a488; }
 
-/* 원본 크게 보기 — 이 창(.gallery-modal) 안에 얹은 절대배치 오버레이라
-   그리드·헤더·푸터를 그대로 가린다(별도 창 아님). 배경 아무 데나 클릭해도
-   닫힌다(구간 클리어 화면의 "배경 클릭=스킵/건너뛰기" 관례와 같은 결). */
+/* 원본 크게 보기(확대 팝업) — 이 창(.gallery-modal) 안에 얹은 절대배치
+   오버레이라 그리드·헤더·푸터를 그대로 가린다(별도 창 아님). 배경 아무
+   데나 클릭해도 닫힌다(구간 클리어 화면의 "배경 클릭=스킵/건너뛰기" 관례와
+   같은 결) — 안쪽 .gallery-viewer-win 클릭만 ui/galleryPanel.js가
+   stopPropagation으로 걸러내 새어나가지 않는다.
+   2026-09-07: docs/xp-design-system.html 섹션 5(확대 팝업, .xp-lightbox)를
+   그대로 옮겼다 — 그 문서는 별도 positioned 조상(.sec)을 뒀지만, 여기는
+   이미 .gallery-modal .win이 position:relative라(위 규칙) 그걸 그대로
+   조상으로 쓴다. */
 #desktop .gallery-viewer {
-  position: absolute; inset: 0; z-index: 1; background: #1a1a1a;
-  display: none; flex-direction: column; align-items: center; justify-content: center; gap: 14px;
+  position: absolute; inset: 0; z-index: 1; background: rgba(0, 0, 0, 0.78);
+  display: none; align-items: center; justify-content: center;
   padding: 24px;
 }
 /* 다른 모든 오버레이(.layer-settings/.layer-quit/.layer-confirm)와 같은 .open
@@ -1347,8 +1357,46 @@ body {
    (뷰어가 그리드 위에 항상 떠 있어 클릭이 전부 뷰어의 배경-클릭-닫기로
    가로채졌다). class 토글로 바꿔 그 충돌 자체를 없앴다. */
 #desktop .gallery-viewer.open { display: flex; }
-#desktop .gallery-viewer-img { max-width: 100%; max-height: calc(100% - 60px); object-fit: contain; image-rendering: pixelated; }
-#desktop .gallery-viewer .settings-btn { align-self: center; }
+
+/* 안쪽 사진 뷰어 창 — 새 창 장치를 안 만들고 이 게임 다른 창과 같은
+   .win/.tbar/.wb를 재사용한다(위 갤러리 창 자체와 같은 원칙). .win 기본값은
+   position:absolute(메인 창들의 left/top 배치용)라, .layer-settings .win과
+   같은 이유로 relative로 덮어써서 부모(.gallery-viewer)의 flex 가운데
+   정렬을 따르게 한다.
+   ★크기는 전부 px 고정 — vh를 쓰면 #desktop의 transform 축소 좌표계와 섞여
+   실제 창 크기에 따라 잘린다(docs 문서 "하지 말 것" 4번 — 설정창이 이
+   문제로 두 번 잘린 전례와 같은 함정, 위 .gallery-grid 주석 참고). */
+#desktop .gallery-viewer-win {
+  position: relative; width: 520px;
+  animation: galleryViewerPop 0.18s cubic-bezier(0.2, 0.85, 0.3, 1.12);
+}
+@keyframes galleryViewerPop {
+  from { transform: scale(0.92); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
+}
+#desktop .gallery-viewer-win .tbar { cursor: default; }
+
+/* 사진 자리 — .frame .img(winB "업데이트 중" 그림 자리)와 같은 베이지
+   배경(--xp-win-face)을 재사용해 "같은 게임의 같은 그림 표시 방식"이라는
+   인상을 준다(그 자리와 같은 원칙, 위쪽 winB 주석 참고). 그림이 전부
+   정사각(1024×1024, assets/files/*)이라 object-fit:contain이 레터박스 없이
+   꽉 채운다. */
+#desktop .gallery-viewer-stage {
+  background: var(--xp-win-face); padding: 16px;
+  display: flex; align-items: center; justify-content: center;
+}
+#desktop .gallery-viewer-img { width: 460px; height: 460px; object-fit: contain; display: block; image-rendering: pixelated; }
+
+/* 하단 도구줄 — ◀▶ 이동 + "소_07 · 7 / 14 (해금분)" + 닫기. .settings-footer와
+   같은 톤(베이지 바탕)이지만 왼쪽에 이동 버튼·안내문이 같이 들어가 좌우
+   배치가 다르므로(우측정렬 하나뿐인 .settings-footer와 다르다) flex를
+   새로 짠다. */
+#desktop .gallery-viewer-tools {
+  display: flex; align-items: center; gap: 8px; padding: 10px 14px;
+  background: var(--xp-win-face); border-top: 1px solid var(--xp-field-border);
+}
+#desktop .gallery-viewer-meta { flex: 1; font-size: 16px; color: #444; }
+#desktop .gallery-viewer-navbtn { width: 40px; padding: 9px 0; text-align: center; }
 
 /* ── 체크박스 — XP 각진 체크박스(둥근 토글 대신). appearance:none으로 OS
    기본 그림을 지우고 사각 박스 + 체크 표시만 직접 그린다. 색은 새로 만들지

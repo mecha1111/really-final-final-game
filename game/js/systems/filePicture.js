@@ -52,6 +52,22 @@ export function allPictureSrcs() {
   return list;
 }
 
+const TIER_LABEL_KR = { small: '소', medium: '중', large: '대' };
+
+/**
+ * src(경로) → 갤러리 확대 팝업에 띄우는 표시 이름("소_07"). 2026-09-07 신설
+ * (갤러리 확대 팝업). ★allPictureSrcs()와 같은 FOLDER_BY_TIER를 그대로 다시
+ * 써서 폴더명→등급 한글을 뒤집어 찾는다 — 명명 규칙을 여기 따로 안 박는 게
+ * 목적이라(위 allPictureSrcs 주석의 "단일 진실원" 원칙과 같은 이유), 이 함수가
+ * 어긋난 이름을 낼 일이 구조적으로 없다.
+ */
+export function pictureLabel(src) {
+  const m = src.match(/\/(small|medium|large)\/\D*(\d+)\.png$/);
+  if (!m) return src; // 형식이 안 맞는 src(테스트용 등) — 원본을 그대로 보여준다
+  const [, tier, num] = m;
+  return `${TIER_LABEL_KR[tier]}_${num}`;
+}
+
 function randomSrc(tierKey) {
   const folder = FOLDER_BY_TIER[tierKey] ?? FOLDER_BY_TIER.small;
   // allPictureSrcs()가 만든 전체 목록에서 이 등급 폴더에 해당하는 것만 추려 그중

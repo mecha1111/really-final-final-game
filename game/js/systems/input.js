@@ -11,6 +11,7 @@ import { playSfx, SFX } from './sound.js';
 import { pointInRect } from '../ui/draw.js';
 import { handleDebugKey, debugState } from '../debug.js';
 import { handleSettingsKey } from '../ui/settingsPanel.js';
+import { handleGalleryViewerKey } from '../ui/galleryPanel.js';
 import { clientToWorld, worldToClient, getCanvasGeometry, isRotationSettling } from '../ui/canvasGeometry.js';
 
 // pointerdown에서 "방해꾼을 못 맞혀 아래로 흘려보낸" 대상. 이어서 오는 click을
@@ -340,7 +341,17 @@ function onCanvasClick(evt) {
 }
 
 function onKeyDown(evt) {
-  // ESC는 항상 가장 먼저 본다 — 설정 팝업이 열려 있든 닫혀 있든 이 한 줄이
+  // ★갤러리 확대 팝업(ui/galleryPanel.js)이 설정 ESC보다 먼저다 — 모달 위에
+  // 뜬 또 다른 모달이라 "가장 안쪽부터 닫는다"는 기대에 맞아야 한다. 이걸
+  // 설정 ESC 뒤에 두면, 팝업이 열려 있는 동안(타이틀 phase는 ESC로 설정을
+  // 열 수 있다, settingsPanel.js의 ESC_OPENABLE_PHASES) ESC가 팝업 대신
+  // 설정창부터 열어버린다. 팝업이 안 열려 있으면 이 함수는 그냥 false라
+  // 아래로 그대로 흘러 기존 동작(설정 ESC가 최우선)이 안 바뀐다.
+  if (handleGalleryViewerKey(evt.code)) {
+    evt.preventDefault();
+    return;
+  }
+  // ESC는 그다음으로 가장 먼저 본다 — 설정 팝업이 열려 있든 닫혀 있든 이 한 줄이
   // 최종 결정권을 가져야 "닫히긴 하는데 다른 키도 같이 먹힌다" 같은 꼬임이 없다.
   if (handleSettingsKey(evt.code)) {
     evt.preventDefault();

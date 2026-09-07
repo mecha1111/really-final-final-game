@@ -761,9 +761,15 @@
            아이콘만, 스포일러도 없고 네트워크 요청도 없다).
            타이틀에서만 열리므로(다른 화면엔 진입 버튼이 없다) 설정창처럼
            게임 루프를 일시정지시키지 않는다 — 타이틀 화면 자체가 이미 게임이
-           안 돈다. ESC로는 안 닫는다(ui/confirmDialog.js와 같은 이유 — ESC는
-           이미 설정창 토글로 쓰고 있어서, 여기서 또 받으면 갤러리를 닫으면서
-           동시에 설정창이 열린다). 닫는 길은 [닫기]/×뿐이다. -->
+           안 돈다. ★이 창(.gallery-modal) 자체는 ESC로 안 닫는다(ui/
+           confirmDialog.js와 같은 이유 — ESC는 이미 설정창 토글로 쓰고
+           있어서, 여기서 또 받으면 갤러리를 닫으면서 동시에 설정창이
+           열린다). 닫는 길은 [닫기]/×뿐이다.
+           2026-09-07: 아래 확대 팝업(.gallery-viewer)만은 예외로 ESC가
+           먹는다 — 모달 위에 뜬 또 다른 모달이라 "가장 안쪽부터 닫는다"는
+           일반적인 기대에 맞춘다. 그 팝업이 열려 있으면 ESC가 설정 토글보다
+           먼저 소비되므로 위 원칙(이 갤러리 창은 ESC로 안 닫힘)과 안
+           부딪힌다(systems/input.js 상단 onKeyDown 순서 참고). -->
       <div class="layer-gallery" id="layer-gallery">
         <div class="win gallery-modal">
           <div class="tbar">
@@ -811,13 +817,34 @@
             <button type="button" class="settings-btn settings-btn-primary" id="gallery-done">닫기</button>
           </div>
 
-          <!-- 썸네일 클릭 시 원본 크게 보기 — 새 창을 또 안 만들고 이 창 위에
-               얹은 절대배치 오버레이로 그리드/헤더/푸터를 그대로 가린다.
-               배경 아무 데나 클릭해도 닫힌다(구간 클리어 화면의 스킵 클릭과
-               같은 관례). -->
+          <!-- 썸네일 클릭 시 원본 크게 보기(확대 팝업) — 새 창을 또 안 만들고
+               이 창 위에 얹은 절대배치 오버레이로 그리드/헤더/푸터를 그대로
+               가린다. 안쪽은 이 게임 다른 창과 같은 .win/.tbar/.wb 뼈대를
+               그대로 재사용한 "사진 뷰어" 하나(docs/xp-design-system.html
+               섹션 5 "확대 팝업" 정본을 그대로 옮겼다 — .xp-lightbox의
+               게임판 위치가 여기다).
+               닫기 4경로: ESC(ui/galleryPanel.js의 handleGalleryViewerKey,
+               systems/input.js가 설정 ESC보다 먼저 검사) / 바깥(이 배경)
+               클릭 / 아래 × / [닫기] 버튼. 안쪽(.gallery-viewer-win) 클릭은
+               ui/galleryPanel.js가 stopPropagation으로 막아, 사진 자체를
+               눌러도 안 닫힌다. -->
           <div class="gallery-viewer" id="gallery-viewer">
-            <img class="gallery-viewer-img" id="gallery-viewer-img" alt="" />
-            <button type="button" class="settings-btn" id="gallery-viewer-close">닫기</button>
+            <div class="win gallery-viewer-win" id="gallery-viewer-win">
+              <div class="tbar">
+                <div class="ico"><span data-icon="image"></span></div>
+                <div class="t" id="gallery-viewer-title">그림 보기</div>
+                <div class="wb"><span class="x" id="gallery-viewer-x">×</span></div>
+              </div>
+              <div class="gallery-viewer-stage">
+                <img class="gallery-viewer-img" id="gallery-viewer-img" alt="" />
+              </div>
+              <div class="gallery-viewer-tools">
+                <button type="button" class="settings-btn gallery-viewer-navbtn" id="gallery-viewer-prev">◀</button>
+                <button type="button" class="settings-btn gallery-viewer-navbtn" id="gallery-viewer-next">▶</button>
+                <span class="gallery-viewer-meta" id="gallery-viewer-meta"></span>
+                <button type="button" class="settings-btn" id="gallery-viewer-close">닫기</button>
+              </div>
+            </div>
           </div>
         </div>
       </div>
