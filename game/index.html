@@ -853,6 +853,39 @@
           <div class="tray" id="intro-clock">오전 11:08</div>
         </div>
 
+        <!-- 강아지 도우미 튜토리얼(Office 길잡이 말풍선).
+             ★구조는 참조 문서 docs/xp-design-system.html §6이 MS 문서로 확인한
+               실물 구조 그대로다 — 이 순서를 바꾸면 안 된다:
+               · 말풍선이 캐릭터 "위"에 뜬다(마크업에서도 balloon이 char보다 앞)
+               · 버튼 2~3개가 말풍선 "안" 아래쪽(.bset)에 들어간다
+                 — 실물 버튼세트 msoButtonSetBackNextClose = [뒤로][다음][닫기]
+               · 굵은 Heading(.hd) + ★파란 원 불릿 목록(<ul>)
+               · 팁이 있으면 캐릭터 위에 노란 전구가 깜빡인다(.tip .bulb)
+               · 배경 #ffffcc + 검은 각진 테두리 + 삼각형 2겹 꼬리(필터 없음)
+             ★앞서 버튼을 강아지 "옆"에 뒀던 건 잘못이었다(문서의 정정 기록).
+             버튼은 게임의 XP 대화상자 버튼(.settings-btn = 문서의 .xp-btn을
+             옮겨온 것)을 그대로 재사용한다 — 새 버튼 계열을 또 안 만든다.
+             내용(제목/불릿/쪽수)은 ui/intro.js의 PAGES가 매 쪽 채운다. -->
+        <div class="intro-assist" id="intro-assist">
+          <div class="balloon">
+            <div class="hd" id="intro-assist-head"></div>
+            <ul id="intro-assist-list"></ul>
+            <div class="bset">
+              <span class="pg" id="intro-assist-page"></span>
+              <button type="button" class="settings-btn" id="intro-assist-back">뒤로</button>
+              <button type="button" class="settings-btn settings-btn-primary" id="intro-assist-next">다음</button>
+              <button type="button" class="settings-btn" id="intro-assist-close">닫기</button>
+            </div>
+          </div>
+          <div class="char">
+            <!-- 러버(검색 도우미)와 같은 그림을 그대로 쓴다 — 인게임 팁은 걷어냈지만
+                 도우미 캐릭터 자체는 이 인트로가 물려받는다. 못 불러오면 이미지만
+                 숨기고 말풍선은 그대로 산다(.rover-dog와 같은 크래시 금지 처리). -->
+            <img src="./assets/ui/helper/rover_idle.png" alt="" onerror="this.classList.add('broken')" />
+            <span class="bulb" data-icon="bulb" data-size="50"></span>
+          </div>
+        </div>
+
         <!-- ★가짜 커서 — 게임의 진짜 커서와 같은 그림(assets/cursor/cursor-44.png,
              config.mouseCursor.url)을 그대로 쓴다. 새 화살표를 또 그리면 인트로의
              커서와 게임의 커서가 다른 물건처럼 보인다. 위치는 ui/intro.js가

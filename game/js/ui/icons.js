@@ -139,6 +139,13 @@ const ICONS = {
     <circle cx="12.3" cy="17.6" r="0.9" fill="currentColor" stroke="none"/>
   `,
   star: `<path d="M12 3 L14.6 9.1 L21.2 9.6 L16.2 13.9 L17.7 20.3 L12 16.8 L6.3 20.3 L7.8 13.9 L2.8 9.6 L9.4 9.1 Z"/>`,
+  // 인트로 도우미 말풍선의 "팁 있음" 표시(ui/intro.js) — 캐릭터 위에서 깜빡이는
+  // 노란 전구. 참조 문서(.xp-assist .bulb)와 같은 모티프지만 여기 규격(24×24,
+  // currentColor 단색)으로 다시 그렸다 — 색은 쓰는 쪽 CSS가 정한다.
+  bulb: `
+    <path d="M12 2.8 A6.4 6.4 0 0 0 8.4 14.6 V17 H15.6 V14.6 A6.4 6.4 0 0 0 12 2.8 Z"/>
+    <path d="M9.4 19.6 H14.6 M10.4 22 H13.6"/>
+  `,
   coin: `
     <circle cx="12" cy="12" r="9"/>
     <circle cx="12" cy="12" r="5.4"/>

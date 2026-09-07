@@ -1,7 +1,6 @@
 // 이 파일 역할: ★첫 실행에만 도는 인트로 연출 — 타이틀 화면보다 "앞"에 온다.
 //   부팅 → 바탕화면(가짜 파일 더미) → 커서가 우리 게임을 찾아 클릭 →
 //   강아지 튜토리얼 → ★기존 타이틀 화면(setPhase('title')).
-//   (지금 커밋에는 "커서가 클릭하는 데"까지 들어 있다 — 튜토리얼은 다음 커밋.)
 //
 // 정본 디자인은 docs/xp-design-system.html의 "1 · 인트로 연출" 섹션이다. 그 문서의
 // playIntro() 타임라인을 그대로 옮겼고, 숫자는 전부 config.intro에 있다(여기 박지
@@ -48,6 +47,16 @@ const TARGET_INDEX = 11;
 const DECOY1_INDEX = 3;
 const DECOY2_INDEX = 7;
 
+// ★튜토리얼 대본 — 조작법만이다. ★방해꾼 정보(bait는 안 죽는다, popup은 X만
+// 눌러야 한다 등)는 일부러 안 준다: 직접 부딪혀 알아내는 게 이 게임의 재미라,
+// 인게임 팁에서 그 둘을 걷어낸 것과 같은 판단이다(ui/rover.js 상단 주석 참고).
+const PAGES = [
+  { head: '안녕하세요?', lines: ['저는 검색 도우미예요.', '이 게임을 처음 하시는 분께 잠깐 설명해 드릴게요.'] },
+  { head: '목표', lines: ['화면 아래 진행바가 업데이트 상태예요.', '100%까지 채우면 그 구간을 넘어갑니다.'] },
+  { head: '조작', lines: ['방해꾼이 화면을 돌아다녀요.', '마우스로 클릭하면 쫓아낼 수 있어요.'] },
+  { head: '제한시간', lines: ['시간 안에 못 채우면 실패해요.', '그럼 시작해 볼까요?'] },
+];
+
 let layer = null;
 let bootEl = null;
 let deskEl = null;
@@ -55,6 +64,15 @@ let iconsEl = null;
 let taskbarEl = null;
 let taskBtnEl = null;
 let cursorEl = null;
+let assistEl = null;
+let headEl = null;
+let listEl = null;
+let pageEl = null;
+let backBtn = null;
+let nextBtn = null;
+
+// 지금 보고 있는 튜토리얼 쪽(0-based).
+let pageIndex = 0;
 
 // 커서 누름 표시를 되돌릴 남은 시간(초). 0 이하면 대기 중이 아니다. 누름은
 // 0.11초짜리라 단계 목록에 넣기엔 잗달아서 여기서 따로 센다.
@@ -119,15 +137,40 @@ function setClock() {
   el.textContent = `${h < 12 ? '오전' : '오후'} ${h12}:${String(d.getMinutes()).padStart(2, '0')}`;
 }
 
+/** 지금 쪽(pageIndex)의 내용을 말풍선에 그린다. */
+function renderPage() {
+  const p = PAGES[pageIndex];
+  headEl.textContent = p.head;
+  // 대본은 이 파일 안의 고정 문자열이라 사용자 입력이 섞일 자리가 없다.
+  listEl.innerHTML = p.lines.map((line) => `<li>${line}</li>`).join('');
+  pageEl.textContent = `${pageIndex + 1} / ${PAGES.length}`;
+  // ★1쪽에선 [뒤로]가 비활성 — 갈 데가 없다(#desktop .settings-btn:disabled가 그린다).
+  backBtn.disabled = pageIndex === 0;
+  // 마지막 쪽의 [다음]은 [시작] — 누르면 곧장 타이틀로 넘어간다.
+  nextBtn.textContent = pageIndex === PAGES.length - 1 ? '시작' : '다음';
+}
+
+/** 커서 연출이 끝난 자리에서 말풍선을 띄운다(타임라인의 마지막 단계). */
+function showTutorial() {
+  pageIndex = 0;
+  renderPage();
+  // ★진짜 커서를 돌려준다 — 여기서부터는 사용자가 직접 버튼을 눌러야 한다.
+  layer.classList.remove('nocursor');
+  // .tip = 캐릭터 위 노란 전구 깜빡임(참조 문서의 .xp-assist.tip).
+  assistEl.classList.add('on', 'tip');
+  playSfx(SFX.UI_OPEN, { ui: true });
+}
+
 /**
  * ★인트로의 끝 — 게임의 기존 타이틀 화면으로 넘긴다.
- * 끝나는 길이 여럿(지금은 하나뿐이지만 곧 [시작]/[닫기]가 붙는다)이라 한 곳에
- * 모아둔다 — ui/settingsPanel.js의 closeSettings와 같은 이유.
+ * [시작]과 [닫기] 둘 다 여기로 모인다 — 끝나는 길이 여럿이라 한 곳에 모아둔다
+ * (ui/settingsPanel.js의 closeSettings와 같은 이유).
  */
 function toTitle() {
   if (!layer?.classList.contains('on')) return; // 연타·중복 진입 방지
   playSfx(SFX.UI_CLOSE, { ui: true });
   markIntroSeen(); // ★끝까지 온 지금에서야 "봤다"고 찍는다(도중 새로고침은 다시 본다)
+  assistEl.classList.remove('on', 'tip');
   layer.classList.remove('on', 'nocursor');
   steps = [];
   running = false;
@@ -165,9 +208,9 @@ function buildSteps() {
         selectOnly(-1);
       },
     },
-    // ★임시 — 다음 커밋에서 이 자리에 강아지 튜토리얼이 들어오고, 타이틀로
-    //   넘기는 건 그 말풍선의 [시작]/[닫기]가 맡게 된다.
-    { at: c.tutorialSec, run: toTitle },
+    // 강아지 튜토리얼 — 타임라인은 여기서 끝난다. 이후 진행은 전적으로
+    // 사용자의 [뒤로]/[다음]/[닫기]에 달렸다(자동으로 넘어가지 않는다).
+    { at: c.tutorialSec, run: showTutorial },
   ];
 }
 
@@ -194,6 +237,12 @@ export function initIntro(icon) {
   taskbarEl = document.getElementById('intro-taskbar');
   taskBtnEl = document.getElementById('intro-taskbtn');
   cursorEl = document.getElementById('intro-cursor');
+  assistEl = document.getElementById('intro-assist');
+  headEl = document.getElementById('intro-assist-head');
+  listEl = document.getElementById('intro-assist-list');
+  pageEl = document.getElementById('intro-assist-page');
+  backBtn = document.getElementById('intro-assist-back');
+  nextBtn = document.getElementById('intro-assist-next');
 
   // 전환 시간의 유일한 출처는 config다 — CSS는 변수만 참조한다
   // (ui/rover.js의 --rover-slide-sec, ui/crtTransition.js의 --crt-*와 같은 패턴).
@@ -202,6 +251,24 @@ export function initIntro(icon) {
   layer.style.setProperty('--intro-press-sec', `${config.intro.pressSec}s`);
 
   buildIcons(icon);
+
+  backBtn.addEventListener('click', () => {
+    // disabled라 1쪽에선 여기까지 안 오지만, 값의 하한은 여기서도 지킨다.
+    if (pageIndex === 0) return;
+    pageIndex -= 1;
+    playSfx(SFX.UI_CLICK, { ui: true });
+    renderPage();
+  });
+  nextBtn.addEventListener('click', () => {
+    if (pageIndex >= PAGES.length - 1) {
+      toTitle(); // 마지막 쪽의 [시작]
+      return;
+    }
+    pageIndex += 1;
+    playSfx(SFX.UI_CLICK, { ui: true });
+    renderPage();
+  });
+  document.getElementById('intro-assist-close')?.addEventListener('click', toTitle);
 
   // ★첫 실행이면 지금 당장 커튼을 올린다(위 주석 참고).
   if (!hasSeenIntro()) layer.classList.add('on', 'nocursor');
