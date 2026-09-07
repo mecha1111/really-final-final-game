@@ -5,6 +5,7 @@ import {
   gameData,
   loadGameData,
   reloadGameData,
+  startBackgroundSheetSync,
   applyStageToConfig,
   applyEnemyFallbacks,
   applyEnemyUnlockPlan,
@@ -257,6 +258,16 @@ async function main() {
   logFontLoadStatus();
   await loadGameData();
   await applyLoadedData();
+
+  // ★ 구글 시트를 임계 경로에서 뺐다 — 위 loadGameData()는 이제 로컬
+  //   balance.csv로 먼저 착지시킨다(js/balance/loader.js 주석 참고). 시트는
+  //   여기서 뒤이어 백그라운드로 받는다 — 도착 시점에 아직 판을 안 시작했으면
+  //   applyLoadedData()를 한 번 더 태워 조용히 갈아 끼우고, 이미 시작했으면
+  //   (또는 클리어/실패/엔딩 화면이면) 이번 판엔 반영하지 않는다(같은 파일의
+  //   catchUpFromSheet 주석 — 판 중간에 밸런스가 바뀌면 안 된다).
+  //   여기 한 번만 건다 — 리로드 버튼(initReloadButton 아래)은 reloadGameData()로
+  //   별도 경로를 타므로 이 백그라운드 동기화와 안 겹친다.
+  startBackgroundSheetSync(() => applyLoadedData());
 }
 
 main();

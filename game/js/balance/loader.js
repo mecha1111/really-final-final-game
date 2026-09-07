@@ -1,15 +1,27 @@
 // 이 파일 역할: 밸런스 데이터를 3단 폴백(구글 시트 → 로컬 balance.csv → 하드코딩)으로 불러와 gameData에 채운다.
 
 import { parseCsv, stageRowsToMap, splitSections } from './csv.js';
+// ★ state.js는 아무것도 import하지 않는 순환참조의 뿌리(core/state.js 상단 주석)라
+//   여기서 가져다 써도 순환이 안 생긴다 — 배경 시트 반영을 판 진행 중엔 건너뛰기
+//   위해 phase만 읽는다(대입은 절대 안 한다).
+import { state } from '../core/state.js';
 
 // ---------------------------------------------------------------------------
 // 구글 시트 밸런스 데이터 (enemies / difficulty / stage)
 //
-// 폴백 3단계:
-//   1) 구글 시트 웹게시 CSV 3개 병렬 fetch
+// ★ 2026-09-08: 부팅 경로(loadGameData)와 수동 새로고침(reloadGameData)의
+//   우선순위가 서로 달라졌다 — 아래 두 함수의 주석 참고. "폴백 3단계"라는 이름의
+//   순서 자체는 reloadGameData가 그대로 물려받는다:
+//   1) 구글 시트 웹게시 CSV 3개 병렬 fetch (SHEET_TIMEOUT_MS 안에 다 와야 성공)
 //   2) 실패 시 로컬 game/balance.csv (섹션 구분: [enemies] [difficulty] [stage])
 //   3) 그것도 실패 시 이 파일 하단의 HARDCODED_DATA
 // ---------------------------------------------------------------------------
+
+// 시트 3개를 기다리는 예산(밀리초). 셋을 각각이 아니라 합쳐서 이 안에 다 와야 한다.
+// ★ 2026-09-08 신설 — 예전엔 타임아웃이 없어서 구글이 막히거나 아주 느리면
+//   fetch가 영영 안 끝날 수 있었다(정확히는 브라우저/OS 기본 타임아웃까지, 보통
+//   수십 초~수 분). 심사 당일 그런 일이 나면 안 되므로 명시적으로 끊는다.
+const SHEET_TIMEOUT_MS = 5000;
 
 const SHEET_URLS = {
   difficulty:
@@ -107,20 +119,26 @@ function withCacheBust(url) {
   return `${url}&t=${Date.now()}`;
 }
 
-async function fetchCsvText(url) {
-  const res = await fetch(withCacheBust(url));
+async function fetchCsvText(url, signal) {
+  const res = await fetch(withCacheBust(url), { signal });
   if (!res.ok) throw new Error(`CSV fetch 실패 (${res.status}): ${url}`);
   const text = (await res.text()).replace(/^\uFEFF/, ''); // 구글 시트가 BOM을 붙여 보내는 경우 방어
   if (!text.trim()) throw new Error(`CSV 응답이 비어있음: ${url}`);
   return text;
 }
 
-/** 1단계: 구글 시트 3개를 병렬로 fetch한다. 하나라도 실패하면 전체 실패로 취급. */
-async function loadFromSheets() {
+/**
+ * 구글 시트 3개를 병렬로 fetch한다. 하나라도 실패(또는 timeoutMs 안에 셋 다
+ * 못 받으면)하면 전체 실패로 취급.
+ * ★ AbortSignal.timeout()을 세 요청이 공유한다 — "각각 timeoutMs"가 아니라
+ *   "셋을 합쳐 timeoutMs" 예산이다. 하나만 붙잡고 있어도 나머지까지 함께 끊는다.
+ */
+async function loadFromSheets(timeoutMs) {
+  const signal = AbortSignal.timeout(timeoutMs);
   const [difficultyText, enemiesText, stageText] = await Promise.all([
-    fetchCsvText(SHEET_URLS.difficulty),
-    fetchCsvText(SHEET_URLS.enemies),
-    fetchCsvText(SHEET_URLS.stage),
+    fetchCsvText(SHEET_URLS.difficulty, signal),
+    fetchCsvText(SHEET_URLS.enemies, signal),
+    fetchCsvText(SHEET_URLS.stage, signal),
   ]);
 
   return {
@@ -130,7 +148,7 @@ async function loadFromSheets() {
   };
 }
 
-/** 2단계: 로컬 game/balance.csv 폴백. 섹션이 하나도 없으면 실패로 취급해 3단계로 넘긴다. */
+/** 로컬 game/balance.csv. 섹션이 하나도 없으면 실패로 취급한다(호출한 쪽이 다음 단계로 넘긴다). */
 async function loadFromLocalCsv(url = './balance.csv') {
   const res = await fetch(url);
   if (!res.ok) throw new Error('로컬 balance.csv fetch 실패');
@@ -171,15 +189,109 @@ function logLoaded(source) {
 }
 
 /**
- * 밸런스 데이터를 로드한다: 구글 시트 → 로컬 balance.csv → 하드코딩 (3단 폴백).
- * 게임 시작 시 호출하고, 리로드 버튼을 누르면 다시 호출한다.
+ * 배경에서 시트를 마저 받아 조용히 갈아 끼운다(fire-and-forget — 호출한 쪽은
+ * 기다리지 않는다). loadGameData()가 로컬 CSV로 이미 착지시킨 뒤에만 부른다.
+ *
+ * ★ 2026-09-08: 시트가 도착했을 때 반영 여부를 phase로 가른다:
+ *   - 'loading'/'title'/'intro' (판이 아직 시작 안 됨, settlePhase가 허용하는
+ *     범위와 정확히 같다) → 조용히 반영하고 onApplied를 불러 재보강시킨다.
+ *   - 그 외(playing/cleared/failed/ending) → 반영하지 않는다. 특히 playing 중에
+ *     반영하면 core/stageManager.js가 스폰마다 gameData.enemies를 그대로 다시
+ *     읽으므로, 이미 나와 있는 방해꾼과 방금 스폰된 방해꾼이 서로 다른 스탯을
+ *     쓰게 된다 — 판 중간에 밸런스가 바뀌는 사고. 재시도는 안 한다: 이 판이
+ *     끝나도 로컬 CSV 값 그대로 가고, 다음에 받으려면 리로드 버튼을 눌러야
+ *     한다(리로드는 이 경로를 안 타고 별도로 즉시 시트를 기다린다, 아래
+ *     reloadGameData 주석 참고).
+ *
+ * @param {() => void} [onApplied] 실제로 반영됐을 때만 호출 — main.js가 이
+ *   자리에서 applyLoadedData()를 다시 태워 enrichment(해금 배치·캔버스 해상도·
+ *   방해꾼 스프라이트)까지 sheet 값에 맞게 재보강한다.
+ */
+function catchUpFromSheet(onApplied) {
+  loadFromSheets(SHEET_TIMEOUT_MS)
+    .then((data) => {
+      if (state.phase === 'playing' || state.phase === 'cleared' || state.phase === 'failed' || state.phase === 'ending') {
+        console.warn(
+          `[balance] 시트가 늦게 도착했지만 지금 phase가 '${state.phase}'라 반영을 건너뜀(로컬 CSV 값 유지, 다음 리로드까지)`,
+        );
+        return;
+      }
+      applyGameData(data, 'sheet');
+      logLoaded('구글 시트(뒤늦게 반영)');
+      onApplied?.();
+    })
+    .catch((err) => {
+      console.warn('[balance] 구글 시트 백그라운드 fetch 실패 — game/balance.csv 값 유지:', err);
+    });
+}
+
+/**
+ * 최초 부팅 전용. ★ 2026-09-08: 구글 시트를 임계 경로에서 뺐다 — 로컬
+ * balance.csv로 먼저 착지시키고, 시트는 위 catchUpFromSheet()가 뒤에서 받아
+ * 반영한다(await 없음, 부팅을 안 막는다). 실측(빠른 3G): 인트로 시작이
+ * 12.1초 → 4.6초로 줄었다(느린 4G 기준. 시트가 이 경로에 있을 때는 시트
+ * fetch가 그대로 부팅 시간이었다).
+ *
+ * 로컬 CSV마저 실패하면(파일 자체가 없는 등 극단적 상황) 대체할 로컬 수단이
+ * 없으므로 그때만 시트를 기다린다 — 원래 순서(시트 → 하드코딩)로 돌아간다.
+ *
+ * 시트를 배경에서 마저 받으려면 이 함수가 끝난 뒤 startBackgroundSheetSync()를
+ * 따로 불러야 한다(아래 주석) — 이 함수 자체는 시트를 안 건드리고 반환한다.
  */
 export async function loadGameData() {
   gameData.loading = true;
   gameData.error = null;
 
   try {
-    const data = await loadFromSheets();
+    const data = await loadFromLocalCsv();
+    applyGameData(data, 'local-csv');
+    logLoaded('game/balance.csv (부팅 — 시트는 뒤에서 이어받음)');
+    return gameData;
+  } catch (localErr) {
+    console.warn('[balance] 로컬 balance.csv 부팅 실패, 구글 시트로 시도:', localErr);
+  }
+
+  try {
+    const data = await loadFromSheets(SHEET_TIMEOUT_MS);
+    applyGameData(data, 'sheet');
+    logLoaded('구글 시트');
+    return gameData;
+  } catch (sheetErr) {
+    console.warn('[balance] 구글 시트도 실패:', sheetErr);
+  }
+
+  applyGameData(HARDCODED_DATA, 'hardcoded');
+  gameData.error = '로컬 CSV/구글 시트 모두 실패 — 하드코딩 기본값 사용 중';
+  logLoaded('하드코딩 기본값');
+  return gameData;
+}
+
+/**
+ * 부팅이 끝난 뒤(main.js가 loadGameData + applyLoadedData를 한 번 마친 뒤) 한
+ * 번만 부른다. loadGameData() 자체에서 바로 안 부르는 이유: main.js가 첫
+ * applyLoadedData() 호출을 마치기 전에 시트가 도착하는 레이스를 피하려는
+ * 것도 있지만, 더 큰 이유는 onApplied(=applyLoadedData)가 "이미 한 번
+ * 보강된 상태 위에 다시 보강"하는 게 아니라 "보강 전 상태 위에 처음 보강"하는
+ * 꼴이 되면 안 되기 때문이다 — 항상 최초 applyLoadedData 다음에만 걸린다.
+ */
+export function startBackgroundSheetSync(onApplied) {
+  catchUpFromSheet(onApplied);
+}
+
+/**
+ * 리로드 버튼(수동, 개발자용) 전용. ★ loadGameData()와 우선순위가 다르다 —
+ * 이건 "지금 시트 값을 보고 싶다"는 명시적 요청이므로 원래 순서(시트 → 로컬
+ * → 하드코딩)를 그대로 쓰고 결과를 기다린다. 부르는 쪽(main.js)이 끝나자마자
+ * setPhase('title')로 판을 강제로 접으므로, loadGameData()가 걱정하는 "판
+ * 중간에 반영" 문제가 애초에 없다 — 대신 timeout(SHEET_TIMEOUT_MS)은 여기도
+ * 그대로 걸어 구글이 막혀도 무한정 안 붙잡히게 한다.
+ */
+export async function reloadGameData() {
+  gameData.loading = true;
+  gameData.error = null;
+
+  try {
+    const data = await loadFromSheets(SHEET_TIMEOUT_MS);
     applyGameData(data, 'sheet');
     logLoaded('구글 시트');
     return gameData;
@@ -200,9 +312,4 @@ export async function loadGameData() {
   gameData.error = '시트/로컬 CSV 모두 실패 — 하드코딩 기본값 사용 중';
   logLoaded('하드코딩 기본값');
   return gameData;
-}
-
-/** 리로드 버튼에서 호출. loadGameData()의 별칭이며 매번 새로 fetch한다. */
-export function reloadGameData() {
-  return loadGameData();
 }
