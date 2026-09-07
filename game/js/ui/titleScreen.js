@@ -11,31 +11,50 @@ import { openSettings } from './settingsPanel.js';
 import { openConfirm } from './confirmDialog.js';
 import { openGallery } from './galleryPanel.js';
 import { state } from '../core/state.js';
+import { isDesktopApp, quitApp } from '../core/platform.js';
 
-// "나가기" 개그 대화상자 문구 — 누를수록 점점 짜증나는 톤으로. 마지막 문구에서
-// 더 안 늘어나고 계속 반복된다(quitClickCount를 배열 길이로 클램프).
-const QUIT_MESSAGES = [
-  { title: '못나가요 ㅋㅋ', sub: '이 프로그램은 종료할 수 없습니다.' },
-  { title: '진짜 못나가요', sub: '정말입니다. 종료 버튼이 원래 없어요.' },
-  { title: '그만 누르세요', sub: '몇 번을 눌러도 똑같습니다...' },
-];
+// "나가기" 개그 — 문구·수치는 전부 config.quit에 있다(하드코딩 금지 요구사항).
+// 이 카운트만 여기 남는다(세션 상태라 config 값이 아니다).
 let quitClickCount = 0;
+
+// exe(Electron)에서 "작별 문구"를 실제로 보여준 뒤 quitApp()을 부르기까지의
+// 유예 마감 시각(performance.now() 기준, 0이면 대기 중 아님). setTimeout이
+// 아니라 시각 비교로만 판정한다 — ui/canvasGeometry.js의 화면 회전 "정착
+// 유예"(settleUntilMs)와 완전히 같은 패턴이다.
+let quitFarewellUntilMs = 0;
 
 let quitLayerEl = null;
 let quitTitleEl = null;
 let quitSubEl = null;
 
-/** "나가기" 대화상자를 연다 — 누를 때마다 문구가 한 단계씩 진행된다. */
+/**
+ * "나가기" 대화상자를 연다 — 누를 때마다 문구가 한 단계씩 진행된다.
+ * ★ 웹/exe 분기는 이 함수 한 곳에서만 한다(요구사항) — 개그 문구는 두 실행
+ *   환경이 완전히 같은 config.quit.messages를 그대로 우려먹고, exe만 마지막에
+ *   desktopQuitAt번째 클릭에서 desktopFarewell로 갈아 끼운 뒤 실제로 종료한다.
+ *   1로 잡으면 개그가 통째로 사라지므로 그 값은 config.quit 쪽에서 5 이상을
+ *   기본으로 둔다.
+ */
 function openQuitModal() {
   if (!quitLayerEl) return;
-  const msg = QUIT_MESSAGES[Math.min(quitClickCount, QUIT_MESSAGES.length - 1)];
+  const c = config.quit;
   quitClickCount += 1;
+
+  const isFarewell = isDesktopApp() && quitClickCount >= c.desktopQuitAt;
+  const msg = isFarewell ? c.desktopFarewell : c.messages[Math.min(quitClickCount - 1, c.messages.length - 1)];
+
   if (quitTitleEl) quitTitleEl.textContent = msg.title;
   if (quitSubEl) quitSubEl.textContent = msg.sub;
   // 설정창과 같은 "시스템 대화상자 여닫는 소리"를 그대로 재사용(요구사항: 기존
   // XP 에러음/클릭음 재사용) — 새 사운드를 또 안 만든다.
   playSfx(SFX.UI_OPEN, { ui: true });
   quitLayerEl.classList.add('open');
+
+  if (isFarewell) {
+    // 작별 문구를 실제로 보여준 뒤(요구사항: 놀린 다음에 꺼진다) quitApp()을
+    // 부른다 — updateTitleScreen()이 매 프레임 이 마감 시각을 확인한다.
+    quitFarewellUntilMs = performance.now() + c.farewellHoldMs;
+  }
 }
 
 function closeQuitModal() {
@@ -161,6 +180,14 @@ export function initTitleScreen() {
 
 /** 매 프레임 호출(main.js). 타이틀로 "새로 들어온" 프레임에만 [이어하기]를 갱신한다. */
 export function updateTitleScreen() {
+  // exe 작별 유예 — phase 가드보다 먼저 본다. 이 모달은 타이틀에서만 열리지만,
+  // 혹시라도 그 사이 화면이 바뀌어도 예고한 종료는 그대로 지켜야 한다("놀린
+  // 뒤엔 반드시 꺼진다"는 요구사항의 결정성이 화면 전환에 좌우되면 안 된다).
+  if (quitFarewellUntilMs && performance.now() >= quitFarewellUntilMs) {
+    quitFarewellUntilMs = 0;
+    quitApp();
+  }
+
   if (state.phase !== 'title') {
     wasTitle = false;
     return;
