@@ -191,6 +191,40 @@ function startClock() {
 }
 
 /** 최초 1회. 창 드래그·창 버튼·개그 팝업·시계를 붙인다. */
+/**
+ * 인게임 바탕화면 아이콘 선택 — 라벨이 2줄에서 잘려 있다가 고르면 전부 펼쳐진다
+ * (style.css의 #desktop .icon.sel .il, 인트로 바탕화면과 같은 규칙).
+ *
+ * ★ 클릭이 여기까지 오는 경로가 핵심이다. .layer-deco는 pointer-events:none이고
+ *   아이콘만 auto로 되살려 뒀다(style.css). 캔버스가 맨 위라 모든 클릭을 먼저
+ *   받고, ★방해꾼을 맞히면 거기서 끝난다 — 못 맞힌 클릭만 elementsFromPoint로
+ *   아래 레이어에 다시 쏘아진다(systems/input.js의 forwardClickThrough).
+ *   그래서 이 선택 기능이 방해꾼 클릭을 한 번도 뺏지 않는다. "장식은 클릭을
+ *   훔치지 않는다"는 원래 규칙이 그대로 지켜지는 이유가 이 순서다.
+ *
+ * ★ 빈 바탕화면을 누르면 선택이 풀린다 — 실물 XP와 같다. 아이콘에서 올라온
+ *   이벤트도 같은 리스너로 올라오므로 closest()로 갈라낸다(아이콘을 눌렀는데
+ *   곧바로 해제되는 걸 막는다).
+ */
+function wireDesktopIconSelect() {
+  const desktop = document.getElementById('desktop');
+  const icons = document.querySelector('#desktop .layer-deco .icons');
+  if (!desktop || !icons) return;
+
+  desktop.addEventListener('pointerdown', (evt) => {
+    const target = evt.target;
+    if (!(target instanceof Element)) return;
+    // ★캔버스에서 올라온 "원본" 이벤트는 무시한다. 한 번 누르면 이 리스너에 두 번
+    //   도달하기 때문이다: (1) 캔버스가 방해꾼을 못 맞혀 아래로 다시 쏜 합성
+    //   이벤트(target = 아이콘) → 선택이 켜진다, (2) 곧이어 원본 이벤트가
+    //   캔버스에서 그대로 버블링(target = 캔버스) → closest가 null이라 방금 켠
+    //   선택을 스스로 꺼버린다. 실측으로 잡은 순서라, 원본 쪽을 여기서 끊는다.
+    if (target.id === 'game-canvas') return;
+    const hit = target.closest('.layer-deco .icon');
+    for (const el of icons.children) el.classList.toggle('sel', el === hit);
+  });
+}
+
 export function initDesktop() {
   // 작업표시줄 높이를 CSS로 흘려보낸다 — 값의 유일한 출처는 config다
   // (style.css의 --taskbar-h, core/stageManager.js의 getPlayArea가 같은 값을 쓴다).
@@ -199,6 +233,7 @@ export function initDesktop() {
   document.getElementById('desktop')?.style.setProperty('--taskbar-h', `${config.desktop.taskbarPx}px`);
 
   document.querySelectorAll('#desktop .win').forEach(makeDraggable);
+  wireDesktopIconSelect();
 
   // 창 버튼(× 닫기 / _ 최소화): 상태.dat/업로드 두 메인 창(.win)은 게임 정보를 계속
   // 띄워두고 있어야 하므로 둘 다 동작하지 않는다 — 창이 사라질 수단을 아예 없앤다.

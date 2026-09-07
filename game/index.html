@@ -81,13 +81,18 @@
 
       <!-- 클릭 무반응 장식. pointer-events:none이라 위를 클릭해도 캔버스(방해꾼)로 통과한다. -->
       <div class="layer-deco">
+        <!-- ★파일 아이콘은 ui/fileIcons.js(48×48 다색 아이소메트릭) — UI 크롬용
+             [data-icon](ui/icons.js, 24×24 단색)과 속성 이름부터 갈라놨다.
+             예전엔 여기도 [data-icon]이라 폴더·exe·휴지통이 전부 같은 파란
+             실루엣이었다(계약이 틀렸던 것). 라벨은 2줄에서 자르고, 선택하면
+             전부 펼쳐진다 — 인트로 바탕화면과 같은 규칙(style.css .icon.sel). -->
         <div class="icons">
-          <div class="icon"><div class="ib"><span data-icon="question"></span></div><div class="il">절대_바이러스<br />아님_진짜_전<br />_돌고래임.exe</div></div>
-          <div class="icon"><div class="ib"><span data-icon="folder"></span></div><div class="il">숙제(안함)</div></div>
-          <div class="icon"><div class="ib"><span data-icon="shield"></span></div><div class="il">V3보다좋음.exe</div></div>
-          <div class="icon"><div class="ib"><span data-icon="save"></span></div><div class="il">야한거아님.zip</div></div>
-          <div class="icon"><div class="ib"><span data-icon="game"></span></div><div class="il">공부자료.exe</div></div>
-          <div class="icon"><div class="ib"><span data-icon="recycle"></span></div><div class="il">휴지통</div></div>
+          <div class="icon"><div class="ib"><span data-file-icon="virus" data-size="60"></span></div><div class="il">절대_바이러스_아님_진짜_전_돌고래임.exe</div></div>
+          <div class="icon"><div class="ib"><span data-file-icon="folder" data-size="60"></span></div><div class="il">숙제(안함)</div></div>
+          <div class="icon"><div class="ib"><span data-file-icon="shield" data-size="60"></span></div><div class="il">V3보다좋음.exe</div></div>
+          <div class="icon"><div class="ib"><span data-file-icon="zip" data-size="60"></span></div><div class="il">야한거아님.zip</div></div>
+          <div class="icon"><div class="ib"><span data-file-icon="pad" data-size="60"></span></div><div class="il">공부자료.exe</div></div>
+          <div class="icon"><div class="ib"><span data-file-icon="bin" data-size="60"></span></div><div class="il">휴지통</div></div>
         </div>
       </div>
 
@@ -106,7 +111,10 @@
         <div class="taskbar">
           <div class="start"><span data-icon="xp_flag"></span> 시작</div>
           <div class="ti">■ 상태.dat</div>
-          <div class="ti">! 진짜_최종…(5).exe</div>
+          <!-- ★앱 버튼은 우리 게임 아이콘(파란 창 + 초록 진행바)으로 통일한다 —
+               바탕화면·작업표시줄·인트로가 같은 그림이라야 "그 파일이 지금
+               실행 중"이라는 연결이 선다. 예전엔 여기만 '!' 글자였다. -->
+          <div class="ti"><span data-file-icon="game" data-size="18"></span> 진짜_최종…(5).exe</div>
           <div class="clock" id="tb-clock">오후 11:59</div>
         </div>
       </div>
@@ -881,7 +889,7 @@
           <div class="start"><span data-icon="xp_flag" data-size="26"></span> 시작</div>
           <div class="list">
             <span class="tbtn" id="intro-taskbtn">
-              <span data-icon="game" data-size="24"></span>
+              <span data-file-icon="game" data-size="24"></span>
               진짜_최종_final_수정_진짜최종(5).exe
             </span>
           </div>

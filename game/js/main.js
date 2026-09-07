@@ -42,7 +42,10 @@ import { initCursor, updateCursor } from './ui/cursor.js';
 import { updateStatusWindows } from './ui/statusWindow.js';
 import { initUploadPicture, updateUploadPicture } from './ui/uploadPicture.js';
 import { initDebugPanel, bindRules, updateDebugStats } from './debug.js';
-import { applyIcons, icon } from './ui/icons.js';
+import { applyIcons } from './ui/icons.js';
+// ★파일 아이콘은 별도 카탈로그다(48×48 다색 아이소메트릭) — UI 크롬용 icons.js와
+//   계약이 달라 파일부터 갈라놨다(ui/fileIcons.js 상단 주석).
+import { applyFileIcons, fileIcon } from './ui/fileIcons.js';
 import { hasSeenIntro } from './core/save.js';
 import { Enemy } from './enemies/Enemy.js';
 
@@ -153,6 +156,8 @@ async function main() {
   // 스크립트라 DOM은 이미 파싱이 끝나 있다. 다른 init보다 먼저 할 이유는 없지만
   // 미룰 이유도 없어서 맨 앞에 둔다(어차피 전부 정적 엘리먼트라 순서 무관).
   applyIcons();
+  // [data-file-icon] 자리표시자도 같은 자리에서 채운다 — 속성 이름이 달라 서로 안 겹친다.
+  applyFileIcons();
 
   // 백킹스토어 크기까지 여기서 함께 정해진다 — 최초 1회 맞추고, 이후 창 크기 변경에 자동으로 반응한다
   initCanvasFit(canvas);
@@ -177,7 +182,7 @@ async function main() {
   // ★ 첫 실행이면 이 시점에 부팅 화면이 곧바로 뜬다(밸런스를 받아오는 동안 보이는
   //   로딩 오버레이를 덮는다). 타임라인 자체는 로딩이 끝난 뒤 applyLoadedData()가
   //   startIntro()로 돌린다.
-  initIntro(icon);
+  initIntro(fileIcon);
   // 저장된 설정(사운드 셋·환경 방해)을 입힌다. ★ 반드시 initSound()/initBgm() 뒤여야
   // 한다 — 볼륨 노드가 그때 만들어지고, 여기서 그 노드에 값을 흘려보낸다.
   applySavedSettings();

@@ -24,7 +24,8 @@ import { playSfx, SFX } from '../systems/sound.js';
 // ★바탕화면에 까는 가짜 파일들. "게임 이름을 찾기 어렵게" 하는 게 목적이라
 // 비슷비슷한 이름을 잔뜩 깐다 — 그래야 커서가 두 번 헛짚은 뒤에야 우리 게임에
 // 도달하는 연출이 성립하고, 마지막에 이름이 펼쳐지는 순간이 산다.
-// 아이콘 이름은 ui/icons.js 카탈로그의 키다(psd/zip은 이 연출 때문에 새로 넣었다).
+// ★아이콘 이름은 ui/fileIcons.js 카탈로그의 키다(UI 크롬용 ui/icons.js가 아니다 —
+// 폴더 노랑·exe 파랑처럼 색이 곧 정보인 자리라 계약이 다르다).
 const FILES = [
   { name: '새 폴더', icon: 'folder' },
   { name: '수정본.psd', icon: 'psd' },
@@ -34,12 +35,12 @@ const FILES = [
   { name: '진짜_최종_2.psd', icon: 'psd' },
   { name: '진짜 수정 222.psd', icon: 'psd' },
   { name: '진짜_최종_final.psd', icon: 'psd' },
-  { name: '제출용_최종.hwp', icon: 'file' },
+  { name: '제출용_최종.hwp', icon: 'doc' },
   { name: '백업(지우지마).zip', icon: 'zip' },
   { name: '새 폴더 (2)', icon: 'folder' },
   { name: '진짜_최종_final_수정_진짜최종(5).exe', icon: 'game' }, // ★우리 게임
   { name: '안쓰는거.zip', icon: 'zip' },
-  { name: '휴지통', icon: 'recycle' },
+  { name: '휴지통', icon: 'bin' },
 ];
 // FILES에서 우리 게임의 자리와, 커서가 먼저 들르는 엉뚱한 파일 두 곳.
 // 헛짚는 둘은 이름이 제일 헷갈리는 것으로 골랐다(최종.psd / 진짜_최종_final.psd).
@@ -85,8 +86,10 @@ let steps = []; // [{ at, run }] — 시각 오름차순. 실행한 건 앞에�
 let running = false;
 
 /** 가짜 파일 아이콘 14개를 만든다(최초 1회).
- * 아이콘 SVG는 ui/icons.js의 icon()이 준다 — 정적 마크업이 아니라 여기서 직접
- * 부르는 쪽이다(icons.js 상단 주석의 두 갈래 중 "JS가 만드는 자리"). */
+ * ★아이콘 SVG는 ui/fileIcons.js의 fileIcon()이 준다 — ui/icons.js(UI 크롬,
+ * 24×24 단색)가 아니다. 여긴 바탕화면 "파일"이라 폴더 노랑·exe 파랑처럼 색이
+ * 곧 정보이고, 그래서 계약 자체가 다른 카탈로그를 쓴다(fileIcons.js 상단 주석).
+ * 정적 마크업이 아니라 여기서 직접 부르는 쪽이다(두 갈래 중 "JS가 만드는 자리"). */
 function buildIcons(icon) {
   iconsEl.innerHTML = FILES.map(
     (f) => `<div class="intro-deico"><div class="g">${icon(f.icon, 62)}</div><div class="lb">${f.name}</div></div>`,
@@ -228,9 +231,9 @@ function buildSteps() {
  *   착지한 뒤 startIntro()가 돌린다 — 그래야 "로딩이 늦게 끝나 뒤늦게 도착한
  *   착지"가 이미 끝난 인트로를 되감는 사고가 구조적으로 안 생긴다.
  *
- * @param {(name: string, size?: number) => string} icon ui/icons.js의 icon().
+ * @param {(name: string, size?: number) => string} icon ★ui/fileIcons.js의 fileIcon().
  *   이 모듈이 아이콘 카탈로그를 직접 알 필요가 없어서 주입받는다 — main.js가
- *   이미 그 모듈을 들고 있다.
+ *   이미 그 모듈을 들고 있다. (UI 크롬용 ui/icons.js의 icon()이 아니다)
  */
 export function initIntro(icon) {
   layer = document.getElementById('layer-intro');
