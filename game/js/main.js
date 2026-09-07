@@ -42,7 +42,7 @@ import { initCursor, updateCursor } from './ui/cursor.js';
 import { updateStatusWindows } from './ui/statusWindow.js';
 import { initUploadPicture, updateUploadPicture } from './ui/uploadPicture.js';
 import { initDebugPanel, bindRules, updateDebugStats } from './debug.js';
-import { applyIcons } from './ui/icons.js';
+import { applyIcons, icon } from './ui/icons.js';
 import { hasSeenIntro } from './core/save.js';
 import { Enemy } from './enemies/Enemy.js';
 
@@ -177,7 +177,7 @@ async function main() {
   // ★ 첫 실행이면 이 시점에 부팅 화면이 곧바로 뜬다(밸런스를 받아오는 동안 보이는
   //   로딩 오버레이를 덮는다). 타임라인 자체는 로딩이 끝난 뒤 applyLoadedData()가
   //   startIntro()로 돌린다.
-  initIntro();
+  initIntro(icon);
   // 저장된 설정(사운드 셋·환경 방해)을 입힌다. ★ 반드시 initSound()/initBgm() 뒤여야
   // 한다 — 볼륨 노드가 그때 만들어지고, 여기서 그 노드에 값을 흘려보낸다.
   applySavedSettings();

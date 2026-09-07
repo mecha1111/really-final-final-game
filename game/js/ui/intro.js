@@ -1,7 +1,7 @@
 // 이 파일 역할: ★첫 실행에만 도는 인트로 연출 — 타이틀 화면보다 "앞"에 온다.
 //   부팅 → 바탕화면(가짜 파일 더미) → 커서가 우리 게임을 찾아 클릭 →
 //   강아지 튜토리얼 → ★기존 타이틀 화면(setPhase('title')).
-//   (지금 커밋에는 "부팅"까지만 들어 있다 — 나머지는 다음 두 커밋에서 이어 붙인다.)
+//   (지금 커밋에는 "커서가 클릭하는 데"까지 들어 있다 — 튜토리얼은 다음 커밋.)
 //
 // 정본 디자인은 docs/xp-design-system.html의 "1 · 인트로 연출" 섹션이다. 그 문서의
 // playIntro() 타임라인을 그대로 옮겼고, 숫자는 전부 config.intro에 있다(여기 박지
@@ -22,14 +22,102 @@ import { setPhase } from '../core/state.js';
 import { hasSeenIntro, markIntroSeen } from '../core/save.js';
 import { playSfx, SFX } from '../systems/sound.js';
 
+// ★바탕화면에 까는 가짜 파일들. "게임 이름을 찾기 어렵게" 하는 게 목적이라
+// 비슷비슷한 이름을 잔뜩 깐다 — 그래야 커서가 두 번 헛짚은 뒤에야 우리 게임에
+// 도달하는 연출이 성립하고, 마지막에 이름이 펼쳐지는 순간이 산다.
+// 아이콘 이름은 ui/icons.js 카탈로그의 키다(psd/zip은 이 연출 때문에 새로 넣었다).
+const FILES = [
+  { name: '새 폴더', icon: 'folder' },
+  { name: '수정본.psd', icon: 'psd' },
+  { name: '진짜수정1.psd', icon: 'psd' },
+  { name: '최종.psd', icon: 'psd' },
+  { name: '최종_수정.psd', icon: 'psd' },
+  { name: '진짜_최종_2.psd', icon: 'psd' },
+  { name: '진짜 수정 222.psd', icon: 'psd' },
+  { name: '진짜_최종_final.psd', icon: 'psd' },
+  { name: '제출용_최종.hwp', icon: 'file' },
+  { name: '백업(지우지마).zip', icon: 'zip' },
+  { name: '새 폴더 (2)', icon: 'folder' },
+  { name: '진짜_최종_final_수정_진짜최종(5).exe', icon: 'game' }, // ★우리 게임
+  { name: '안쓰는거.zip', icon: 'zip' },
+  { name: '휴지통', icon: 'recycle' },
+];
+// FILES에서 우리 게임의 자리와, 커서가 먼저 들르는 엉뚱한 파일 두 곳.
+// 헛짚는 둘은 이름이 제일 헷갈리는 것으로 골랐다(최종.psd / 진짜_최종_final.psd).
+const TARGET_INDEX = 11;
+const DECOY1_INDEX = 3;
+const DECOY2_INDEX = 7;
+
 let layer = null;
 let bootEl = null;
+let deskEl = null;
+let iconsEl = null;
+let taskbarEl = null;
+let taskBtnEl = null;
+let cursorEl = null;
+
+// 커서 누름 표시를 되돌릴 남은 시간(초). 0 이하면 대기 중이 아니다. 누름은
+// 0.11초짜리라 단계 목록에 넣기엔 잗달아서 여기서 따로 센다.
+let pressLeft = 0;
 
 // 인트로가 시작한 뒤 흐른 시간(초). config.intro의 값은 전부 "이 시각"과 비교하는
 // 절대 초라, 남은 단계 목록에서 때가 된 것만 꺼내 실행하면 된다.
 let elapsed = 0;
 let steps = []; // [{ at, run }] — 시각 오름차순. 실행한 건 앞에서부터 빠진다.
 let running = false;
+
+/** 가짜 파일 아이콘 14개를 만든다(최초 1회).
+ * 아이콘 SVG는 ui/icons.js의 icon()이 준다 — 정적 마크업이 아니라 여기서 직접
+ * 부르는 쪽이다(icons.js 상단 주석의 두 갈래 중 "JS가 만드는 자리"). */
+function buildIcons(icon) {
+  iconsEl.innerHTML = FILES.map(
+    (f) => `<div class="intro-deico"><div class="g">${icon(f.icon, 62)}</div><div class="lb">${f.name}</div></div>`,
+  ).join('');
+}
+
+/** 아이콘 하나만 선택 상태로 만든다(-1이면 전부 해제).
+ * ★선택하면 잘렸던 이름이 전부 펼쳐진다 — 그 펼침은 CSS가 한다
+ *   (.intro-deico.sel .lb의 -webkit-line-clamp 2→4). */
+function selectOnly(index) {
+  const kids = iconsEl.children;
+  for (let i = 0; i < kids.length; i++) kids[i].classList.toggle('sel', i === index);
+}
+
+/**
+ * 가짜 커서를 아이콘 위로 옮긴다.
+ * ★ 좌표는 offsetLeft/offsetTop만 쓴다 — getBoundingClientRect()를 쓰면 #desktop의
+ *   transform 배율을 되돌리는 계산이 또 필요해지고, 이 프로젝트가 반복해서 겪은
+ *   "그리기와 판정이 다른 좌표" 부류에 그대로 들어간다. offset*은 배율과 무관한
+ *   부모 좌표계(여기서는 1920x1080 그대로)라 나눗셈이 아예 필요 없다.
+ *   .intro-deico의 offsetParent가 .intro-icons(absolute)이고 그 offsetParent가
+ *   .intro-desk(absolute, left:0/top:0)이며 커서도 같은 .layer-intro 안에 있으므로,
+ *   둘을 더하면 그대로 커서 좌표가 된다.
+ */
+function cursorTo(index) {
+  const el = iconsEl.children[index];
+  if (!el) return;
+  cursorEl.style.left = `${iconsEl.offsetLeft + el.offsetLeft + el.offsetWidth * 0.42}px`;
+  cursorEl.style.top = `${iconsEl.offsetTop + el.offsetTop + el.offsetHeight * 0.38}px`;
+}
+
+/** 커서를 한 번 "누른다" — 살짝 줄었다 돌아온다(CSS transition). */
+function press() {
+  cursorEl.classList.add('press');
+  pressLeft = config.intro.pressSec;
+  playSfx(SFX.UI_CLICK, { ui: true });
+}
+
+/** 작업표시줄 시계 — 분위기용이라 인트로가 시작할 때 한 번만 찍는다.
+ * 인트로 전체가 10초 남짓이라 도중에 분이 바뀌어도 볼 사람이 없다 —
+ * ui/desktop.js의 startClock처럼 setInterval을 또 걸 이유가 없다. */
+function setClock() {
+  const el = document.getElementById('intro-clock');
+  if (!el) return;
+  const d = new Date();
+  const h = d.getHours();
+  const h12 = h % 12 === 0 ? 12 : h % 12;
+  el.textContent = `${h < 12 ? '오전' : '오후'} ${h12}:${String(d.getMinutes()).padStart(2, '0')}`;
+}
 
 /**
  * ★인트로의 끝 — 게임의 기존 타이틀 화면으로 넘긴다.
@@ -50,12 +138,36 @@ function toTitle() {
 function buildSteps() {
   const c = config.intro;
   return [
-    // 부팅 끝 — 화면이 밝아지며 바탕화면으로 넘어간다.
-    { at: c.bootHoldSec, run: () => bootEl.classList.add('out') },
+    {
+      at: c.bootHoldSec,
+      run: () => {
+        // 부팅 끝 — 바탕화면과 작업표시줄이 함께 떠오른다.
+        bootEl.classList.add('out');
+        deskEl.classList.add('show');
+        taskbarEl.classList.add('show');
+      },
+    },
     { at: c.bootHoldSec + c.bootFadeSec, run: () => bootEl.classList.add('gone') },
-    // ★임시 — 다음 커밋에서 이 자리에 바탕화면·커서·튜토리얼이 들어오고,
-    //   타이틀로 넘기는 건 튜토리얼의 [시작]/[닫기]가 맡게 된다.
-    { at: c.bootHoldSec + c.bootFadeSec, run: toTitle },
+    { at: c.cursorOnSec, run: () => cursorEl.classList.add('on') },
+    // 엉뚱한 파일을 두 번 헛짚는다 — 이름이 비슷해서 헷갈린다는 게 이 연출의 농담이다.
+    { at: c.decoy1Sec, run: () => { cursorTo(DECOY1_INDEX); selectOnly(DECOY1_INDEX); } },
+    { at: c.decoy2Sec, run: () => { cursorTo(DECOY2_INDEX); selectOnly(DECOY2_INDEX); } },
+    // ★우리 게임 — 고르는 순간 잘렸던 긴 이름이 전부 펼쳐진다(CSS의 .sel .lb).
+    { at: c.targetSec, run: () => { cursorTo(TARGET_INDEX); selectOnly(TARGET_INDEX); } },
+    { at: c.click1Sec, run: press }, // 더블클릭
+    { at: c.click2Sec, run: press },
+    {
+      at: c.launchSec,
+      run: () => {
+        // 실행됐다 — 작업표시줄에 앱 버튼이 등록되고 가짜 커서는 할 일을 마친다.
+        taskBtnEl.classList.add('on');
+        cursorEl.classList.remove('on');
+        selectOnly(-1);
+      },
+    },
+    // ★임시 — 다음 커밋에서 이 자리에 강아지 튜토리얼이 들어오고, 타이틀로
+    //   넘기는 건 그 말풍선의 [시작]/[닫기]가 맡게 된다.
+    { at: c.tutorialSec, run: toTitle },
   ];
 }
 
@@ -68,15 +180,28 @@ function buildSteps() {
  *   시작된 것처럼 이어진다. 실제 타임라인은 로딩이 끝나 phase가 'intro'로
  *   착지한 뒤 startIntro()가 돌린다 — 그래야 "로딩이 늦게 끝나 뒤늦게 도착한
  *   착지"가 이미 끝난 인트로를 되감는 사고가 구조적으로 안 생긴다.
+ *
+ * @param {(name: string, size?: number) => string} icon ui/icons.js의 icon().
+ *   이 모듈이 아이콘 카탈로그를 직접 알 필요가 없어서 주입받는다 — main.js가
+ *   이미 그 모듈을 들고 있다.
  */
-export function initIntro() {
+export function initIntro(icon) {
   layer = document.getElementById('layer-intro');
   if (!layer) return;
   bootEl = document.getElementById('intro-boot');
+  deskEl = document.getElementById('intro-desk');
+  iconsEl = document.getElementById('intro-icons');
+  taskbarEl = document.getElementById('intro-taskbar');
+  taskBtnEl = document.getElementById('intro-taskbtn');
+  cursorEl = document.getElementById('intro-cursor');
 
   // 전환 시간의 유일한 출처는 config다 — CSS는 변수만 참조한다
   // (ui/rover.js의 --rover-slide-sec, ui/crtTransition.js의 --crt-*와 같은 패턴).
   layer.style.setProperty('--intro-boot-fade', `${config.intro.bootFadeSec}s`);
+  layer.style.setProperty('--intro-cursor-sec', `${config.intro.cursorMoveSec}s`);
+  layer.style.setProperty('--intro-press-sec', `${config.intro.pressSec}s`);
+
+  buildIcons(icon);
 
   // ★첫 실행이면 지금 당장 커튼을 올린다(위 주석 참고).
   if (!hasSeenIntro()) layer.classList.add('on', 'nocursor');
@@ -86,7 +211,9 @@ export function initIntro() {
 export function startIntro() {
   if (!layer) return;
   layer.classList.add('on', 'nocursor');
+  setClock();
   elapsed = 0;
+  pressLeft = 0;
   steps = buildSteps();
   running = true;
 }
@@ -94,6 +221,11 @@ export function startIntro() {
 /** 매 프레임(main.js, phase==='intro'일 때만). 때가 된 단계를 순서대로 실행한다. */
 export function updateIntro(dt) {
   if (!running) return;
+
+  if (pressLeft > 0) {
+    pressLeft -= dt;
+    if (pressLeft <= 0) cursorEl.classList.remove('press');
+  }
 
   elapsed += dt;
   // 한 프레임에 여러 단계가 걸릴 수 있다(더블클릭 두 번은 0.18초 차이라, 프레임이

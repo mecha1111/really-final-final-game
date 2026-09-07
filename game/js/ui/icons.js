@@ -98,6 +98,23 @@ const ICONS = {
     <rect x="7.5" y="4" width="7" height="5"/>
     <rect x="7" y="13.5" width="10" height="6.5"/>
   `,
+  // 인트로 바탕화면의 가짜 파일용(ui/intro.js). 참조 문서
+  // docs/xp-design-system.html에도 psd/zip이 있지만 그쪽은 16×16 다색 채움이라
+  // 그대로는 못 가져온다 — 이 카탈로그는 24×24 + currentColor 단색이 계약이고
+  // (아래 wrap()이 viewBox를 못박는다), 다색 하나만 섞이면 화면에서 그것만 튄다.
+  // 그래서 "같은 모티프를 이 집 화법으로" 다시 그렸다: 문서 아이콘 위의 Ps 상자,
+  // 지퍼 달린 상자.
+  psd: `
+    <path d="M6 3 H14 L18 7 V21 H6 Z"/>
+    <path d="M14 3 V7 H18"/>
+    <rect x="8.4" y="10.8" width="7.2" height="7.2" rx="0.8"/>
+    <path d="M10.6 16.4 V12.4 H12.3 A1.6 1.6 0 0 1 12.3 15.6 H10.6"/>
+  `,
+  zip: `
+    <rect x="4.5" y="2.5" width="15" height="19" rx="1.5"/>
+    <path d="M11 2.5 V9.5 M13 2.5 V9.5"/>
+    <rect x="10.1" y="11" width="3.8" height="5.4" rx="1.2"/>
+  `,
   game: `
     <rect x="2.5" y="8" width="19" height="9.5" rx="4"/>
     <path d="M7.5 10.8 V15 M5.4 12.9 H9.6"/>
