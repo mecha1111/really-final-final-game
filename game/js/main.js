@@ -39,7 +39,7 @@ import { initConfirmDialog } from './ui/confirmDialog.js';
 import { initGallery } from './ui/galleryPanel.js';
 import { initRover, updateRover, showTip } from './ui/rover.js';
 import { initIntro, startIntro, updateIntro } from './ui/intro.js';
-import { initGameOpening, updateGameOpening } from './ui/gameOpening.js';
+import { initGameOpening, updateGameOpening, isOpeningFrozen } from './ui/gameOpening.js';
 import { initCursor, updateCursor } from './ui/cursor.js';
 import { updateStatusWindows } from './ui/statusWindow.js';
 import { initUploadPicture, updateUploadPicture } from './ui/uploadPicture.js';
@@ -271,7 +271,11 @@ async function main() {
       updateBsodScreen();
       updateClearScreen(now);
       updateEndingScreen(now);
-      updateCursor(state.inputFreezeSec > 0); // hourglass 함정 발동 중엔 대기 커서로
+      // 대기(모래시계) 커서로 바꿔야 하는 두 경우를 한 줄에 모은다:
+      //   · hourglass 함정 발동 중(조작 불능)
+      //   · ★게임 시작 오프닝의 렉 연출 중 — "굳은 것처럼 보이는" 연기의 일부다.
+      //     ★진짜로 입력을 막지는 않는다(ui/gameOpening.js 주석) — 커서 모양만 바뀐다.
+      updateCursor(state.inputFreezeSec > 0 || isOpeningFrozen());
     },
     onFrame: (fps) => updateDebugStats(state, gameData, fps),
   });

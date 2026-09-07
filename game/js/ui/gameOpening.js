@@ -24,6 +24,10 @@ import { playSfx, SFX } from '../systems/sound.js';
 // ★튜토리얼 대본 — 조작법만이다. ★방해꾼 정보(bait는 안 죽는다, popup은 X만
 // 눌러야 한다 등)는 일부러 안 준다: 직접 부딪혀 알아내는 게 이 게임의 재미라,
 // 인게임 팁에서 그 둘을 걷어낸 것과 같은 판단이다(ui/rover.js 상단 주석 참고).
+// 렉 걸린 창의 제목 — 굳는 순간 여기에 config.opening.deadSuffix가 붙는다.
+// ★index.html의 초기값과 같아야 한다(첫 프레임에 잠깐 다른 제목이 보이면 안 된다).
+const HANG_TITLE = '진짜_최종_final_수정_진짜최종(5).exe';
+
 const PAGES = [
   { head: '안녕하세요?', lines: ['저는 검색 도우미예요.', '이 게임을 처음 하시는 분께 잠깐 설명해 드릴게요.'] },
   { head: '목표', lines: ['화면 아래 진행바가 업데이트 상태예요.', '100%까지 채우면 그 구간을 넘어갑니다.'] },
@@ -32,6 +36,9 @@ const PAGES = [
 ];
 
 let layer = null;
+let hangEl = null;
+let hangTitleEl = null;
+let loadEl = null;
 let assistEl = null;
 let headEl = null;
 let listEl = null;
@@ -47,13 +54,28 @@ let pageIndex = 0;
 // 커서 상태가 이 값을 본다.
 let active = false;
 
+// ★"굳은 척"하는 중인가 — main.js가 이 값을 보고 커서를 모래시계로 바꾼다.
+//   ★진짜로 멈추는 게 아니다: 게임 루프도 입력도 그동안 정상으로 돈다.
+let frozen = false;
+
 // 오프닝이 끝나면 부를 콜백(실제 startGame). 한 번 부르고 반드시 비운다 —
 // [건너뛰기]와 마지막 쪽 [시작]이 둘 다 여기로 모이므로 두 번 불릴 여지를 없앤다.
 let onDone = null;
 
+// 오프닝이 시작한 뒤 흐른 시간(초)과 남은 단계들. config.opening의 값이 전부
+// "이 시각"과 비교하는 절대 초라, 때가 된 것만 앞에서부터 꺼내 실행하면 된다
+// (ui/intro.js와 완전히 같은 방식 — setTimeout을 안 쓰는 이유도 같다).
+let elapsed = 0;
+let steps = [];
+
 /** 오프닝이 도는 중인가. ui/settingsPanel.js가 ESC를 막을 때 본다. */
 export function isOpeningActive() {
   return active;
+}
+
+/** 렉 연출로 "굳은 척"하는 중인가 — main.js가 커서를 모래시계로 바꿀 때 본다. */
+export function isOpeningFrozen() {
+  return frozen;
 }
 
 /** 지금 쪽(pageIndex)의 내용을 말풍선에 그린다. */
@@ -79,30 +101,55 @@ function showTutorial() {
 }
 
 /**
- * ★오프닝의 끝 — 실제 판을 시작한다.
+ * ★오프닝의 끝 — 역순으로 걷어낸 뒤 실제 판을 시작한다.
  * [시작]과 [건너뛰기] 둘 다 여기로 모인다(끝나는 길이 여럿이라 한 곳에 모아둔다 —
  * ui/settingsPanel.js의 closeSettings와 같은 이유).
+ *
+ * ★걷어내는 것도 dt 타임라인으로 한다(setTimeout 금지). steps를 새로 깔고
+ *   elapsed를 0으로 되돌려, 남은 두 단계(어둠 풀기 → 레이어 내리고 시작)를
+ *   updateGameOpening이 순서대로 소화하게 한다.
  */
 function finish() {
   if (!active) return; // 연타·중복 진입 방지
-  active = false;
-  playSfx(SFX.UI_CLOSE, { ui: true });
+  const c = config.opening;
+
   // ★여기서야 "봤다"고 찍는다 — 튜토리얼 본체가 이제 이 오프닝이라, 인트로가
   //   아니라 이 지점이 "첫 실행 안내를 끝까지 봤다"의 기준이다. 그래서 도중에
   //   새로고침하면 다음 [게임 시작]에 다시 나온다(인트로도 같은 규칙이었다).
   markIntroSeen();
-  assistEl.classList.remove('on', 'tip');
-  layer.classList.remove('on');
+  playSfx(SFX.UI_CLOSE, { ui: true });
 
-  const done = onDone;
-  onDone = null;
-  done?.();
+  // 강아지가 먼저 사라진다(말풍선은 CSS transition으로 스르륵 빠진다).
+  assistEl.classList.remove('on', 'tip');
+
+  elapsed = 0;
+  steps = [
+    // 어둠을 푼다 — 아래(타이틀)가 다시 드러난다.
+    { at: c.outAssistSec, run: () => loadEl.classList.remove('dim') },
+    // 레이어를 통째로 내리고 그제서야 진짜 판을 시작한다.
+    {
+      at: c.outAssistSec + c.outDimSec,
+      run: () => {
+        active = false;
+        frozen = false;
+        loadEl.classList.remove('on', 'low');
+        hangEl.classList.remove('on', 'dead');
+        layer.classList.remove('on');
+        const done = onDone;
+        onDone = null;
+        done?.();
+      },
+    },
+  ];
 }
 
 /** 최초 1회(main.js). DOM을 잡고 버튼을 배선한다. */
 export function initGameOpening() {
   layer = document.getElementById('layer-opening');
   if (!layer) return;
+  hangEl = document.getElementById('op-hang');
+  hangTitleEl = document.getElementById('op-hang-title');
+  loadEl = document.getElementById('op-load');
   assistEl = document.getElementById('op-assist');
   headEl = document.getElementById('op-assist-head');
   listEl = document.getElementById('op-assist-list');
@@ -146,28 +193,65 @@ export function startGameOpening(done) {
     return;
   }
 
-  // ★튜토리얼을 보여줄 조건 — 둘 다 만족해야 한다.
+  // ★튜토리얼(강아지)을 보여줄 조건 — 둘 다 만족해야 한다.
   //   · 설정의 [시작 시 튜토리얼 보기](config.tutorial.enabled)가 켜져 있고
   //   · 아직 끝까지 본 적이 없다(세이브의 seenIntro)
-  //   ★첫 [게임 시작]에만 나온다는 뜻이다. 두 번째부터는 이 함수가 곧장 done()을
-  //     부른다 — 지금은 앞에 붙일 렉·로딩 연출이 없어서 정말 바로 시작한다.
-  //     (그 연출은 다음 커밋에서 이 자리에 들어오고, 그때는 튜토리얼 여부와
-  //      무관하게 항상 재생된다 — 오프닝이지 튜토리얼이 아니라서.)
+  //   ★첫 [게임 시작]에만 나온다는 뜻이다.
+  // ★반면 렉·로딩은 이 조건과 무관하게 항상 재생된다 — 그건 튜토리얼이 아니라
+  //   오프닝이라 끄는 대상이 아니다(요구사항). 튜토리얼이 없으면 로딩이 끝나는
+  //   그 자리에서 곧바로 판이 시작된다.
   const wantTutorial = config.tutorial.enabled && !hasSeenIntro();
-  if (!wantTutorial) {
-    done?.();
-    return;
-  }
 
+  const c = config.opening;
   onDone = done;
   active = true;
+  frozen = false;
+  elapsed = 0;
+
+  // 시작 상태로 되돌린다 — 두 번째 [게임 시작]에도 같은 자리에서 다시 시작해야 한다.
+  hangEl.classList.remove('dead');
+  hangTitleEl.textContent = HANG_TITLE;
+  loadEl.classList.remove('on', 'dim', 'low');
+  assistEl.classList.remove('on', 'tip');
   layer.classList.add('on');
-  showTutorial();
+
+  steps = [
+    // 0.0s — 창이 뜬다. "프로그램을 실행한 것처럼"
+    { at: c.hangSec, run: () => hangEl.classList.add('on') },
+    // 0.5s — ★굳는다. 제목에 (응답 없음) + 타이틀바 채도 죽음 + 흰 고스트 + 모래시계 커서.
+    //        ★진짜로 멈추는 게 아니다 — 클래스와 플래그만 바꾼다.
+    {
+      at: c.deadSec,
+      run: () => {
+        hangEl.classList.add('dead');
+        hangTitleEl.textContent = HANG_TITLE + c.deadSuffix;
+        frozen = true;
+      },
+    },
+    // 1.5s — 로딩 레이어를 붙인다(아직 투명, transition이 이어받게).
+    { at: c.loadOnSec, run: () => loadEl.classList.add('on') },
+    // 1.6s — 어두워지고 분절 로딩바·안내문이 떠오른다.
+    { at: c.loadDimSec, run: () => loadEl.classList.add('dim') },
+    // 2.82s — 로딩바가 하단 중앙으로 비켜난다(강아지 자리를 비운다).
+    { at: c.loadLowSec, run: () => loadEl.classList.add('low') },
+    // 3.0s — ★강아지가 뿅. 튜토리얼을 안 볼 상황이면 여기서 곧장 마무리로 넘어간다.
+    {
+      at: c.assistSec,
+      run: () => {
+        frozen = false; // 강아지 버튼을 눌러야 하므로 커서를 돌려준다
+        if (wantTutorial) showTutorial();
+        else finish();
+      },
+    },
+  ];
 }
 
-/** 매 프레임(main.js). 지금은 시간으로 진행하는 단계가 없다 — 다음 커밋에서
- * 렉·로딩 타임라인이 여기로 들어온다. 배선을 먼저 깔아둔다. */
+/** 매 프레임(main.js). 때가 된 단계를 순서대로 실행한다.
+ * ★ 한 프레임에 여러 단계가 걸릴 수 있어(loadOn 1.5s와 loadDim 1.6s는 0.1초
+ *   차이라 프레임이 한 번 밀리면 같이 때가 된다) while로 밀린 만큼 전부 소화한다
+ *   — ui/intro.js의 updateIntro와 같은 구조다. */
 export function updateGameOpening(dt) {
-  if (!active) return;
-  void dt;
+  if (!active || steps.length === 0) return;
+  elapsed += dt;
+  while (steps.length > 0 && elapsed >= steps[0].at) steps.shift().run();
 }
