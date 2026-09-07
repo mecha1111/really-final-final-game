@@ -1,7 +1,7 @@
 // 이 파일 역할: 캔버스 한 프레임을 조립한다(방해꾼 → 커서 → 뜬 글씨 → 대기/결과 오버레이).
 // HUD·창·개그요소는 이제 캔버스가 아니라 HTML이 그린다(ui/statusWindow.js, ui/desktop.js).
 
-import { config, getUiScaleFactor, getUiReferenceCanvas, getRenderScale, createRules } from '../config.js';
+import { config, getUiScaleFactor, getUiReferenceCanvas, getRenderScale } from '../config.js';
 import { debugState } from '../debug.js';
 import {
   drawEnemy,
@@ -12,7 +12,7 @@ import {
   drawKillParticles,
   drawClickRipples,
 } from './renderEnemies.js';
-import { drawSelectScreen, drawLoadingOverlay } from './screens.js';
+import { drawLoadingOverlay } from './screens.js';
 import { getCrtShakeOffset } from './crtTransition.js';
 import { getShakeOffset } from '../systems/screenShake.js';
 import { updateOverload, getOverloadJitter } from '../systems/overload.js';
@@ -67,7 +67,13 @@ export function render({ ctx, canvas, state, gameData, now }) {
   // 과밀 지지직: 강도를 갱신하고(오버레이 CSS 변수) 그 미세 떨림도 같이 받는다.
   // 살아있는 놈만 센다 — 시체(corpseTimer로 잠깐 남는 것)까지 세면 처치할수록
   // 과부하가 심해지는 거꾸로 된 신호가 된다.
-  const aliveCount = state.enemies.reduce((n, e) => n + (e.alive ? 1 : 0), 0);
+  // ★ playing이 아닐 땐 마릿수를 세지 않고 0으로 넘긴다 — 타이틀·결과·엔딩
+  //   화면에서까지 매 프레임 배열을 훑고 오버레이 CSS 변수를 쓰고 있었다(그
+  //   화면들엔 과밀이라는 개념 자체가 없다). 0을 넘겨서 부르는 건 유지한다 —
+  //   판을 벗어나는 순간 오버레이를 확실히 꺼야 잔상이 안 남는다(updateOverload가
+  //   0에서 --ovl-level을 0으로 되돌린다).
+  const aliveCount =
+    state.phase === 'playing' ? state.enemies.reduce((n, e) => n + (e.alive ? 1 : 0), 0) : 0;
   updateOverload(aliveCount); // 판마다 다른 maxAlive와 무관하게 고정 마릿수 기준(config.overload)
   const overloadJitter = getOverloadJitter();
 
@@ -83,7 +89,7 @@ export function render({ ctx, canvas, state, gameData, now }) {
   // title도 여기서 제외한다 — 타이틀은 HTML 오버레이(.layer-title, z-index 6)가
   // 캔버스보다 위에서 전담하므로 캔버스는 아무것도 안 그린다. state.enemies가
   // (디버그 콘솔 등으로) 비어있지 않더라도 그릴 필요가 없다.
-  if (state.phase !== 'select' && state.phase !== 'loading' && state.phase !== 'title') {
+  if (state.phase !== 'loading' && state.phase !== 'title') {
     ctx.save();
     ctx.translate(shake.x, shake.y);
 
@@ -122,32 +128,33 @@ export function render({ ctx, canvas, state, gameData, now }) {
   // 줄어들거나 커진다. 클릭 판정(systems/input.js)도 같은 기준 공간
   // (getUiReferenceCanvas)을 써야 그리기와 어긋나지 않는다.
   //
-  // ★ 여기는 흔들림(shake)을 안 넣는다 — 시작 버튼의 클릭 판정(systems/input.js의
-  // select 분기, 사실상 도달 안 하는 단계지만 남겨둔 코드)이 이 흔들림을 모르는
-  // 별도 계산이라, 버튼만 흔들어 그리면 "버튼은 저기 보이는데 눌리는 자리는
-  // 여기"가 된다. failed·cleared는 더 이상 여기서 안 그린다(위 주석).
-  const uiScale = getUiScaleFactor();
-  const refCanvas = getUiReferenceCanvas();
-  const refPointer = { x: state.pointer.x / uiScale, y: state.pointer.y / uiScale };
-
-  ctx.save();
-  ctx.scale(uiScale, uiScale);
-
-  if (state.phase === 'select') {
-    // 대기 화면은 "앞으로 시작할 구간"의 숫자를 미리 보여준다 — 게임 로직과
-    // 같은 createRules를 써야 표시와 실제가 갈라지지 않는다(공식 이중구현 금지).
-    drawSelectScreen(ctx, refCanvas, state.stageIndex, createRules(state.stageIndex), refPointer);
+  // 로딩 오버레이(시트 받아오는 동안)만 이 기준 공간에 그린다. failed·cleared는
+  // 이제 캔버스가 아니라 HTML 오버레이(.layer-bsod/.layer-cleared, ui/bsodScreen.js·
+  // ui/clearScreen.js)가 전담한다 — title과 같은 방식.
+  // ★ 예전엔 여기서 대기 화면(select)도 그렸는데, advanceStage()가 항상 곧장
+  //   startGame()으로 가게 바뀐 뒤로 그 단계에 도달할 길이 아예 없어졌다(어디서도
+  //   setPhase('select')를 안 한다) — 죽은 분기와 그것만을 위해 매 프레임 계산하던
+  //   uiScale·refPointer까지 같이 걷어냈다. 로딩일 때만 save/scale/restore 한다.
+  if (gameData.loading) {
+    ctx.save();
+    ctx.scale(getUiScaleFactor(), getUiScaleFactor());
+    drawLoadingOverlay(ctx, getUiReferenceCanvas());
+    ctx.restore();
   }
-  // failed·cleared는 이제 캔버스가 아니라 HTML 오버레이(.layer-bsod/.layer-cleared,
-  // ui/bsodScreen.js·ui/clearScreen.js)가 전담한다 — title과 같은 방식.
-  if (gameData.loading) drawLoadingOverlay(ctx, refCanvas);
-
-  ctx.restore();
 
   // 위장 중(copier)이거나 시스템 커서를 숨겨야 하는 환경 방해(driver, 지연 커서)
   // 중엔 브라우저 기본 커서를 숨긴다 — 어느 쪽이든 캔버스가 그린 커서(들)만 보여야
   // 한다. state.hideSystemCursor는 cursorDisguise와 달리 "진짜 위치에 커서를 또
   // 그리는" 부작용이 없다(state.js 주석 참고, driver는 늦게 따라오는 하나만 보여야
   // 해서 그 부작용이 있으면 안 된다).
-  canvas.style.cursor = state.cursorDisguise > 0 || state.hideSystemCursor ? 'none' : '';
+  // ★ 값이 바뀔 때만 쓴다 — 평소엔 계속 ''라, 예전엔 같은 값을 매 프레임 다시
+  //   대입하고 있었다(ui/cursor.js가 이미 쓰는 메모 패턴과 같다).
+  const wantCursor = state.cursorDisguise > 0 || state.hideSystemCursor ? 'none' : '';
+  if (lastCanvasCursor !== wantCursor) {
+    lastCanvasCursor = wantCursor;
+    canvas.style.cursor = wantCursor;
+  }
 }
+
+// 캔버스에 직전에 쓴 cursor 값(바뀔 때만 쓰기 위한 메모).
+let lastCanvasCursor = null;

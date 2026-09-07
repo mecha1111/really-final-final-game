@@ -26,6 +26,9 @@ let wasOverloaded = false;
 /** 새 판이 시작될 때(core/stageManager.js의 startGame). 지난 판의 엣지 기억을 끊는다. */
 export function resetOverloadEdges() {
   wasOverloaded = false;
+  // CSS 변수 메모도 같이 비운다 — 판이 바뀌는 사이 누가 오버레이를 손댔더라도
+  // 다음 갱신 때 "값이 같다"고 잘못 건너뛰지 않게(아래 writeVar 참고).
+  for (const k of Object.keys(lastVar)) delete lastVar[k];
 }
 
 /**
@@ -53,16 +56,29 @@ export function updateOverload(aliveCount) {
   if (!active && wasOverloaded) playSfx(SFX.OVERLOAD_END);
   wasOverloaded = active;
 
-  const layer = document.getElementById('layer-overload');
-  if (!layer) return;
+  // ★ CSS 변수는 값이 실제로 바뀔 때만 쓴다 — 과밀이 아닌 대부분의 프레임은
+  //   계속 "0"이라, 예전엔 같은 문자열을 매 프레임 다시 대입하고 있었다(그
+  //   자체가 스타일 재계산 후보가 된다). ui/hazards/powersave.js가 --hz-dim에
+  //   쓰는 메모 패턴과 같다.
+  if (!layerEl) layerEl = document.getElementById('layer-overload');
+  if (!layerEl) return;
 
   if (level <= 0) {
     // 0일 때는 변수를 0으로 확실히 되돌린다(잔상 방지).
-    layer.style.setProperty('--ovl-level', '0');
+    writeVar('--ovl-level', '0');
     return;
   }
-  layer.style.setProperty('--ovl-level', String(level * c.maxOpacity));
-  layer.style.setProperty('--ovl-split', `${(c.maxSplitPx * level).toFixed(2)}px`);
+  writeVar('--ovl-level', String(level * c.maxOpacity));
+  writeVar('--ovl-split', `${(c.maxSplitPx * level).toFixed(2)}px`);
+}
+
+// 오버레이 엘리먼트와 직전에 쓴 CSS 변수 값(바뀔 때만 쓰기 위한 메모).
+let layerEl = null;
+const lastVar = {};
+function writeVar(name, value) {
+  if (lastVar[name] === value) return;
+  lastVar[name] = value;
+  layerEl.style.setProperty(name, value);
 }
 
 /** 지금 강도(0~1). 디버그 표시나 테스트가 읽는다. */

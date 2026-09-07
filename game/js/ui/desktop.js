@@ -225,6 +225,13 @@ export function initDesktop() {
  * .layer-ending이 보인다.
  */
 export function syncDesktopPhase(phase) {
+  // ★ phase가 실제로 바뀐 프레임에만 손댄다 — 매 프레임 getElementById 한 번에
+  //   classList.toggle 다섯 번을 돌리고 있었다. 특히 .phase-playing은 전체 화면
+  //   filter(CRT 블룸, style.css)를 켜고 끄는 클래스라, 여기서 괜히 건드리면
+  //   스타일 재계산이 화면 전체로 번질 수 있다.
+  if (phase === lastSyncedPhase) return;
+  lastSyncedPhase = phase;
+
   const desktop = document.getElementById('desktop');
   if (!desktop) return;
   desktop.classList.toggle('phase-playing', phase === 'playing');
@@ -233,3 +240,6 @@ export function syncDesktopPhase(phase) {
   desktop.classList.toggle('phase-cleared', phase === 'cleared');
   desktop.classList.toggle('phase-ending', phase === 'ending');
 }
+
+// 직전에 반영한 phase — 위 syncDesktopPhase가 바뀔 때만 일하게 하는 빗장.
+let lastSyncedPhase = null;
