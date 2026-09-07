@@ -25,7 +25,7 @@
 //   각 요소가 처음부터 정해진 pointer-events 값을 갖는 것만으로 해결한다.
 
 import { config } from '../config.js';
-import { state } from '../core/state.js';
+import { state, onPhaseChange } from '../core/state.js';
 
 /** id -> 정의. ui/hazards/*.js가 모듈 로드 시점에 registerHazard()로 채운다. */
 const DEFS = new Map();
@@ -62,9 +62,31 @@ export function registerHazard(def) {
   DEFS.set(def.id, def);
 }
 
-/** 최초 1회(main.js). 레이어 엘리먼트를 잡아둔다. */
+/** 최초 1회(main.js). 레이어 엘리먼트를 잡아두고, 판이 끝날 때의 뒷정리를 건다. */
 export function initHazards() {
   layerEl = document.getElementById('layer-hazard');
+
+  // ★ 판이 'playing'을 벗어나는 순간 떠 있는 방해를 전부 치운다.
+  //
+  //   예전엔 resetHazards()가 startGame()에만 걸려 있었다. 그래서 할당량을 채운
+  //   순간(또는 시간이 다한 순간) 마침 방해가 떠 있으면, 그게 클리어 화면·BSOD·
+  //   엔딩·타이틀 위에 그대로 얹혀 갔다 — .layer-hazard(z7)가 그 화면들(z6)보다
+  //   위라 통계 숫자와 버튼까지 가렸고(플레이스루에서 4번 걸렸다), 게다가
+  //   update()가 playing이 아니면 통째로 return하는 탓에 durationSec 자동 종료도
+  //   못 돌아 "다음 구간"을 누를 때까지 영영 안 사라졌다.
+  //
+  //   ★ 나가는 길이 여럿이라(클리어·실패·엔딩·BSOD의 [로비]·리로드 버튼) 각
+  //     지점에 흩뿌리면 또 놓친다. 그래서 전이 자체를 한 곳에서 듣는다
+  //     (core/state.js의 onPhaseChange).
+  //   ★ 되돌리기는 각 방해의 onEnd가 맡는다 — 화면 반전(portrait), 가짜 커서와
+  //     커서 숨김(driver), window 리스너(cracked)가 전부 거기서 풀린다.
+  //     --hz-dim/--hz-saver-dim과 캔버스 오버레이는 방해 자신의 엘리먼트에만
+  //     걸려 있어서 endHazard()의 el.remove()로 같이 사라진다.
+  //   ★ 사유는 'reset'이라 벌칙이 안 나간다(reboot의 PENALTY_REASONS 참고) —
+  //     판이 끝나서 치우는 것이지 플레이어가 방치한 게 아니다.
+  onPhaseChange((next) => {
+    if (next !== 'playing') resetHazards();
+  });
 }
 
 /** 등록된 id 목록 — 디버그 핸들(__game.hazard)이 "뭘 부를 수 있나" 보여줄 때 쓴다. */
@@ -89,8 +111,13 @@ export function eligibleHazardIds(stage) {
 
 /**
  * 지금 떠 있는 것 전부를 정리하고 스케줄러도 처음으로 되돌린다.
- * ★ core/stageManager.js의 startGame()이 부른다 — 판을 넘어 잔존하면 새 판이
- *   시작하자마자 지난 판의 대화상자가 화면 한가운데 남아있게 된다.
+ * 부르는 곳은 둘이다:
+ *   1) core/stageManager.js의 startGame() — 판을 넘어 잔존하면 새 판이 시작하자마자
+ *      지난 판의 대화상자가 화면 한가운데 남아있게 된다.
+ *   2) 위 initHazards()가 건 phase 구독 — 판이 'playing'을 벗어나는 그 순간.
+ *      (1)만 있던 시절엔 클리어/실패 화면 위에 방해가 얹혀 갔다. 자세한 근거는
+ *      initHazards()의 주석 참고.
+ * 두 번 불려도 안전하다(이미 빈 배열이면 아무 일도 안 한다).
  */
 export function resetHazards() {
   for (const inst of [...state.hazards]) endHazard(inst, 'reset');

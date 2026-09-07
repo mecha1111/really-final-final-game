@@ -195,9 +195,36 @@ export const state = {
 // 조용히 덮어써 방해꾼 갱신이 통째로 멈춘다(update()가 playing에서만 도므로).
 // ---------------------------------------------------------------------------
 
+// ---------------------------------------------------------------------------
+// phase 전이 구독
+//
+// ★ 이 파일은 아무것도 import하지 않는다(순환참조 방지의 뿌리) — 그래서 "판이
+//   끝나면 환경 방해를 치운다" 같은 뒷정리를 여기서 직접 부를 수 없다(systems/
+//   hazard.js는 이 파일을 import하므로 반대로 부르면 순환이 된다). 대신 구독
+//   자리만 열어두고, 정리해야 하는 쪽이 자기 발로 등록한다.
+//
+// ★ 왜 각 전이 지점에 흩뿌리지 않았나 — 실제로 그렇게 놓쳤던 버그를 고치는
+//   중이기 때문이다. resetHazards()가 startGame()에만 걸려 있어서, 판이 끝나는
+//   순간(cleared/failed)엔 아무도 안 치웠고 그 오버레이가 클리어 화면·BSOD·
+//   엔딩·타이틀까지 그대로 얹혀 갔다(플레이스루 실측). 나가는 길이 여럿이라
+//   한 곳(여기)에서만 감지해야 새 경로가 생겨도 다시 안 샌다.
+const phaseListeners = [];
+
+/** phase가 바뀔 때마다 (next, prev)로 부른다. 등록 해제는 필요 없어 안 만든다. */
+export function onPhaseChange(fn) {
+  phaseListeners.push(fn);
+}
+
+function announcePhase(next, prev) {
+  if (next === prev) return;
+  for (const fn of phaseListeners) fn(next, prev);
+}
+
 /** 명시적 전이 — 부르는 쪽이 "지금 이 화면으로 간다"를 확실히 아는 경우. */
 export function setPhase(next) {
+  const prev = state.phase;
   state.phase = next;
+  announcePhase(next, prev);
 }
 
 /**
@@ -209,6 +236,8 @@ export function setPhase(next) {
  */
 export function settlePhase(next) {
   if (state.phase !== 'loading' && state.phase !== 'title') return false;
+  const prev = state.phase;
   state.phase = next;
+  announcePhase(next, prev);
   return true;
 }
