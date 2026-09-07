@@ -210,9 +210,18 @@
    ★ 2026-09-08: 그 시안 파일이 game/assets/enemies/ 안에 남아 있어서, 아무도
      안 읽는 2.07MB가 매 배포본(dist)에 그대로 실려 나가고 있었다 — docs/로 옮겼다.
      assets/ 아래에는 게임이 실제로 요청하는 것만 둔다. */
+/* ★ 2026-09-08: 경로가 './assets/...'가 아니라 '../assets/...'다 — 이 파일이
+   vite build를 거치면 dist/style.css가 아니라 dist/assets/index-[해시].css로
+   한 단계 더 안쪽에 번들된다(vite.config.js 주석 참고). CSS의 url()은 그
+   스타일시트 "자기 자신의 최종 위치" 기준으로 풀리므로, 여기 아래 세 줄만
+   './assets/'였다면 dist/assets/assets/...를 찾아 404가 난다(실측으로 확인 —
+   npm run build 뒤 실제로 이 URL로 404가 떴었다). js/*.js의 런타임 fetch/Image
+   경로들은 전부 './assets/...'가 맞다 — 그건 문서(index.html) 기준으로 풀리고
+   index.html은 번들 후에도 dist/ 바로 밑에 그대로 있기 때문이다. 여기 CSS만
+   예외라 헷갈리기 쉽다. */
 @font-face {
   font-family: 'DGM';
-  src: url('./assets/enemies/DungGeunMo.woff') format('woff');
+  src: url('../assets/enemies/DungGeunMo.woff') format('woff');
   font-display: swap;
 }
 
@@ -459,7 +468,7 @@ body {
   inset: 0;
   width: 100%;
   height: 100%;
-  background: url('./assets/title/bg.jpg') center / cover no-repeat;
+  background: url('../assets/title/bg.jpg') center / cover no-repeat; /* 위 @font-face 주석과 같은 이유 — '../' */
 }
 
 /* 로고: idle 애니(floaty)는 안쪽 래퍼(#title-logo)가 담당, hover 확대는 바깥
@@ -477,7 +486,7 @@ body {
   left: -0.7%;
   width: 100%;
   height: 100%;
-  background: url('./assets/title/logo.png') center / contain no-repeat;
+  background: url('../assets/title/logo.png') center / contain no-repeat; /* 위 @font-face 주석과 같은 이유 — '../' */
   transform-origin: 63% 24%;
   animation: title-logo-floaty 3.2s ease-in-out infinite;
 }

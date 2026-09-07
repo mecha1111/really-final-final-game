@@ -50,7 +50,16 @@ export const config = {
   //   OS 기본 화살표로 나와서 config.cursor를 찍어보니 fakeCursorCount 객체가
   //   나왔다). 그래서 "진짜 마우스 커서"는 이름 자체를 다르게 뗐다.
   mouseCursor: {
-    url: './assets/cursor/cursor-44.png',
+    // ★ 2026-09-08: 이 값은 ui/cursor.js에서 오직 CSS `cursor: var(--game-cursor)`
+    //   (style.css)의 url() 재료로만 쓰인다 — 다른 곳(Image.src 등)에서 문서 기준
+    //   경로로 또 쓰이는 데가 없다(grep으로 확인). 그래서 여기만 예외로 './'가
+    //   아니라 '../'다: CSS 커스텀 프로퍼티 안의 url()은 그 변수를 "쓰는"
+    //   스타일시트(style.css) 기준으로 풀리고, vite build 후 style.css는
+    //   dist/assets/index-[해시].css로 한 단계 안쪽에 번들되기 때문이다
+    //   (style.css 상단 @font-face 주석과 같은 이유 — 실측으로 404 확인 후 고침).
+    //   이 값을 다른 곳(문서 기준 경로가 필요한 곳)에 새로 쓸 일이 생기면 그때는
+    //   './assets/...'로 별도 상수를 둘 것 — 이 값을 그대로 재사용하면 안 된다.
+    url: '../assets/cursor/cursor-44.png',
     // ★ hotspot(클릭이 실제로 찍히는 화소) — CSS는 `cursor: url(...) X Y, auto`에서
     //   이 X,Y를 그대로 "이미지 안에서 몇 번째 픽셀이 커서 좌표냐"로 쓴다. 틀리면
     //   화면에 보이는 촉끝과 실제 클릭 지점이 어긋나는, 눈에는 안 보이고 "왜
