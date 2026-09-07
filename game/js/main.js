@@ -84,7 +84,17 @@ async function applyLoadedData() {
   // (canvas.width 대입은 canvasFit이 화면 해상도 기준으로 직접 한다)
   fitCanvasToViewport(canvas);
 
-  await loadEnemyImages(buildAssetKeys(gameData.enemies));
+  // ★ await하지 않는다 — 타이틀/인트로 화면은 방해꾼을 안 그린다(ui/render.js의
+  //   phase 가드: loading/title/intro에선 drawEnemy 자체가 안 불린다). 그러니
+  //   타이틀 착지가 이 프리로드를 기다릴 이유가 없다 — 시트 fetch(1~2초) 뒤에
+  //   바로 착지시키고, 스프라이트는 뒤에서 계속 받는다.
+  //   플레이 진입 시점에 아직 못 받은 키가 있어도 안전하다 — enemyImages[key]가
+  //   없으면 ui/renderEnemies.js·ui/baitRender.js가 색 사각형+id 텍스트로 대신
+  //   그리고, 클릭 판정(enemies/hitbox.js)은 이미지가 아니라 drawW/drawH와
+  //   artHitbox 비율표에서 나오므로 그대로 유효하다 — 이미지가 도착하면 같은
+  //   객체(enemyImages)에 그대로 꽂혀 다음 프레임부터 자동으로 정상 그림으로
+  //   바뀐다(다시 그리라고 요청할 필요가 없다, 매 프레임 이 객체를 다시 읽으므로).
+  loadEnemyImages(buildAssetKeys(gameData.enemies));
 
   // 최초 로드가 끝나면 타이틀로 착지한다 — 단 ★첫 실행이면 그 앞에 인트로가 하나
   // 더 있다(loading → intro → title). 인트로가 [시작]/[닫기]로 끝나는 자리에서
