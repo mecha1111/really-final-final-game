@@ -93,20 +93,6 @@ export function outlinedText(
   ctx.fillText(str, x, y);
 }
 
-export function bar(ctx, x, y, w, h, ratio, fillVar, bgVar) {
-  ctx.fillStyle = cssColor(bgVar);
-  roundRect(ctx, x, y, w, h, h / 2);
-  ctx.fill();
-
-  // 채움 폭은 비율 그대로 — 최소 폭을 두면 0%인데도 막대가 보여서 오해를 부른다.
-  // (roundRect가 반지름을 폭에 맞춰 줄이므로 아주 얇아도 모양이 깨지지 않는다)
-  const fillW = w * Math.max(0, Math.min(1, ratio));
-  if (fillW >= 1) {
-    ctx.fillStyle = cssColor(fillVar);
-    roundRect(ctx, x, y, fillW, h, h / 2);
-    ctx.fill();
-  }
-}
 
 /** 0~1 진행값을 계단식으로 끊는다. 연속값(매 프레임 미세하게 다른 값)은 손그림
  * 펜선 톤에서 "흐릿하게 번지는"/"매끄럽게 미끄러지는" 인상을 준다 — 파티클·

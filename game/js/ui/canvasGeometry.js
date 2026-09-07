@@ -106,11 +106,6 @@ export function setScreenRotation(deg, settleMs = 0) {
   settleUntilMs = settleMs > 0 ? performance.now() + settleMs : 0;
 }
 
-/** 지금 회전 중인가(판정을 쓰는 쪽이 알아야 할 때만). */
-export function isScreenRotated() {
-  return rotationRad !== 0;
-}
-
 /**
  * 화면이 "돌아가는 중"인가 — CSS 전환(0.4초)이 아직 끝나지 않았는가.
  *
