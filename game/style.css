@@ -2240,7 +2240,7 @@ body {
 /* 말풍선 꼬리(작업표시줄 쪽을 가리킨다).
    ★삼각형 2겹이다 — 바깥이 검은 테두리, 안쪽이 노란 면. 예전엔
    filter:drop-shadow()로 테두리를 흉내 냈는데 그건 이 프로젝트의 필터 금지
-   규칙 위반이다(.intro-assist .balloon이 이미 2겹 방식을 쓰고 있었다 — 같은
+   규칙 위반이다(.op-assist .balloon이 이미 2겹 방식을 쓰고 있었다 — 같은
    어휘로 맞춘다). */
 #desktop .hz-balloon::after {
   content: ''; position: absolute; left: 33px; bottom: -14px;
@@ -2352,7 +2352,7 @@ body {
   box-shadow: 3px 3px 0 rgba(0, 0, 0, 0.3);
 }
 /* ★여기도 삼각형 2겹으로 바꿨다 — 예전엔 filter:drop-shadow()로 테두리를
-   흉내 냈다(필터 금지 규칙 위반). .hz-balloon·.intro-assist와 같은 어휘. */
+   흉내 냈다(필터 금지 규칙 위반). .hz-balloon·.op-assist와 같은 어휘. */
 #desktop .rover-bubble::after {
   content: ''; position: absolute; left: 50%; bottom: -12px; transform: translateX(-50%);
   border: 6px solid transparent; border-top-color: var(--xp-balloon-line); border-bottom: 0;
@@ -2479,78 +2479,7 @@ body {
   display: flex; align-items: center; background: var(--xp-tray);
 }
 
-/* ===== 강아지 도우미 말풍선 (참조 문서 §6 .xp-assist) =====
-   ★실물 구조 그대로다(문서가 MS 문서로 확인해 정정한 것):
-     · 말풍선이 캐릭터 "위"에 뜬다
-     · 버튼 2~3개가 말풍선 "안" 아래쪽(.bset)에 들어간다 — [뒤로][다음][닫기]
-     · 굵은 Heading + ★파란 원 불릿 목록
-     · 팁이 있으면 캐릭터 위에 노란 전구가 깜빡인다
-     · 배경 --xp-balloon-bg + 검은 각진 테두리 + 삼각형 2겹 꼬리
-   ★꼬리는 투명 삼각형 2겹이다 — filter:drop-shadow()로 테두리를 흉내내지 않는다
-     (이 프로젝트의 필터 금지 규칙). ★2026-09-08: .rover-bubble과 .hz-balloon도
-     같은 2겹 방식으로 맞췄다 — 이제 이 어휘를 쓰는 말풍선이 셋 다 같다.
-   위치는 아이콘 격자(x 20~572)를 피해 그 오른쪽에 둔다. 말풍선+캐릭터를 합친
-   높이가 약 580px라 top:300에서 시작해도 작업표시줄(y 1028)에 안 닿는다. */
-#desktop .intro-assist {
-  position: absolute; left: 640px; top: 300px; z-index: 45; width: 515px;
-  opacity: 0; transform: translateY(15px) scale(0.96); pointer-events: none;
-  transition: opacity 0.28s ease, transform 0.28s cubic-bezier(0.2, 0.85, 0.3, 1.15);
-}
-#desktop .intro-assist.on { opacity: 1; transform: translateY(0) scale(1); pointer-events: auto; }
 
-#desktop .intro-assist .balloon {
-  position: relative; background: var(--xp-balloon-bg);
-  border: 2px solid var(--xp-balloon-line); /* ★각진 검은 테두리 */
-  box-shadow: 4px 4px 0 rgba(0, 0, 0, 0.35);
-  padding: 21px 25px;
-}
-#desktop .intro-assist .balloon .hd { font-size: 27px; font-weight: bold; color: #000; margin-bottom: 15px; }
-/* 불릿 목록 — ★파란 원. min-height로 쪽마다 높이가 안 흔들리게 한다(줄 수가
-   달라도 [다음] 버튼이 위아래로 튀지 않아야 연타가 안 빗나간다). */
-#desktop .intro-assist .balloon ul { list-style: none; margin: 0; padding: 0; min-height: 169px; }
-#desktop .intro-assist .balloon li {
-  position: relative; padding-left: 33px; margin-bottom: 13px;
-  font-size: 25px; color: #000; line-height: 1.72;
-  word-break: keep-all; /* ★어절 단위 줄바꿈 — 한글이 낱자로 안 잘린다 */
-}
-#desktop .intro-assist .balloon li::before {
-  content: ''; position: absolute; left: 4px; top: 13px;
-  width: 13px; height: 13px; border-radius: 50%; background: var(--xp-balloon-bullet);
-}
-/* ★버튼은 말풍선 "안" 아래쪽 — 캐릭터 옆이 아니다. */
-#desktop .intro-assist .balloon .bset {
-  display: flex; gap: 11px; justify-content: flex-end; align-items: center;
-  margin-top: 19px; padding-top: 17px; border-top: 2px solid #d8d29c;
-}
-#desktop .intro-assist .balloon .bset .pg { margin-right: auto; font-size: 21px; color: #6b6640; }
-/* 게임의 XP 대화상자 버튼(.settings-btn)을 그대로 쓰되, 말풍선 안이라 한 단계
-   작게(문서의 .xp-btn.sm에 해당). 색·눌림·비활성은 전부 그 규칙을 물려받는다. */
-#desktop .intro-assist .balloon .bset .settings-btn { font-size: 21px; padding: 6px 19px; }
-
-/* 꼬리 — 투명 삼각형 2겹(바깥=테두리색, 안=바탕색). 안쪽을 테두리 두께(2px)만큼
-   위로 올려 겹치면 테두리 선이 꼬리까지 이어져 보인다. */
-#desktop .intro-assist .balloon::after {
-  content: ''; position: absolute; left: 88px; bottom: -21px;
-  border: 21px solid transparent; border-top-color: var(--xp-balloon-line); border-bottom: 0;
-}
-#desktop .intro-assist .balloon::before {
-  content: ''; position: absolute; left: 90px; bottom: -19px; z-index: 1;
-  border: 19px solid transparent; border-top-color: var(--xp-balloon-bg); border-bottom: 0;
-}
-
-/* 캐릭터 — 러버(검색 도우미)와 같은 그림. 꼬리(left:88)가 이 위에 떨어지도록
-   margin-left를 잡았다. */
-#desktop .intro-assist .char { position: relative; margin: 21px 0 0 27px; width: 227px; height: 227px; }
-#desktop .intro-assist .char img {
-  width: 100%; height: 100%; object-fit: contain; image-rendering: pixelated; display: block;
-}
-#desktop .intro-assist .char img.broken { display: none; }
-/* 노란 전구 — "팁 있음" 표시. .tip이 붙었을 때만 보이고 깜빡인다. */
-#desktop .intro-assist .bulb {
-  position: absolute; right: -12px; top: -15px; font-size: 50px; color: #ffe14d; display: none;
-}
-#desktop .intro-assist.tip .bulb { display: block; animation: introBulb 1.4s steps(1) infinite; }
-@keyframes introBulb { 50% { opacity: 0.35; } }
 
 /* ===== 가짜 커서 (참조 문서 .xp-cursor) ===== */
 /* 촉끝(hotspot)을 목표 좌표에 맞춘다 — ui/intro.js가 넘기는 left/top이 "찍히는
@@ -2760,3 +2689,94 @@ body {
   76% { opacity: 0.4; transform: rotate(0deg); }
   88%, 100% { opacity: 0; transform: rotate(0deg); }
 }
+
+/* ===========================================================================
+   ★게임 시작 오프닝(.layer-opening) — 타이틀에서 [새 게임]/[이어하기]/[무한 모드]를
+   누른 순간부터 실제 판이 시작되기까지. ui/gameOpening.js가 돌린다.
+   정본 디자인은 docs/xp-tutorial.html.
+   ★2026-09-08 흐름 변경: 강아지 말풍선이 인트로(.layer-intro) 끝에서 여기로
+   옮겨왔다 — 설명과 실행 사이에 타이틀이 한 번 끼는 게 흐름을 끊었기 때문이다.
+   규칙(z15·.on 토글 이유)은 index.html의 해당 마크업 주석에 있다.
+   =========================================================================== */
+#desktop .layer-opening {
+  position: absolute; inset: 0; z-index: 15;
+  display: none; /* .on이 붙어야 보인다 — hidden 속성 안 쓴다 */
+  overflow: hidden;
+  pointer-events: none;
+}
+/* 오프닝이 떠 있는 동안은 아래(타이틀·캔버스)로 클릭이 절대 안 샌다 —
+   레이어 자신이 auto라 물리적으로 다 받아버린다(.layer-intro와 같은 원리). */
+#desktop .layer-opening.on { display: block; pointer-events: auto; }
+
+/* ===== 강아지 도우미 말풍선 (참조 문서 §6 .xp-assist) =====
+   ★실물 구조 그대로다(문서가 MS 문서로 확인해 정정한 것):
+     · 말풍선이 캐릭터 "위"에 뜬다
+     · 버튼 2~3개가 말풍선 "안" 아래쪽(.bset)에 들어간다 — [뒤로][다음][닫기]
+     · 굵은 Heading + ★파란 원 불릿 목록
+     · 팁이 있으면 캐릭터 위에 노란 전구가 깜빡인다
+     · 배경 --xp-balloon-bg + 검은 각진 테두리 + 삼각형 2겹 꼬리
+   ★꼬리는 투명 삼각형 2겹이다 — filter:drop-shadow()로 테두리를 흉내내지 않는다
+     (이 프로젝트의 필터 금지 규칙). ★2026-09-08: .rover-bubble과 .hz-balloon도
+     같은 2겹 방식으로 맞췄다 — 이제 이 어휘를 쓰는 말풍선이 셋 다 같다.
+   위치는 아이콘 격자(x 20~572)를 피해 그 오른쪽에 둔다. 말풍선+캐릭터를 합친
+   높이가 약 580px라 top:300에서 시작해도 작업표시줄(y 1028)에 안 닿는다. */
+#desktop .op-assist {
+  position: absolute; left: 640px; top: 300px; z-index: 45; width: 515px;
+  opacity: 0; transform: translateY(15px) scale(0.96); pointer-events: none;
+  transition: opacity 0.28s ease, transform 0.28s cubic-bezier(0.2, 0.85, 0.3, 1.15);
+}
+#desktop .op-assist.on { opacity: 1; transform: translateY(0) scale(1); pointer-events: auto; }
+
+#desktop .op-assist .balloon {
+  position: relative; background: var(--xp-balloon-bg);
+  border: 2px solid var(--xp-balloon-line); /* ★각진 검은 테두리 */
+  box-shadow: 4px 4px 0 rgba(0, 0, 0, 0.35);
+  padding: 21px 25px;
+}
+#desktop .op-assist .balloon .hd { font-size: 27px; font-weight: bold; color: #000; margin-bottom: 15px; }
+/* 불릿 목록 — ★파란 원. min-height로 쪽마다 높이가 안 흔들리게 한다(줄 수가
+   달라도 [다음] 버튼이 위아래로 튀지 않아야 연타가 안 빗나간다). */
+#desktop .op-assist .balloon ul { list-style: none; margin: 0; padding: 0; min-height: 169px; }
+#desktop .op-assist .balloon li {
+  position: relative; padding-left: 33px; margin-bottom: 13px;
+  font-size: 25px; color: #000; line-height: 1.72;
+  word-break: keep-all; /* ★어절 단위 줄바꿈 — 한글이 낱자로 안 잘린다 */
+}
+#desktop .op-assist .balloon li::before {
+  content: ''; position: absolute; left: 4px; top: 13px;
+  width: 13px; height: 13px; border-radius: 50%; background: var(--xp-balloon-bullet);
+}
+/* ★버튼은 말풍선 "안" 아래쪽 — 캐릭터 옆이 아니다. */
+#desktop .op-assist .balloon .bset {
+  display: flex; gap: 11px; justify-content: flex-end; align-items: center;
+  margin-top: 19px; padding-top: 17px; border-top: 2px solid #d8d29c;
+}
+#desktop .op-assist .balloon .bset .pg { margin-right: auto; font-size: 21px; color: #6b6640; }
+/* 게임의 XP 대화상자 버튼(.settings-btn)을 그대로 쓰되, 말풍선 안이라 한 단계
+   작게(문서의 .xp-btn.sm에 해당). 색·눌림·비활성은 전부 그 규칙을 물려받는다. */
+#desktop .op-assist .balloon .bset .settings-btn { font-size: 21px; padding: 6px 19px; }
+
+/* 꼬리 — 투명 삼각형 2겹(바깥=테두리색, 안=바탕색). 안쪽을 테두리 두께(2px)만큼
+   위로 올려 겹치면 테두리 선이 꼬리까지 이어져 보인다. */
+#desktop .op-assist .balloon::after {
+  content: ''; position: absolute; left: 88px; bottom: -21px;
+  border: 21px solid transparent; border-top-color: var(--xp-balloon-line); border-bottom: 0;
+}
+#desktop .op-assist .balloon::before {
+  content: ''; position: absolute; left: 90px; bottom: -19px; z-index: 1;
+  border: 19px solid transparent; border-top-color: var(--xp-balloon-bg); border-bottom: 0;
+}
+
+/* 캐릭터 — 러버(검색 도우미)와 같은 그림. 꼬리(left:88)가 이 위에 떨어지도록
+   margin-left를 잡았다. */
+#desktop .op-assist .char { position: relative; margin: 21px 0 0 27px; width: 227px; height: 227px; }
+#desktop .op-assist .char img {
+  width: 100%; height: 100%; object-fit: contain; image-rendering: pixelated; display: block;
+}
+#desktop .op-assist .char img.broken { display: none; }
+/* 노란 전구 — "팁 있음" 표시. .tip이 붙었을 때만 보이고 깜빡인다. */
+#desktop .op-assist .bulb {
+  position: absolute; right: -12px; top: -15px; font-size: 50px; color: #ffe14d; display: none;
+}
+#desktop .op-assist.tip .bulb { display: block; animation: opBulb 1.4s steps(1) infinite; }
+@keyframes opBulb { 50% { opacity: 0.35; } }

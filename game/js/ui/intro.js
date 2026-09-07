@@ -1,6 +1,11 @@
 // 이 파일 역할: ★첫 실행에만 도는 인트로 연출 — 타이틀 화면보다 "앞"에 온다.
 //   부팅 → 바탕화면(가짜 파일 더미) → 커서가 우리 게임을 찾아 클릭 →
-//   강아지 튜토리얼 → ★기존 타이틀 화면(setPhase('title')).
+//   ★곧장 기존 타이틀 화면(setPhase('title')).
+//
+// ★ 2026-09-08: 강아지 튜토리얼이 여기서 빠졌다 — [게임 시작] 뒤로 옮겼다
+//   (ui/gameOpening.js). 설명을 듣고 타이틀을 한 번 더 거쳐야 게임이 시작돼서,
+//   설명과 실행 사이에 한 박자가 떴기 때문이다. 이제 인트로는 "이 컴퓨터에서
+//   그 exe를 찾아 실행했다"까지만 연기하고 타이틀로 넘긴다.
 //
 // 정본 디자인은 docs/xp-design-system.html의 "1 · 인트로 연출" 섹션이다. 그 문서의
 // playIntro() 타임라인을 그대로 옮겼고, 숫자는 전부 config.intro에 있다(여기 박지
@@ -14,11 +19,12 @@
 // ★ 이 동안 게임은 한 프레임도 안 돈다 — main.js의 update가 phase==='intro'면
 //   통째로 건너뛴다(stageManager의 playing 가드에만 기대지 않는다).
 //
-// ★ 부팅~클릭 구간엔 건너뛰기가 없다(요구사항). 건너뛰기는 튜토리얼에만 붙는다.
+// ★ 부팅~클릭 구간엔 건너뛰기가 없다(요구사항). 건너뛰기는 튜토리얼에만 붙는다
+//   — 그 튜토리얼은 이제 ui/gameOpening.js에 있다.
 
 import { config } from '../config.js';
 import { setPhase } from '../core/state.js';
-import { hasSeenIntro, markIntroSeen } from '../core/save.js';
+import { hasSeenIntro } from '../core/save.js';
 import { playSfx, SFX } from '../systems/sound.js';
 
 // ★바탕화면에 까는 가짜 파일들. "게임 이름을 찾기 어렵게" 하는 게 목적이라
@@ -48,16 +54,6 @@ const TARGET_INDEX = 11;
 const DECOY1_INDEX = 3;
 const DECOY2_INDEX = 7;
 
-// ★튜토리얼 대본 — 조작법만이다. ★방해꾼 정보(bait는 안 죽는다, popup은 X만
-// 눌러야 한다 등)는 일부러 안 준다: 직접 부딪혀 알아내는 게 이 게임의 재미라,
-// 인게임 팁에서 그 둘을 걷어낸 것과 같은 판단이다(ui/rover.js 상단 주석 참고).
-const PAGES = [
-  { head: '안녕하세요?', lines: ['저는 검색 도우미예요.', '이 게임을 처음 하시는 분께 잠깐 설명해 드릴게요.'] },
-  { head: '목표', lines: ['화면 아래 진행바가 업데이트 상태예요.', '100%까지 채우면 그 구간을 넘어갑니다.'] },
-  { head: '조작', lines: ['방해꾼이 화면을 돌아다녀요.', '마우스로 클릭하면 쫓아낼 수 있어요.'] },
-  { head: '제한시간', lines: ['시간 안에 못 채우면 실패해요.', '그럼 시작해 볼까요?'] },
-];
-
 let layer = null;
 let bootEl = null;
 let deskEl = null;
@@ -65,15 +61,6 @@ let iconsEl = null;
 let taskbarEl = null;
 let taskBtnEl = null;
 let cursorEl = null;
-let assistEl = null;
-let headEl = null;
-let listEl = null;
-let pageEl = null;
-let backBtn = null;
-let nextBtn = null;
-
-// 지금 보고 있는 튜토리얼 쪽(0-based).
-let pageIndex = 0;
 
 // 커서 누름 표시를 되돌릴 남은 시간(초). 0 이하면 대기 중이 아니다. 누름은
 // 0.11초짜리라 단계 목록에 넣기엔 잗달아서 여기서 따로 센다.
@@ -140,40 +127,15 @@ function setClock() {
   el.textContent = `${h < 12 ? '오전' : '오후'} ${h12}:${String(d.getMinutes()).padStart(2, '0')}`;
 }
 
-/** 지금 쪽(pageIndex)의 내용을 말풍선에 그린다. */
-function renderPage() {
-  const p = PAGES[pageIndex];
-  headEl.textContent = p.head;
-  // 대본은 이 파일 안의 고정 문자열이라 사용자 입력이 섞일 자리가 없다.
-  listEl.innerHTML = p.lines.map((line) => `<li>${line}</li>`).join('');
-  pageEl.textContent = `${pageIndex + 1} / ${PAGES.length}`;
-  // ★1쪽에선 [뒤로]가 비활성 — 갈 데가 없다(#desktop .settings-btn:disabled가 그린다).
-  backBtn.disabled = pageIndex === 0;
-  // 마지막 쪽의 [다음]은 [시작] — 누르면 곧장 타이틀로 넘어간다.
-  nextBtn.textContent = pageIndex === PAGES.length - 1 ? '시작' : '다음';
-}
-
-/** 커서 연출이 끝난 자리에서 말풍선을 띄운다(타임라인의 마지막 단계). */
-function showTutorial() {
-  pageIndex = 0;
-  renderPage();
-  // ★진짜 커서를 돌려준다 — 여기서부터는 사용자가 직접 버튼을 눌러야 한다.
-  layer.classList.remove('nocursor');
-  // .tip = 캐릭터 위 노란 전구 깜빡임(참조 문서의 .xp-assist.tip).
-  assistEl.classList.add('on', 'tip');
-  playSfx(SFX.UI_OPEN, { ui: true });
-}
-
 /**
  * ★인트로의 끝 — 게임의 기존 타이틀 화면으로 넘긴다.
- * [시작]과 [닫기] 둘 다 여기로 모인다 — 끝나는 길이 여럿이라 한 곳에 모아둔다
- * (ui/settingsPanel.js의 closeSettings와 같은 이유).
+ * ★ 여기서 markIntroSeen()을 찍지 않는다(2026-09-08). "첫 실행 안내를 끝까지
+ *   봤다"의 기준은 이제 강아지 튜토리얼이 끝나는 자리이고, 그건 [게임 시작] 뒤로
+ *   옮겨갔다(ui/gameOpening.js의 finish). 여기서 미리 찍어버리면 그 튜토리얼이
+ *   영영 안 나온다.
  */
 function toTitle() {
   if (!layer?.classList.contains('on')) return; // 연타·중복 진입 방지
-  playSfx(SFX.UI_CLOSE, { ui: true });
-  markIntroSeen(); // ★끝까지 온 지금에서야 "봤다"고 찍는다(도중 새로고침은 다시 본다)
-  assistEl.classList.remove('on', 'tip');
   layer.classList.remove('on', 'nocursor');
   steps = [];
   running = false;
@@ -211,13 +173,12 @@ function buildSteps() {
         selectOnly(-1);
       },
     },
-    // 강아지 튜토리얼. ★설정 [시작 시 튜토리얼 보기](config.tutorial.enabled)가
-    // 꺼져 있으면 이 페이지들을 건너뛰고 곧장 타이틀로 넘어간다 — 단, 그 앞의
-    // 부팅·바탕화면·클릭 연출(오프닝)은 이 토글과 무관하게 항상 재생된다. 그건
-    // 튜토리얼이 아니라 오프닝이라 끄는 대상이 아니다(요구사항).
-    // 켜져 있으면 타임라인은 여기서 끝나고, 이후 진행은 전적으로 사용자의
-    // [뒤로]/[다음]/[닫기]에 달렸다(자동으로 넘어가지 않는다).
-    { at: c.tutorialSec, run: () => (config.tutorial.enabled ? showTutorial() : toTitle()) },
+    // ★인트로의 끝 — 곧장 타이틀로. 예전엔 이 자리에서 강아지 튜토리얼을 띄우고
+    // 그게 끝나야 타이틀로 갔지만, 튜토리얼은 [게임 시작] 뒤로 옮겨갔다
+    // (ui/gameOpening.js). 설정의 [시작 시 튜토리얼 보기] 토글도 이제 여기가
+    // 아니라 그쪽이 본다 — 이 부팅·바탕화면·클릭 연출은 튜토리얼이 아니라
+    // 오프닝이라 애초에 그 토글의 대상이 아니었다(요구사항).
+    { at: c.tutorialSec, run: toTitle },
   ];
 }
 
@@ -244,12 +205,6 @@ export function initIntro(icon) {
   taskbarEl = document.getElementById('intro-taskbar');
   taskBtnEl = document.getElementById('intro-taskbtn');
   cursorEl = document.getElementById('intro-cursor');
-  assistEl = document.getElementById('intro-assist');
-  headEl = document.getElementById('intro-assist-head');
-  listEl = document.getElementById('intro-assist-list');
-  pageEl = document.getElementById('intro-assist-page');
-  backBtn = document.getElementById('intro-assist-back');
-  nextBtn = document.getElementById('intro-assist-next');
 
   // 전환 시간의 유일한 출처는 config다 — CSS는 변수만 참조한다
   // (ui/rover.js의 --rover-slide-sec, ui/crtTransition.js의 --crt-*와 같은 패턴).
@@ -258,24 +213,6 @@ export function initIntro(icon) {
   layer.style.setProperty('--intro-press-sec', `${config.intro.pressSec}s`);
 
   buildIcons(icon);
-
-  backBtn.addEventListener('click', () => {
-    // disabled라 1쪽에선 여기까지 안 오지만, 값의 하한은 여기서도 지킨다.
-    if (pageIndex === 0) return;
-    pageIndex -= 1;
-    playSfx(SFX.UI_CLICK, { ui: true });
-    renderPage();
-  });
-  nextBtn.addEventListener('click', () => {
-    if (pageIndex >= PAGES.length - 1) {
-      toTitle(); // 마지막 쪽의 [시작]
-      return;
-    }
-    pageIndex += 1;
-    playSfx(SFX.UI_CLICK, { ui: true });
-    renderPage();
-  });
-  document.getElementById('intro-assist-close')?.addEventListener('click', toTitle);
 
   // ★첫 실행이면 지금 당장 커튼을 올린다(위 주석 참고).
   if (!hasSeenIntro()) layer.classList.add('on', 'nocursor');

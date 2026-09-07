@@ -10,6 +10,7 @@ import { playSfx, SFX } from '../systems/sound.js';
 import { openSettings } from './settingsPanel.js';
 import { openConfirm } from './confirmDialog.js';
 import { openGallery } from './galleryPanel.js';
+import { startGameOpening } from './gameOpening.js';
 import { state } from '../core/state.js';
 import { isDesktopApp, quitApp } from '../core/platform.js';
 
@@ -83,6 +84,21 @@ function syncConditionalButtons() {
   if (infiniteBtnEl) infiniteBtnEl.hidden = !hasCompletedRun();
 }
 
+/**
+ * ★타이틀에서 판을 시작하는 유일한 통로(2026-09-08 신설).
+ * 곧장 startGame()을 부르지 않고 오프닝(ui/gameOpening.js)을 한 번 거친다 —
+ * 렉·로딩 연출과 첫 실행 튜토리얼이 거기 있고, 그게 끝나야 실제 판이 돈다.
+ * 오프닝이 보여줄 게 없으면(두 번째 실행 등) 그 자리에서 곧바로 콜백을 부르므로
+ * 여기서 조건을 또 따질 게 없다.
+ *
+ * ★"어느 구간으로 시작하는가"는 버튼마다 다르다(새 게임 0 / 이어하기 저장구간 /
+ *   무한 모드 finiteCount) — 그 판단은 각 버튼이 하고, 이 함수는 그걸 콜백으로
+ *   실어 보내기만 한다.
+ */
+function beginRun(stageIndex) {
+  startGameOpening(() => startGame(stageIndex));
+}
+
 /** 첫 구간(n=0)으로 새 판을 시작한다. [새 게임]과 그 덮어쓰기 확인이 함께 쓴다. */
 function startNewGame() {
   // 대기화면(select)을 건너뛰고 첫 구간(n=0)으로 바로 들어간다.
@@ -97,7 +113,7 @@ function startNewGame() {
   //   구간을 다시 깨도 뒤로 밀리지 않는다). 지금 지워버리면 "새 게임을 눌러만
   //   보고 나간" 경우에 해금까지 통째로 날아간다. 초기화를 진짜로 원하면
   //   설정창의 [저장 데이터 초기화]가 따로 있다.
-  startGame(0);
+  beginRun(0);
 }
 
 /** 최초 1회. 타이틀 화면 버튼에 핸들러를 붙인다. */
@@ -113,7 +129,7 @@ export function initTitleScreen() {
     //   phase 레이스는 core/state.js의 정착 가드(settlePhase)가 이미 막고 있어서
     //   여기서 추가로 방어할 게 없다 — 이미지 프리로드가 늦게 끝나 뒤늦게 도착하는
     //   'title' 대입은 playing을 못 덮는다.
-    startGame(savedStageIndex());
+    beginRun(savedStageIndex());
   });
 
   infiniteBtnEl?.addEventListener('click', () => {
@@ -123,7 +139,7 @@ export function initTitleScreen() {
     // nextStageIndex가 무한 구간만 클램프를 안 건다).
     // ★ 세이브를 안 건드린다 — 무한모드 진행은 이어할 구간(유한 캠페인 진행도)과
     //   별개로 best.infiniteStage에만 남는다(core/save.js).
-    startGame(config.stage.finiteCount);
+    beginRun(config.stage.finiteCount);
   });
 
   document.getElementById('title-btn-start')?.addEventListener('click', () => {

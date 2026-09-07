@@ -39,6 +39,7 @@ import { initConfirmDialog } from './ui/confirmDialog.js';
 import { initGallery } from './ui/galleryPanel.js';
 import { initRover, updateRover, showTip } from './ui/rover.js';
 import { initIntro, startIntro, updateIntro } from './ui/intro.js';
+import { initGameOpening, updateGameOpening } from './ui/gameOpening.js';
 import { initCursor, updateCursor } from './ui/cursor.js';
 import { updateStatusWindows } from './ui/statusWindow.js';
 import { initUploadPicture, updateUploadPicture } from './ui/uploadPicture.js';
@@ -203,6 +204,10 @@ async function main() {
   //   로딩 오버레이를 덮는다). 타임라인 자체는 로딩이 끝난 뒤 applyLoadedData()가
   //   startIntro()로 돌린다.
   initIntro(fileIcon);
+  // 게임 시작 오프닝(렉→로딩→강아지 튜토리얼) — 타이틀에서 판을 시작할 때마다
+  // 거쳐 간다. ★ initTitleScreen()보다 뒤여도 무관하다: 타이틀 버튼은 눌릴 때
+  //   startGameOpening()을 부를 뿐이고, 그 시점엔 이미 여기 배선이 끝나 있다.
+  initGameOpening();
   // 저장된 설정(사운드 셋·환경 방해)을 입힌다. ★ 반드시 initSound()/initBgm() 뒤여야
   // 한다 — 볼륨 노드가 그때 만들어지고, 여기서 그 노드에 값을 흘려보낸다.
   applySavedSettings();
@@ -228,6 +233,13 @@ async function main() {
         updateIntro(dt);
         return;
       }
+
+      // ★ 게임 시작 오프닝(렉→로딩→강아지)도 게임 밖이다 — 다만 인트로와 달리
+      //   return하지 않는다. 이 동안 phase는 'title'이라 아래 update()가 어차피
+      //   playing 가드에 걸려 아무 일도 안 하고, 타이틀 화면의 나머지(러버 큐 등)는
+      //   평소대로 돌아도 무해하기 때문이다. 판을 미리 시작해두고 덮는 방식이
+      //   아니라서 방해꾼·제한시간이 뒤에서 도는 일 자체가 없다.
+      updateGameOpening(dt);
 
       // ★ 설정 팝업이 열려 있으면 완전히 멈춘다(일시정지) — 히트스톱과 같은 자리에
       //   같은 방식으로 걸었다: 그리기(render)는 계속 돌아서 멈춘 화면이 그대로

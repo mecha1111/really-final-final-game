@@ -887,9 +887,60 @@
         </div>
       </div>
 
+      <!-- ★게임 시작 오프닝(레이어15). 타이틀에서 [새 게임]/[이어하기]/[무한 모드]를
+           누른 그 순간부터 실제 판이 시작되기 전까지 — ui/gameOpening.js가 돌린다.
+           ★2026-09-08 흐름 변경: 강아지 튜토리얼이 여기로 옮겨왔다. 전에는
+           인트로(부팅→바탕화면→클릭) 끝에 붙어 있어서 "설명을 듣고 → 타이틀을
+           한 번 거쳐 → 그제서야 게임"이라 설명과 실행 사이에 한 박자가 떴다.
+           이제 설명은 쓰기 직전에 준다.
+           정본 디자인은 docs/xp-tutorial.html이다.
+
+           z15인 이유: 이 오프닝은 타이틀 위에서 도는데, 타이틀에서 열릴 수 있는
+           것들(갤러리11·설정11·나가기12·확인13)보다 위여야 한다 — 특히 [새 게임]은
+           확인 대화상자(13)를 거쳐 여기로 오므로 그보다 확실히 위여야 한다.
+           인트로(14)와는 절대 같이 뜨지 않는다(인트로는 타이틀 도달과 함께 끝난다).
+           ★ 표시/숨김은 .on 클래스 토글이다(hidden 속성 금지 — 이 프로젝트가 두 번
+           겪은 함정: display가 박힌 규칙에 [hidden]이 특이도로 밀린다). -->
+      <div class="layer-opening" id="layer-opening">
+        <!-- 강아지 도우미 튜토리얼(Office 길잡이 말풍선).
+             ★구조는 참조 문서 docs/xp-design-system.html §6이 MS 문서로 확인한
+               실물 구조 그대로다 — 이 순서를 바꾸면 안 된다:
+               · 말풍선이 캐릭터 "위"에 뜬다(마크업에서도 balloon이 char보다 앞)
+               · 버튼 2~3개가 말풍선 "안" 아래쪽(.bset)에 들어간다
+                 — 실물 버튼세트 msoButtonSetBackNextClose = [뒤로][다음][닫기]
+               · 굵은 Heading(.hd) + ★파란 원 불릿 목록(<ul>)
+               · 팁이 있으면 캐릭터 위에 노란 전구가 깜빡인다(.tip .bulb)
+               · 배경 #ffffcc + 검은 각진 테두리 + 삼각형 2겹 꼬리(필터 없음)
+             ★앞서 버튼을 강아지 "옆"에 뒀던 건 잘못이었다(문서의 정정 기록).
+             버튼은 게임의 XP 대화상자 버튼(.settings-btn = 문서의 .xp-btn을
+             옮겨온 것)을 그대로 재사용한다 — 새 버튼 계열을 또 안 만든다.
+             내용(제목/불릿/쪽수)은 ui/gameOpening.js의 PAGES가 매 쪽 채운다.
+             ★[건너뛰기]는 항상 노출한다(요구사항) — 심사위원이 매번 보는 자리라
+             빠져나갈 문이 늘 보여야 한다. -->
+        <div class="op-assist" id="op-assist">
+          <div class="balloon">
+            <div class="hd" id="op-assist-head"></div>
+            <ul id="op-assist-list"></ul>
+            <div class="bset">
+              <span class="pg" id="op-assist-page"></span>
+              <button type="button" class="settings-btn" id="op-assist-back">뒤로</button>
+              <button type="button" class="settings-btn settings-btn-primary" id="op-assist-next">다음</button>
+              <button type="button" class="settings-btn" id="op-assist-skip">건너뛰기</button>
+            </div>
+          </div>
+          <div class="char">
+            <!-- 러버(검색 도우미)와 같은 그림을 그대로 쓴다. 못 불러오면 이미지만
+                 숨기고 말풍선은 그대로 산다(.rover-dog와 같은 크래시 금지 처리). -->
+            <img src="./assets/ui/helper/rover_idle.png" alt="" onerror="this.classList.add('broken')" />
+            <span class="bulb" data-icon="bulb" data-size="50"></span>
+          </div>
+        </div>
+      </div>
+
       <!-- ★인트로 연출(레이어14 — 이 게임의 모든 레이어보다 위). 첫 실행에만,
            타이틀 화면보다 "앞"에 온다: 부팅 → 바탕화면(가짜 파일 더미) → 커서가
-           우리 게임을 찾아 클릭 → 강아지 튜토리얼 → 기존 타이틀 화면.
+           우리 게임을 찾아 클릭 → ★곧장 기존 타이틀 화면(강아지 튜토리얼은
+           2026-09-08부터 여기가 아니라 [게임 시작] 뒤로 옮겨갔다, 위 레이어15).
            ui/intro.js가 config.intro 타임라인을 dt로 돌리고, 여기 마크업에
            클래스만 토글한다. 정본 디자인은 docs/xp-design-system.html의
            "1 · 인트로 연출" 섹션이다(.xp-boot/.xp-deico/.xp-assist 규칙 그대로,
@@ -924,39 +975,6 @@
             </span>
           </div>
           <div class="tray" id="intro-clock">오전 11:08</div>
-        </div>
-
-        <!-- 강아지 도우미 튜토리얼(Office 길잡이 말풍선).
-             ★구조는 참조 문서 docs/xp-design-system.html §6이 MS 문서로 확인한
-               실물 구조 그대로다 — 이 순서를 바꾸면 안 된다:
-               · 말풍선이 캐릭터 "위"에 뜬다(마크업에서도 balloon이 char보다 앞)
-               · 버튼 2~3개가 말풍선 "안" 아래쪽(.bset)에 들어간다
-                 — 실물 버튼세트 msoButtonSetBackNextClose = [뒤로][다음][닫기]
-               · 굵은 Heading(.hd) + ★파란 원 불릿 목록(<ul>)
-               · 팁이 있으면 캐릭터 위에 노란 전구가 깜빡인다(.tip .bulb)
-               · 배경 #ffffcc + 검은 각진 테두리 + 삼각형 2겹 꼬리(필터 없음)
-             ★앞서 버튼을 강아지 "옆"에 뒀던 건 잘못이었다(문서의 정정 기록).
-             버튼은 게임의 XP 대화상자 버튼(.settings-btn = 문서의 .xp-btn을
-             옮겨온 것)을 그대로 재사용한다 — 새 버튼 계열을 또 안 만든다.
-             내용(제목/불릿/쪽수)은 ui/intro.js의 PAGES가 매 쪽 채운다. -->
-        <div class="intro-assist" id="intro-assist">
-          <div class="balloon">
-            <div class="hd" id="intro-assist-head"></div>
-            <ul id="intro-assist-list"></ul>
-            <div class="bset">
-              <span class="pg" id="intro-assist-page"></span>
-              <button type="button" class="settings-btn" id="intro-assist-back">뒤로</button>
-              <button type="button" class="settings-btn settings-btn-primary" id="intro-assist-next">다음</button>
-              <button type="button" class="settings-btn" id="intro-assist-close">닫기</button>
-            </div>
-          </div>
-          <div class="char">
-            <!-- 러버(검색 도우미)와 같은 그림을 그대로 쓴다 — 인게임 팁은 걷어냈지만
-                 도우미 캐릭터 자체는 이 인트로가 물려받는다. 못 불러오면 이미지만
-                 숨기고 말풍선은 그대로 산다(.rover-dog와 같은 크래시 금지 처리). -->
-            <img src="./assets/ui/helper/rover_idle.png" alt="" onerror="this.classList.add('broken')" />
-            <span class="bulb" data-icon="bulb" data-size="50"></span>
-          </div>
         </div>
 
         <!-- ★가짜 커서 — 게임의 진짜 커서와 같은 그림(assets/cursor/cursor-44.png,
