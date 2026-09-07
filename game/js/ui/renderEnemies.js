@@ -3,7 +3,7 @@
 import { config } from '../config.js';
 import { state } from '../core/state.js';
 import { enemyImages } from '../assets.js';
-import { cssColor, roundRect, text, outlinedText } from './draw.js';
+import { cssColor, roundRect, text, outlinedText, quantizeStep } from './draw.js';
 import { drawBaitEnemy } from './baitRender.js';
 import { getFrameKey } from '../sprite/animator.js';
 import { comboTier } from '../systems/combo.js';
@@ -219,7 +219,7 @@ export function drawKillParticles(ctx, particles) {
   for (const p of particles) {
     // 수명이 다할수록 옅어지고 작아진다 — 딱 끊기지 않고 사그라들게.
     const t = p.maxLife > 0 ? Math.max(0, p.life / p.maxLife) : 0;
-    ctx.globalAlpha = Math.min(1, t * 1.6);
+    ctx.globalAlpha = quantizeStep(Math.min(1, t * 1.6), config.fx.alphaSteps);
     ctx.fillStyle = p.color || baseColor;
     const s = p.size * (0.35 + 0.65 * t);
     ctx.save();
@@ -246,7 +246,7 @@ export function drawClickRipples(ctx, ripples) {
   for (const r of ripples) {
     const t = r.maxLife > 0 ? 1 - Math.max(0, r.life) / r.maxLife : 1; // 0(막 생김)→1(다 됨)
     const radius = c.startRadius + (c.endRadius - c.startRadius) * t;
-    ctx.globalAlpha = Math.max(0, (1 - t) * c.maxAlpha);
+    ctx.globalAlpha = quantizeStep(1 - t, config.fx.alphaSteps) * c.maxAlpha;
     ctx.strokeStyle = r.color;
     ctx.beginPath();
     ctx.arc(r.x, r.y, radius, 0, Math.PI * 2);
@@ -429,7 +429,7 @@ export function drawFloats(ctx, floats) {
   for (const f of floats) {
     const t = f.age / config.fx.floatSec;
     ctx.save();
-    ctx.globalAlpha = Math.max(0, 1 - t);
+    ctx.globalAlpha = quantizeStep(1 - t, config.fx.alphaSteps);
     outlinedText(ctx, f.text, f.x, f.y - config.fx.floatRise * t, {
       size: 22,
       color: f.positive ? '--color-float-plus' : '--color-float-minus',

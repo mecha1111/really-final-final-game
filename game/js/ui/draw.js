@@ -104,6 +104,16 @@ export function bar(ctx, x, y, w, h, ratio, fillVar, bgVar) {
   }
 }
 
+/** 0~1 진행값을 계단식으로 끊는다. 연속값(매 프레임 미세하게 다른 값)은 손그림
+ * 펜선 톤에서 "흐릿하게 번지는"/"매끄럽게 미끄러지는" 인상을 준다 — 파티클·
+ * 클릭 리플·플로트의 알파(config.fx.alphaSteps)와 클릭 리플의 확대 크기
+ * (config.fx.clickRipple.sizeSteps)가 전부 이걸 거쳐 몇 단계로만 바뀌게 한다.
+ * steps=5면 0, 0.25, 0.5, 0.75, 1.0 중 하나로 스냅한다. */
+export function quantizeStep(value, steps) {
+  const clamped = Math.max(0, Math.min(1, value));
+  return Math.round(clamped * steps) / steps;
+}
+
 export function pointInRect(p, r) {
   return p.x >= r.x && p.x <= r.x + r.w && p.y >= r.y && p.y <= r.y + r.h;
 }
