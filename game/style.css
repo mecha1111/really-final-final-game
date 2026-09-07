@@ -120,13 +120,23 @@
   /* 문서 값: --xp-taskbar:linear-gradient(#4a95f5,#2f6ee0 10%,#1c50c8 55%,#1746b0 92%,#0f3690)
      --xp-tray:linear-gradient(#2f7fd8,#1a5cb8) */
 
-  /* ── 진행바(xpbar) 세그먼트 — .xpbar i 1곳(정의는 한 곳, .big 변형은 이 색을
-     그대로 물려받는다). ★색이 아니라 구조 자체가 문서와 다르다: 게임은 칸마다
-     단색 플랫을 채우고, 문서(--xp-bar-seg)는 칸 하나 안에서도 위→아래로
-     밝기가 도는 그라데이션이다. 색만 바꿔 끼운다고 그 느낌이 안 난다 —
-     구조를 바꾸는 건 이 커밋 범위 밖이라 색 토큰만 우선 둔다. ── */
-  --xp-bar-seg: #3fae2a;
-  /* 문서 값(그라데이션): linear-gradient(#a4f07a,#4bbb1a 46%,#3aa010 52%,#5fd02c) */
+  /* ── 진행바(xpbar) 세그먼트 — .xpbar i 1곳(정의는 한 곳, .big 변형은 이 값을
+     그대로 물려받는다). 2026-09-07: 예전엔 칸마다 단색 플랫(#3fae2a)이라 문서의
+     "칸 하나 안에서도 위→아래로 밝기가 도는" 입체감이 없었다 — 이번에 구조까지
+     문서대로 맞췄다(색만 바꿔 끼워선 안 나던 느낌). gap/padding(칸 사이 간격 —
+     .xpbar 2px·.xpbar.big 3px)은 그대로 뒀다 — 세그먼트 개수·폭 계산이 이미 그
+     값을 기준으로 짜여 있어서, 문서 값(2px)에 맞추면 칸 수가 달라져 버린다. ── */
+  --xp-bar-seg: linear-gradient(180deg, #a4f07a 0%, #4bbb1a 46%, #3aa010 52%, #5fd02c 100%);
+  /* 문서 값과 동일 — 이번엔 구조까지 그대로 채택. */
+
+  /* ── 진행바 트랙(칸이 아직 안 채워진 바탕) — 위 세그먼트와 짝을 이루지만 별도
+     토큰이다: 트랙은 --xp-field-bg/--xp-field-border(입력 필드·볼륨 슬라이더와
+     공유)를 그대로 쓰고 있었는데, 그 두 토큰을 바로 바꾸면 슬라이더까지 같이
+     바뀐다 — 진행바만 문서 값으로 옮기려면 갈라놔야 했다. ── */
+  --xp-bar-track-bg: #d7d3c4;
+  --xp-bar-track-border: #9a9584;
+  /* 문서 값과 동일. 테두리 두께도 문서(1px)로 맞췄다 — 게임은 2px(.xpbar)·
+     3px(.xpbar.big)였다(아래 #desktop .xpbar 규칙). */
 
   /* ── 폰트 — #desktop 포함 6곳에서 반복되던 값 ── */
   --xp-font: 'DGM', 'Galmuri11', monospace;
@@ -1605,9 +1615,9 @@ body {
   0%, 100% { text-shadow: 0 0 6px rgba(255, 200, 40, 0.45); }
   50% { text-shadow: 0 0 16px rgba(255, 200, 40, 0.95); }
 }
-#desktop .xpbar { height: 20px; background: var(--xp-field-bg); border: 2px solid var(--xp-field-border); margin-top: 10px; padding: 2px; display: flex; gap: 2px; overflow: hidden; }
+#desktop .xpbar { height: 20px; background: var(--xp-bar-track-bg); border: 1px solid var(--xp-bar-track-border); margin-top: 10px; padding: 2px; display: flex; gap: 2px; overflow: hidden; }
 #desktop .xpbar i { width: 13px; background: var(--xp-bar-seg); flex-shrink: 0; }
-#desktop .xpbar.big { height: 34px; padding: 3px; gap: 3px; border: 3px solid var(--xp-field-border); }
+#desktop .xpbar.big { height: 34px; padding: 3px; gap: 3px; border: 1px solid var(--xp-bar-track-border); }
 #desktop .xpbar.big i { width: 19px; }
 
 /* 2026-08-23 VFX: 업로드 진행바(#up-bar) 맨 앞칸 반짝임 — "차오르는 선두가
