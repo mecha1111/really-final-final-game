@@ -60,8 +60,11 @@ export function createRules(stageIndex = 0) {
     dpsMultiplier: base.dps_multiplier ?? 1,
     lifetimeMultiplier: base.lifetime_multiplier ?? 1,
 
-    // 아래는 stage 시트에서 오는 판 전체 규칙(구간과 무관)
-    timeLimit: getStageValue('time_limit', 180),
+    // 제한시간도 quota와 같은 이유로 분리한다 — 무한모드만 INFINITE.timeLimit
+    // (240초), 유한은 그대로 stage 시트(180초). 유한 쪽은 절대 안 건드린다.
+    timeLimit: isInfinite ? INFINITE.timeLimit : getStageValue('time_limit', 180),
+
+    // 아래 넷은 stage 시트에서 오는 판 전체 규칙(구간·무한모드 여부와 무관)
     minGap: getStageValue('min_gap', 20),
     minHitbox: getStageValue('min_hitbox', 60),
     dirChangeMin: getStageValue('direction_change_min', 2),
