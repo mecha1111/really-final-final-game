@@ -191,15 +191,10 @@ function drawPopupHintOutline(ctx, e, now) {
  * 처치 순간 사방으로 튀는 조각들(systems/juice.js가 관리하는 state.particles).
  * 손그림/픽셀 톤에 맞춰 원이 아니라 회전하는 네모 조각으로 그린다.
  */
-/** 조각 하나를 그 모양(square/circle/triangle)대로 채운다. 좌표계는 이미
+/** 조각 하나를 그 모양(square/triangle)대로 채운다. 좌표계는 이미
  * translate/rotate된 상태로 들어온다(중심이 원점) — 여기선 크기만 안다. */
 function fillParticleShape(ctx, shape, s) {
   switch (shape) {
-    case 'circle': // 잉크 방울
-      ctx.beginPath();
-      ctx.arc(0, 0, s / 2, 0, Math.PI * 2);
-      ctx.fill();
-      break;
     case 'triangle': // 작은 도형
       ctx.beginPath();
       ctx.moveTo(0, -s / 2);
@@ -228,9 +223,13 @@ export function drawKillParticles(ctx, particles) {
     ctx.fillStyle = p.color || baseColor;
     const s = p.size * (0.35 + 0.65 * t);
     ctx.save();
-    ctx.translate(p.x, p.y);
-    ctx.rotate(p.rot);
-    fillParticleShape(ctx, p.shape, s);
+    // ★ 좌표·크기·회전을 전부 정수/직각으로 반올림 — 손그림 펜선 톤은 안티에일리어싱으로
+    // 가장자리가 흐려지면 안 된다. 회전은 물리(juice.js가 연속으로 갱신)는 그대로 두고
+    // 그리는 각만 가장 가까운 90도로 스냅한다 — square가 45도 근처(마름모)로 그려질 때
+    // 생기는 대각선 안티에일리어싱이 사라진다.
+    ctx.translate(Math.round(p.x), Math.round(p.y));
+    ctx.rotate(Math.round(p.rot / (Math.PI / 2)) * (Math.PI / 2));
+    fillParticleShape(ctx, p.shape, Math.round(s));
     ctx.restore();
   }
   ctx.restore();

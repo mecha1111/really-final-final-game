@@ -16,10 +16,13 @@ const rand = (min, max) => min + Math.random() * (max - min);
 // 남은 히트스톱(ms). 0보다 크면 월드 갱신이 멈춘다(main.js가 확인한다).
 let hitStopMs = 0;
 
-// 조각 모양 3종(잉크 방울/종이 조각/작은 세모) — 낙서 방해꾼 톤에 맞춰 딱딱한
-// 유리조각 느낌 대신 손그림 소품처럼 보이게 섞는다. 실제 그리기는
-// ui/renderEnemies.js의 drawKillParticles가 이 문자열을 보고 분기한다.
-const SHAPES = ['square', 'circle', 'triangle'];
+// 조각 모양 2종(종이 조각/작은 세모) — 낙서 방해꾼 톤에 맞춰 딱딱한 유리조각
+// 느낌 대신 손그림 소품처럼 보이게 섞는다. 실제 그리기는 ui/renderEnemies.js의
+// drawKillParticles가 이 문자열을 보고 분기한다.
+// ★ 2026-09-07: 원(circle)을 뺐다 — 캔버스 arc()는 곡선이라 이 프로젝트 전역의
+//   "칼같이 딱 떨어지는" 손그림 펜선 톤과 안 맞고(안티에일리어싱으로 가장자리가
+//   흐려진다), square/triangle만 남겨도 "종이 조각 vs 세모" 구분은 여전히 된다.
+const SHAPES = ['square', 'triangle'];
 
 /**
  * 처치 순간 1회. 히트스톱 + 조각 + 흔들림을 한꺼번에 건다.
@@ -52,7 +55,12 @@ export function burstOnKill(x, y, enemyId) {
       life: c.particleLifeSec * rand(0.7, 1.15),
       maxLife: c.particleLifeSec,
       size: c.particleSize * s * rand(0.65, 1.25),
-      spin: rand(-12, 12), // 조각이 돌면서 날아가면 훨씬 부서진 느낌이 난다
+      spin: rand(-12, 12), // 조각이 돌면서 날아가면 훨씬 부서진 느낌이 난다.
+      // ★ 여기 값 자체는 계속 연속각으로 물리 갱신한다(updateParticles) — "90도
+      //   스냅"은 그리는 쪽(drawKillParticles)이 매 프레임 가장 가까운 90도로
+      //   반올림해서 실제로 캔버스에 그리는 각만 4방향으로 고정한다. square가
+      //   45도 근처에서 마름모(대각선)가 되며 생기는 안티에일리어싱을 없애는
+      //   게 목적이라, 물리는 그대로 두고 그리기만 스냅해도 충분하다.
       rot: rand(0, Math.PI * 2),
       shape: SHAPES[(Math.random() * SHAPES.length) | 0],
       // null = 그리는 쪽(drawKillParticles)이 기본 잉크색을 쓴다. tint가 있어도

@@ -462,15 +462,23 @@ export const config = {
       // --color-kill-particle) 그대로라 "은은하게 힌트만" 준다.
       particleColorMix: 0.35,
       // 종류 없는 놈(basic 등, 여기 없는 id)은 항상 기본 잉크색만 나간다.
-      // 색은 새로 안 만들고 이미 다른 곳에 쓰인 팔레트를 그대로 재사용했다.
+      // 종류별 색은 이 게임 다른 곳(--color-*)에 이미 쓰이던 순수 웹 네온이었다
+      // — 처치 파편은 Bliss 배경(밝은 하늘/잔디) 위에 뜨는데, bomb(#ff4d4d)이
+      // 잔디 위에서 분홍으로 보인다는 신고가 있었다.
+      // 2026-09-07: docs/xp-design-system.html의 실제 UI 색(아이콘·시작버튼
+      // 그라데이션)으로 전부 바꿨다 — 더 진하고 채도가 낮아 밝은 배경 위에서도
+      // 안 씻겨나간다. bomb은 float 손실색과 같은 error 아이콘 빨강으로 맞춰
+      // "위험"의 톤을 게임 전체에서 통일했다. ★ 수정 후 실측(burstOnKill을 직접
+      // 호출해 잔디 배경 위에 띄운 확대 스크린샷)으로 bomb 조각이 분홍이 아니라
+      // 또렷한 벽돌색 빨강으로 보이는 것까지 확인했다.
       particleColors: {
-        clone: '#44ff88', // --color-success(복제 = 초록, 늘어난다는 느낌)
-        ransom: '#6b7385', // --color-life-bar(몸값요구 = 무채색 회색)
-        popup: '#ff9a3f', // 콤보 tier 주황(팝업 = 시끄러운 경고색)
-        unplug: '#35c8ff', // --color-hitbox(플러그 = 전기 하늘색)
-        hidden: '#7a4dff', // --color-enemy-fallback(숨은놈 = 보라)
-        bomb: '#ff4d4d', // --color-danger(폭탄 = 빨강)
-        zombie: '#2ecc71', // 좀비다운 초록(실제 아트도 초록 톤이라 처치 파편도 맞췄다)
+        clone: '#4ea832', // check 아이콘 초록(복제 = 늘어난다는 느낌, float 획득색과 통일)
+        ransom: '#8fa2b5', // recycle 아이콘 회색(몸값요구 = 무채색)
+        popup: '#e64a19', // 시작메뉴 깃발 주황(팝업 = 시끄러운 경고색)
+        unplug: '#1e88e5', // 시작메뉴 깃발 파랑(플러그 = 전기색, 기존 하늘색보다 진하게)
+        hidden: '#7e57c2', // bug 아이콘 보라(숨은놈)
+        bomb: '#d9382a', // error 아이콘 빨강(폭탄 = 위험, float 손실색과 통일 — 잔디 위 분홍 현상 해결)
+        zombie: '#3c8f26', // 시작메뉴 초록 그라데이션의 어두운 쪽(clone과 다른 톤의 초록으로 구분)
       },
     },
 
