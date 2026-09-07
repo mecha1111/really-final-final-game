@@ -62,11 +62,8 @@
   --color-float-plus: #44ff88;
   --color-float-minus: #ff4d4d;
 
-  /* 화면 덮개 + 버튼 (난이도 선택 / 결과 화면) */
+  /* 화면 덮개 (로딩 오버레이) */
   --color-overlay: rgba(5, 6, 10, 0.88);
-  --color-btn-bg: #1c2433;
-  --color-btn-border: #35c8ff;
-  --color-btn-hover-bg: #26344a;
 
   /* 디버그 패널 전용 색. 캔버스 위에 뜨는 오버레이라 배경을 반투명하게 둬서
      뒤 게임 화면이 살짝 비치게 한다(+ backdrop-filter로 글씨는 여전히 잘 읽히게). */
@@ -1858,7 +1855,7 @@ body {
 #desktop .toast {
   position: absolute; left: 50%; bottom: 90px; transform: translateX(-50%);
   background: #ffcf3f; border: 3px solid #111; padding: 12px 24px;
-  font-family: 'DGM', monospace; font-size: 22px; color: #111;
+  font-family: var(--xp-font); font-size: 22px; color: #111;
   box-shadow: 4px 4px 0 #b8912a; z-index: 9999; pointer-events: none;
 }
 
