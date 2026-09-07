@@ -29,7 +29,17 @@
   --color-hud-border: #2a3344;
 
   /* 업로드 바: 평상시 / 방금 공격 맞아 번쩍임 / 완전 정지 */
-  --color-bar-bg: #202737;
+  /* ★ --color-bar-bg만 실제로 쓰인다(ui/renderEnemies.js의 drawEnemyGauges —
+     HUD가 캔버스에서 HTML로 옮겨가며 방해꾼 수명바 배경으로 남았다). 같은 줄의
+     -fill/-drain/-blocked, 아래 --color-quota-*는 JS에서 참조하는 곳이 없다
+     (grep 확인) — 오늘 손대는 범위 밖이라 값은 그대로 둔다.
+     2026-09-07: 방해꾼 수명바 배경/채움 대비를 벌렸다(★C-8 판단) — #202737
+     (짙은 남색)과 채움색 #6b7385(회색)이 둘 다 어두워 서로도, 사진/잔디 배경
+     위에서도 잘 안 갈렸다. bg를 처치 파편·리플에 이미 쓰던 잉크색(#12161f,
+     밝은 Bliss 배경 위에서 검증된 값)으로 더 어둡게, 채움은 밝은 은회색으로
+     양쪽 끝을 벌려 내부 대비 자체를 키웠다 — 구조(칸 나눔 없음, 막대 하나)는
+     그대로다. */
+  --color-bar-bg: #12161f;
   --color-bar-fill: #35c8ff;
   --color-bar-drain: #ff4d4d;
   --color-bar-blocked: #6b7385;
@@ -41,7 +51,13 @@
   /* 방해꾼 부가 표시 */
   --color-hp-pip: #ffffff;
   --color-hp-pip-empty: #4a5266;
-  --color-life-bar: #6b7385;
+  /* 2026-09-07: #6b7385(회색) → #c9d3dd(밝은 은회색) — 위 --color-bar-bg를
+     잉크색으로 어둡게 바꾼 것과 짝이다. "안전/위험" 의미색이 아니라 원래부터
+     무채색이었으므로(ransom처럼 "무채색 = 중립" 어휘, config.enemy.kill.
+     particleColors 주석 참고) 색상 자체는 안 바꾸고 명도만 끌어올렸다 — 어두운
+     bg와 밝은 fill로 막대 내부 대비를 최대로 벌려서, 사진처럼 색이 계속 바뀌는
+     배경 위에서도 "막대 하나"로 읽히게 한다. */
+  --color-life-bar: #c9d3dd;
   /* 2026-09-07: #ff4d4d(순수 웹 네온) → #d9382a — --color-float-plus/minus와
      같은 색이다. 캔버스(플로트)와 HTML(이 수명바)이 "위험/손실"이라는 같은
      의미에 서로 다른 빨강을 쓰고 있었다(A·B 커밋이 캔버스 쪽만 XP 팔레트로
