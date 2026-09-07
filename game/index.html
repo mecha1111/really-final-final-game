@@ -51,10 +51,11 @@
         7 .layer-overload 방해꾼 과밀 지지직       pointer-events:none  ← 살아있는 수가 임계 넘을 때만, 평소 투명
         6 .layer-cleared  구간 클리어 화면(HTML)    pointer-events:auto  ← phase==='cleared'일 때만 보임(배경 클릭=연출 건너뛰기)
         6 .layer-title    타이틀 화면(HTML)        pointer-events:none  ← phase==='title'일 때만 보임(캔버스보다 위)
+        6 .layer-taskbar  작업표시줄               pointer-events:none  ← ★캔버스보다 위(놀이 영역이 이만큼 비워진다)
         5 #game-canvas    방해꾼                  pointer-events:auto  ← 못 맞히면 아래로 통과
         4 .layer-win      HTML 창(상태.dat/.exe)  pointer-events:auto
         3 .layer-gag      HTML 개그팝업           pointer-events:auto
-        2 .layer-deco     개그아이콘·작업표시줄    pointer-events:none  ← 클릭 통과(장식)
+        2 .layer-deco     개그아이콘               pointer-events:none  ← 클릭 통과(장식)
         1 .layer-bg       Bliss 배경              pointer-events:none
 
       .layer-title이 캔버스보다 위지만 pointer-events:none 컨테이너라, 로고/버튼이
@@ -88,7 +89,20 @@
           <div class="icon"><div class="ib"><span data-icon="game"></span></div><div class="il">공부자료.exe</div></div>
           <div class="icon"><div class="ib"><span data-icon="recycle"></span></div><div class="il">휴지통</div></div>
         </div>
+      </div>
 
+      <canvas id="game-canvas"></canvas>
+
+      <!-- 작업표시줄(레이어6) — ★캔버스보다 "위"에 있어야 한다.
+           예전엔 .layer-deco(z2, 캔버스 아래)에 있어서 화면 아래쪽 방해꾼·이펙트가
+           작업표시줄을 덮어버렸다(XP 디자인 가이드 §4-1 ③ 위반). 이제 캔버스 위
+           레이어로 올리고, 대신 놀이 영역이 이 높이만큼 비워진다
+           (core/stageManager.js의 getPlayArea) — 그래서 방해꾼이 이 뒤로 숨지 않는다.
+           높이는 config.desktop.taskbarPx 하나가 정하고 ui/desktop.js가
+           --taskbar-h로 흘려보낸다(숫자를 CSS에 또 박지 않는다).
+           ★ position:fixed가 아니라 #desktop(1920x1080, position:relative) 안의
+           absolute 형제다 — 부모의 transform/filter에 기준이 흔들리지 않는다(§4-1 ①②). -->
+      <div class="layer-taskbar">
         <div class="taskbar">
           <div class="start"><span data-icon="xp_flag"></span> 시작</div>
           <div class="ti">■ 상태.dat</div>
@@ -96,8 +110,6 @@
           <div class="clock" id="tb-clock">오후 11:59</div>
         </div>
       </div>
-
-      <canvas id="game-canvas"></canvas>
 
       <!-- 개그 팝업이 동적으로 들어가는 자리 (ui/desktop.js가 채운다) -->
       <div class="layer-gag" id="layer-gag"></div>

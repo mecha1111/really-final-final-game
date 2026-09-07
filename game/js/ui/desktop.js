@@ -192,6 +192,12 @@ function startClock() {
 
 /** 최초 1회. 창 드래그·창 버튼·개그 팝업·시계를 붙인다. */
 export function initDesktop() {
+  // 작업표시줄 높이를 CSS로 흘려보낸다 — 값의 유일한 출처는 config다
+  // (style.css의 --taskbar-h, core/stageManager.js의 getPlayArea가 같은 값을 쓴다).
+  // 숫자를 CSS에 따로 박으면 "보이는 높이"와 "비워둔 영역"이 갈라져서 방해꾼이
+  // 작업표시줄에 반쯤 걸치게 된다.
+  document.getElementById('desktop')?.style.setProperty('--taskbar-h', `${config.desktop.taskbarPx}px`);
+
   document.querySelectorAll('#desktop .win').forEach(makeDraggable);
 
   // 창 버튼(× 닫기 / _ 최소화): 상태.dat/업로드 두 메인 창(.win)은 게임 정보를 계속

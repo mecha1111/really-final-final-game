@@ -204,6 +204,14 @@ body {
 #desktop .layer-gag { position: absolute; inset: 0; z-index: 3; pointer-events: none; }
 #desktop .layer-win { position: absolute; inset: 0; z-index: 4; pointer-events: none; }
 #desktop #game-canvas { position: absolute; inset: 0; z-index: 5; pointer-events: auto; }
+/* 작업표시줄 — ★캔버스(z5)보다 위. 예전엔 .layer-deco(z2)에 있어서 화면 아래쪽
+   방해꾼·이펙트가 작업표시줄을 덮었다(XP 디자인 가이드 §4-1 ③ 위반). 대신
+   놀이 영역이 이 높이만큼 비워지므로(core/stageManager.js의 getPlayArea) 방해꾼이
+   이 뒤로 숨지도 않는다. 장식이라 클릭은 그대로 통과시킨다(pointer-events:none).
+   ★ 같은 z6인 결과 화면들(title/bsod/cleared/ending)보다 DOM에서 앞에 있어서,
+     그 화면들이 뜨는 단계에선 자연히 그 아래로 깔린다 — 어차피 아래 규칙으로
+     playing이 아닐 땐 통째로 숨는다. */
+#desktop .layer-taskbar { position: absolute; inset: 0; z-index: 6; pointer-events: none; }
 #desktop .layer-title { position: absolute; inset: 0; z-index: 6; pointer-events: none; display: none; }
 #desktop .layer-bsod { position: absolute; inset: 0; z-index: 6; pointer-events: none; display: none; }
 /* .layer-title/.layer-bsod와 달리 자기 자신이 pointer-events:auto다 — 배경
@@ -276,6 +284,7 @@ body {
    그 위에 뜨는 HTML 창·팝업을 숨긴다(안 그러면 오버레이 위로 창이 떠버린다). */
 #desktop:not(.phase-playing) .layer-gag,
 #desktop:not(.phase-playing) .layer-win,
+#desktop:not(.phase-playing) .layer-taskbar,
 #desktop:not(.phase-playing) .layer-deco {
   display: none;
 }
@@ -1306,13 +1315,16 @@ body {
 }
 
 /* ===== 작업표시줄 (레이어4, 클릭 무반응 장식) ===== */
+/* ★ 높이의 유일한 출처는 config.desktop.taskbarPx다 — ui/desktop.js가
+   --taskbar-h로 흘려보낸다. 놀이 영역을 비우는 계산(getPlayArea)이 같은 값을
+   쓰므로, 여기 숫자를 따로 박으면 둘이 갈라져 방해꾼이 작업표시줄에 반쯤 걸친다. */
 #desktop .taskbar {
-  position: absolute; left: 0; right: 0; bottom: 0; height: 52px;
+  position: absolute; left: 0; right: 0; bottom: 0; height: var(--taskbar-h, 52px);
   background: linear-gradient(180deg, #3c91f2 0, #1c6fd8 8%, #1358c4 100%);
   border-top: 2px solid #5aa0f5; display: flex; align-items: center;
 }
 #desktop .start {
-  height: 52px; padding: 0 32px 0 18px;
+  height: var(--taskbar-h, 52px); padding: 0 32px 0 18px;
   background: linear-gradient(180deg, #5eb63f 0, #469b2c 45%, #38851f 100%);
   color: #fff; font-size: 23px; font-style: italic; display: flex; align-items: center; gap: 8px;
   border-radius: 0 16px 16px 0; text-shadow: 1px 1px 0 rgba(0, 0, 0, 0.4); border-right: 2px solid #2a6018;

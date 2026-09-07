@@ -986,6 +986,15 @@ export const config = {
     toastSec: 1.2,
     // 남은 시간이 이 아래로 내려가면 상태창 시계가 빨개진다(초).
     timeWarnSec: 30,
+
+    // 작업표시줄 높이(#desktop의 1920x1080 좌표계 기준 px).
+    // ★ 이 값 하나가 두 곳의 유일한 출처다:
+    //   1) 보이는 높이 — ui/desktop.js가 --taskbar-h CSS 변수로 흘려보낸다(style.css).
+    //   2) 놀이 영역 — core/stageManager.js의 getPlayArea()가 이만큼 아래를 비운다.
+    //   둘이 갈라지면 "작업표시줄에 방해꾼이 반쯤 걸치는" 상태가 되므로, 숫자를
+    //   CSS에 따로 박지 말 것(XP 디자인 가이드 §4-1 ③: 게임 영역은 작업표시줄
+    //   높이만큼 비워둔다).
+    taskbarPx: 52,
   },
 
   // .exe 창 안에 "업데이트 중"인 그림(systems/filePicture.js가 고르고,

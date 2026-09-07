@@ -1,6 +1,6 @@
 // 이 파일 역할: 판의 시작/진행/승패를 총괄한다. 매 프레임 각 시스템을 정해진 순서로 부르는 지휘자.
 
-import { config, gameData, createRules } from '../config.js';
+import { config, gameData, createRules, getUiScaleFactor } from '../config.js';
 import { state, emptyStats, setPhase } from './state.js';
 import { recordStageCleared, recordGameOver, recordRunCompleted, recordEnemyEncounter } from './save.js';
 import { openEnding } from '../ui/endingScreen.js';
@@ -28,12 +28,25 @@ const spawner = new Spawner();
 let lastTickSec = null;
 
 /**
- * 놀이 영역 = 바탕화면 전체. 방해꾼이 화면 어디든 활보한다.
+ * 놀이 영역 = 바탕화면에서 작업표시줄을 뺀 만큼. 방해꾼이 그 안을 활보한다.
  * HUD가 캔버스에서 HTML 창(ui/statusWindow.js)으로 옮겨가면서 위쪽을
  * 비워둘 이유가 없어졌다 — 창과 겹치면 "창이 위" 규칙으로 방해꾼이 뒤로 지나간다.
+ *
+ * ★ 아래쪽 작업표시줄 높이만큼은 비운다(XP 디자인 가이드 §4-1 ③). 작업표시줄이
+ *   캔버스보다 위 레이어라(style.css의 .layer-taskbar, z6) 안 비우면 그 띠에 있는
+ *   방해꾼이 작업표시줄 뒤에 가려 안 보이게 된다. 반대로 예전처럼 캔버스가 위였을
+ *   땐 방해꾼이 작업표시줄을 덮어서 작업표시줄이 "사라진" 것처럼 보였다 —
+ *   둘 중 하나는 반드시 가려지므로, 겹치지 않게 영역을 나누는 쪽으로 정리했다.
+ *
+ * ★ 높이 환산: config.desktop.taskbarPx는 #desktop의 1920 기준 px이고 놀이 영역은
+ *   논리 해상도(config.canvas, 시트의 canvas_w/h)라 단위가 다르다. 둘을 잇는
+ *   비율이 곧 getUiScaleFactor()(= canvas.width / uiBaseWidth)다 — HUD·결과 화면이
+ *   1920 기준 좌표를 실제 캔버스로 옮길 때 쓰는 것과 같은 환산이라, 시트에서
+ *   해상도를 바꿔도 저절로 따라온다.
  */
 export function getPlayArea() {
-  return { x: 0, y: 0, w: config.canvas.width, h: config.canvas.height };
+  const taskbarWorldPx = config.desktop.taskbarPx * getUiScaleFactor();
+  return { x: 0, y: 0, w: config.canvas.width, h: config.canvas.height - taskbarWorldPx };
 }
 
 /**
