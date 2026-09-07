@@ -758,12 +758,12 @@ body {
       (사용자가 우려한 "곡률 때문에 클릭 위치가 왜곡돼 보이는" 문제를 애초에
       만들 수 없는 구조 — 곡률이 실제 지오메트리를 왜곡하는 게 아니라 순전히
       색칠뿐이다).
-   ③ 빛번짐(블룸) — 채도/대비/밝기는 이 레이어가 아니라 #desktop 자체에 filter로
-      건다(아래). 화면 "전체 색감"을 살짝 들뜨게 하는 효과라 오버레이 장식이
-      아니라 실제 화면 합성 필터가 맞다. filter는 transform이 아니라 캔버스
-      getBoundingClientRect() 버그와 무관하고(레이아웃에 영향 없는 순수 페인트
-      효과), 값도 정적이라(phase 클래스 토글로만 바뀐다) 애니메이션 관련 위험도
-      없다. */
+   ③ 빛번짐(블룸) — 채도/대비/밝기는 이 레이어가 아니라 "정지 레이어들"에 각각
+      filter로 건다(아래). ★ 2026-09-07 이전엔 #desktop 자체에 걸었는데, 그건
+      움직이는 캔버스를 감싸는 컨테이너라 XP 디자인 가이드 §8-3/§10-1이 명시적으로
+      금지하는 패턴이었다(그 프로젝트에서 애니메이션 중 전 레이어 재필터링으로
+      렉이 나 삭제한 이력). 캔버스는 보정 대상에서 빼고 배경·아이콘·창·작업표시줄
+      에만 건다 — 실측상 캔버스를 넣고 빼도 화면 차이가 사실상 없었다. */
 #desktop .layer-crt-steady {
   border-radius: var(--crt-curve-radius);
   box-shadow: inset 0 0 var(--crt-vignette-px) rgba(0, 0, 0, var(--crt-vignette-opacity));
@@ -780,10 +780,31 @@ body {
     transparent var(--crt-scanline-gap)
   );
 }
-/* 빛번짐(블룸) — 화면 전체(playing 중)에 거는 정적 색보정. #desktop은 이미
-   canvasFit.js가 정적 transform:scale을 걸어두는 바로 그 요소라 filter를
-   추가해도 새로운 위험 패턴이 아니다(둘 다 정적 값, 애니메이션 없음). */
-#desktop.phase-playing {
+/* 빛번짐(블룸) — CRT 색보정.
+   ★ 2026-09-07: #desktop(움직이는 캔버스를 감싸는 컨테이너)에 걸던 것을 걷어내고,
+     "정지 레이어들"에만 따로 건다. 근거는 XP 디자인 가이드 §8-3 / §10-1이다:
+       "움직이는 게임 내용물을 감싼 컨테이너에 filter:를 절대 걸지 말 것.
+        CRT 오버레이는 형제 레이어 + pointer-events:none + 정적 그라데이션으로만.
+        색보정이 꼭 필요하면 배경/정지 레이어에만."
+     (그 프로젝트에선 .crt에 건 SVG 색분리 필터가 애니메이션 중 전 레이어
+      재필터링을 유발해 렉이 나서 삭제한 이력이 있다.)
+
+   여기 든 레이어는 전부 정지 화면이다 — 배경(구름도 애니메이션 없이 고정),
+   아이콘, 개그 팝업, HUD 창(값이 바뀔 때만 다시 그린다), 작업표시줄.
+   ★ #game-canvas(z5, 매 프레임 다시 그려지는 방해꾼)는 일부러 뺐다. 실측으로
+     캔버스까지 보정해도 화면 평균 차이가 8.34 → 8.30으로 사실상 안 변했다
+     (방해꾼이 차지하는 면적이 작아서다) — 매 프레임 재필터링만 떠안는 셈이라
+     넣을 이유가 없다.
+   ★ 수치(--crt-bloom-*)는 예전 그대로다. 값을 키워 차이를 더 좁히려 해봤지만
+     오히려 원본에서 멀어졌다(실측: 1.25/1.08/1.04 → 평균차 9.5,
+     1.4/1.12/1.06 → 11.0, 1.5/1.16/1.08 → 12.8). 합성 결과에 한 번 거는 것과
+     레이어별로 나눠 거는 것은 원리상 완전히 같아질 수 없어서, 가장 가까운
+     조합인 "원래 값 그대로"를 택했다. */
+#desktop.phase-playing .layer-bg,
+#desktop.phase-playing .layer-deco,
+#desktop.phase-playing .layer-gag,
+#desktop.phase-playing .layer-win,
+#desktop.phase-playing .layer-taskbar {
   filter: saturate(var(--crt-bloom-saturate)) contrast(var(--crt-bloom-contrast)) brightness(var(--crt-bloom-brightness));
 }
 
@@ -1217,19 +1238,17 @@ body {
 
 /* CRT를 껐을 때(설정에서 "CRT 효과" 체크 해제) — config.crt.enabled=false를
    ui/crtTransition.js의 applyCrtSteadyVars()가 이 클래스로 반영한다. 상시
-   오버레이(레이어9)와 블룸 필터 둘 다 여기서 끈다. 두 셀렉터 다 이미 있는
-   규칙(#desktop.phase-playing .layer-crt-steady / #desktop.phase-playing)보다
-   클래스가 하나 더 많아 자동으로 우선한다 — !important 불필요. */
+   오버레이(레이어9)와 블룸 색보정 둘 다 여기서 끈다. 두 셀렉터 다 위 규칙보다
+   클래스가 하나 더 많아 자동으로 우선한다 — !important 불필요.
+   ★ 블룸이 #desktop 하나가 아니라 정지 레이어들로 옮겨갔으므로(위 주석) 끄는
+     쪽도 같은 목록을 그대로 따라간다. 예전엔 이 블록이 통째로 두 번 복사돼
+     있었는데(같은 내용 2벌) 함께 정리했다. */
 #desktop.crt-off .layer-crt-steady { display: none; }
-#desktop.crt-off.phase-playing { filter: none; }
-
-/* CRT를 껐을 때(설정에서 "CRT 효과" 체크 해제) — config.crt.enabled=false를
-   ui/crtTransition.js의 applyCrtSteadyVars()가 이 클래스로 반영한다. 상시
-   오버레이(레이어9)와 블룸 필터 둘 다 여기서 끈다. 두 셀렉터 다 이미 있는
-   규칙(#desktop.phase-playing .layer-crt-steady / #desktop.phase-playing)보다
-   클래스가 하나 더 많아 자동으로 우선한다 — !important 불필요. */
-#desktop.crt-off .layer-crt-steady { display: none; }
-#desktop.crt-off.phase-playing { filter: none; }
+#desktop.crt-off.phase-playing .layer-bg,
+#desktop.crt-off.phase-playing .layer-deco,
+#desktop.crt-off.phase-playing .layer-gag,
+#desktop.crt-off.phase-playing .layer-win,
+#desktop.crt-off.phase-playing .layer-taskbar { filter: none; }
 
 /* ---------------------------------------------------------------------------
    ===== 방해꾼 과밀 지지직 (레이어7) =====
