@@ -5,6 +5,7 @@ import { state } from '../core/state.js';
 import { startGame, advanceStage } from '../core/stageManager.js';
 import { damageUpload } from './upload.js';
 import { registerKill, registerMiss, comboTier } from './combo.js';
+import { recordEnemyEncounter } from '../core/save.js';
 import { spawnClickRipple } from './clickRipple.js';
 import { playSfx, SFX } from './sound.js';
 import { pointInRect } from '../ui/draw.js';
@@ -223,6 +224,16 @@ function hitTestEnemies(pt) {
       continue; // 이 놈은 안 맞았다 — 뒤에 깔린 놈을 계속 검사
     }
 
+    // 도감(ui/dexPanel.js) 해금 전용 카운트 — bait는 히트박스 자체가 없어서
+    // (enemies/Enemy.js) 아래 containsPoint가 이 놈에게는 항상 false다. 그래서
+    // "처치"로는 영원히 못 잡는다(config.dex 주석) — 몸통(그림 전체) 클릭을 여기서
+    // 따로 세되, 판정 자체는 그대로 허공 취급(return 없이 계속 진행)해야 한다.
+    // 콤보 끊김도 이미 'miss' 낙하로 성립하므로(위 hitTestEnemies 문서 주석)
+    // 여기서 return을 주면 오히려 그 기존 규칙을 깨게 된다.
+    if (enemy.isBait && enemy.containsBody(pt.x, pt.y)) {
+      recordEnemyEncounter('bait');
+    }
+
     if (!enemy.containsPoint(pt.x, pt.y)) continue;
 
     if (enemy.isFreezeTrap) {
@@ -232,6 +243,10 @@ function hitTestEnemies(pt) {
       // 얼어있는 동안 클릭 자체를 막으므로 실질적으로도 스택될 수 없다).
       playSfx(SFX.FAKEBTN_PENALTY); // 전용음이 없어 같은 "함정에 당했다" 결의 소리를 재사용
       state.inputFreezeSec = config.enemy.hourglass.freezeSec;
+      // 도감 해금(config.dex 주석) — hourglass는 함정이라 'clicked'로 안 죽으므로
+      // (아래 enemy.kill('trapped')) 일반 처치 경로를 절대 못 탄다. 발동 자체가
+      // "정리했다"는 유일한 신호라 여기서 센다. 안 세면 이 항목은 영원히 안 열린다.
+      recordEnemyEncounter(enemy.id);
       enemy.kill('trapped'); // 발동 즉시 소멸(요구사항) — 'trapped'라 killed 통계엔 안 들어간다
       return 'freeze';
     }
@@ -247,6 +262,10 @@ function hitTestEnemies(pt) {
     if (enemy.isTrap) {
       // 누르면 안 되는 버튼을 눌렀다 — 낚였다.
       state.stats.trapClicks += 1;
+      // 도감 해금(config.dex 주석) — fake_btn도 hourglass와 같은 처지다: 클릭의
+      // 결과가 항상 kill('trapped')로 끝나 일반 처치 경로를 절대 못 탄다. 걸려든
+      // 그 순간이 유일한 "정리됐다" 신호다.
+      recordEnemyEncounter(enemy.id);
       // 함정음(FAKEBTN_PENALTY)이 곧 "속았다+당했다"는 신호라, damageUpload의 공통
       // 피격음(HIT)은 silent로 꺼서 겹치지 않게 한다 — 공통음까지 얹으면 함정음이 묻힌다.
       // 시각 피드백(번쩍임·비네트·수치)은 damageUpload가 그대로 켠다.

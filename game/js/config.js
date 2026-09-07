@@ -718,6 +718,23 @@ export const config = {
     gapSec: 0.3,
   },
 
+  // 방해꾼 도감(ui/dexPanel.js, 그림 갤러리 창의 [도감] 탭) 해금 조건.
+  // 기본 규칙은 "처음 처치하면 해금"(core/save.js의 recordEnemyEncounter가
+  // 매 처치·발동마다 이 표에서 문턱값을 찾아 없으면 1로 친다) — 여기 올라온
+  // 것만 그 기본 규칙의 예외다.
+  //   · bait: 히트박스 자체가 없어 "처치"가 구조적으로 불가능하다(enemies/
+  //     Enemy.js) — 대신 몸통을 5회 클릭당하면 해금(systems/input.js).
+  //   · hourglass/fake_btn: 둘 다 "누르면 안 되는 함정"이라 클릭의 결과가
+  //     항상 kill('trapped')로 끝난다(systems/input.js) — 일반 kill('clicked')
+  //     경로를 절대 안 타므로 1회 발동으로 해금.
+  //   · copier: isEventType이라 클릭 자체가 안 먹는다(action이 시트에서 뭐든
+  //     Enemy.js가 강제로 clickable=false) — 커서에 안착해 자폭하는 순간
+  //     (deathReason 'triggered')이 유일한 "정리됨" 신호라 그때 해금.
+  // ★ 넷 다 처리 안 하면 그 항목이 영원히 안 열린다(요구사항의 핵심 경고).
+  dex: {
+    unlockThreshold: { bait: 5 },
+  },
+
   // 방해꾼이 너무 많아졌을 때 화면 전체가 지지직거리는 과부하 연출(systems/overload.js).
   // "지금 감당이 안 되고 있다"를 숫자(살아있음 n/m)가 아니라 화면 자체로 알리는 장치다.
   overload: {

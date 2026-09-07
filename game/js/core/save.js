@@ -417,6 +417,25 @@ export function resetSeenTips() {
   });
 }
 
+/**
+ * 방해꾼 도감(ui/dexPanel.js) 누적 — "이 종류를 이번에 한 번 처리했다"는 신호가
+ * 날 때마다 부른다. 무엇이 그 신호인지는 종류마다 다르다(config.dex 주석 참고):
+ * 보통은 클릭 처치, bait는 몸통 클릭, hourglass/fake_btn은 함정 발동, copier는
+ * 자폭(triggered) — 부르는 쪽(systems/input.js, core/stageManager.js)이 그
+ * 판단을 하고, 여기서는 "누적하고 문턱값 닿으면 해금"만 한다.
+ * ★ 문턱값(config.dex.unlockThreshold)에 없는 id는 기본 1 — "처음 한 번"으로
+ *   해금되는 게 이 도감의 기본 규칙이고, bait만 5로 올려 잡은 예외다.
+ */
+export function recordEnemyEncounter(id) {
+  return updateSave((save) => {
+    save.killCounts[id] = (save.killCounts[id] || 0) + 1;
+    const threshold = config.dex.unlockThreshold[id] ?? 1;
+    if (save.killCounts[id] >= threshold && !save.unlockedEnemies.includes(id)) {
+      save.unlockedEnemies.push(id);
+    }
+  });
+}
+
 /** 저장 데이터 초기화 — 저장소의 키까지 지우고 메모리도 초기값으로 되돌린다. */
 export function clearSave() {
   cached = defaultSave();

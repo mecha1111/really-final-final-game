@@ -2,7 +2,7 @@
 
 import { config, gameData, createRules } from '../config.js';
 import { state, emptyStats, setPhase } from './state.js';
-import { recordStageCleared, recordGameOver, recordRunCompleted } from './save.js';
+import { recordStageCleared, recordGameOver, recordRunCompleted, recordEnemyEncounter } from './save.js';
 import { openEnding } from '../ui/endingScreen.js';
 import { showTip, resetRoverQueue } from '../ui/rover.js';
 import { Spawner, buildPool } from '../enemies/spawner.js';
@@ -234,7 +234,12 @@ function processDeaths(rules, playArea) {
       if (enemy.deathReason === 'expired') {
         applyExpiryEffect(enemy);
       } else if (enemy.deathReason === 'triggered') {
-        // copier가 커서 위에 안착했다 — 잡아서 죽인 게 아니므로 killed로 안 센다
+        // copier가 커서 위에 안착했다 — 잡아서 죽인 게 아니므로 killed로 안 센다.
+        // ★ 도감 해금은 예외다(config.dex 주석) — copier는 클릭 자체가 안 먹혀서
+        //   (isEventType) 'clicked'로 죽는 일이 구조적으로 없다. 이 자폭이 유일한
+        //   "정리됐다" 신호라 여기서 해금 카운트를 센다. 여기서 안 세면 copier
+        //   항목은 영원히 안 열린다.
+        recordEnemyEncounter(enemy.id);
         triggerSelfDestruct(enemy);
       } else if (enemy.deathReason === 'trapped') {
         // fake_btn(당첨/확인 함정)에 낚여 사라졌다(systems/input.js) — 방해꾼을
@@ -249,6 +254,11 @@ function processDeaths(rules, playArea) {
         enemy._zombiePendingRevive = true;
       } else {
         state.stats.killed += 1;
+        // 방해꾼 도감 해금 — 보통은 여기(클릭으로 실제 처치된 순간)가 곧 "처음
+        // 처치"다. zombie는 부활을 다 쓰고 진짜로 끝난 이때만 여기 온다(부활
+        // 대기 중인 소프트킬은 위 분기에서 걸러진다) — killed 통계와 같은 기준이라
+        // 자연히 같이 맞는다.
+        recordEnemyEncounter(enemy.id);
         if (enemy.deathReason === 'clicked') {
           born.push(...splitEnemy(enemy, rules, playArea));
         }
