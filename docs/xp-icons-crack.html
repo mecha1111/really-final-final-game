@@ -1,0 +1,487 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<title>XP 바탕화면 아이콘 + 화면 깨짐</title>
+<style>
+/* ╔══════════════════════════════════════════════════════════════════╗
+   ║  XP 파일 아이콘 (아이소메트릭) + 화면 깨짐 연출                    ║
+   ║                                                                  ║
+   ║  ★아이콘 계약은 두 갈래다. 섞지 말 것.                            ║
+   ║   A. UI 크롬 (ui/icons.js) 24×24 · currentColor 단색 · 평면       ║
+   ║   B. 파일 아이콘 (이 파일)  48×48 · 고정 다색 · ★아이소메트릭      ║
+   ║                                                                  ║
+   ║  XP 아이콘의 정체는 "평면 다색"이 아니라 ★비스듬히 본 입체다.      ║
+   ║  정면 평면으로 그리면 아무리 색을 넣어도 현대적으로 보인다.        ║
+   ║                                                                  ║
+   ║  ★그라데이션은 파일 아이콘에 한해 허용한다.                        ║
+   ║   linearGradient 는 filter 가 아니라 합성 비용이 사실상 0이고,     ║
+   ║   XP 아이콘의 입체감이 전적으로 여기서 나온다.                     ║
+   ║   (UI 크롬 아이콘은 여전히 단색 · 그라데이션 금지)                 ║
+   ╚══════════════════════════════════════════════════════════════════╝ */
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:"DGM","DungGeunMo",monospace;background:#101010;color:#c8c8c8;padding:26px 22px 80px}
+.wrap{max-width:1080px;margin:0 auto}
+h1{font-size:20px;color:#fff;margin-bottom:6px}
+.lead{font-size:13px;color:#8a8a8a;line-height:1.85;margin-bottom:24px}
+.lead b{color:#e0b84d}
+h2{font-size:15px;color:#7ec850;padding-bottom:6px;border-bottom:1px solid #2a2a2a;margin:34px 0 10px}
+.note{font-size:12.5px;color:#8d8d8d;line-height:1.9;margin-bottom:14px}
+.note b{color:#e0b84d}
+code{background:#242424;padding:1px 5px;color:#9fd0ff;font-size:12px}
+.ctl{display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap}
+.ctl button{font-family:inherit;font-size:12px;padding:6px 14px;background:#2b2b2b;color:#ddd;border:1px solid #444;cursor:pointer}
+.ctl button:hover{background:#383838}
+
+.cmp{display:flex;gap:24px;flex-wrap:wrap}
+.cmp .box{background:#1c1c1c;border:1px solid #303030;padding:15px}
+.cmp .box h3{font-size:12px;margin-bottom:11px;font-weight:normal;color:#999}
+.cmp .box.bad h3{color:#d9382a}
+.cmp .box.good h3{color:#7ec850}
+
+.desk{
+  background:linear-gradient(#3f83cd 0%,#5f9fda 30%,#8ec4ea 46%,#bcdcf0 50%,
+                             #a9d17a 52%,#7cc44e 58%,#5da236 80%,#478c2b 100%);
+  padding:12px;display:grid;grid-template-rows:repeat(3,94px);
+  grid-auto-flow:column;gap:2px 4px;justify-content:start;position:relative;overflow:hidden;
+}
+.ico{width:96px;height:94px;padding:5px 2px 4px;text-align:center;border-radius:2px}
+.ico .g{height:50px;display:grid;place-items:center}
+.ico .g svg{width:46px;height:46px;display:block}
+.ico .lb{
+  margin-top:2px;color:#fff;font-size:11px;line-height:1.3;
+  text-shadow:1px 1px 2px rgba(0,0,0,.95);
+  display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;
+  overflow:hidden;padding:1px 3px;border-radius:1px;word-break:break-all;
+}
+.ico.sel{outline:1px dotted rgba(255,255,255,.8);outline-offset:-2px;background:rgba(11,91,216,.3)}
+.ico.sel .lb{background:#0a246a;text-shadow:none;-webkit-line-clamp:4}
+
+.grid{display:flex;flex-wrap:wrap;gap:14px;background:#1c1c1c;border:1px solid #303030;padding:18px}
+.grid figure{width:96px;text-align:center;color:#9a9a9a;font-size:10px;line-height:1.4}
+.grid figure svg{width:46px;height:46px;display:block;margin:0 auto 6px}
+.sizes{display:flex;gap:26px;align-items:flex-end;background:#1c1c1c;border:1px solid #303030;padding:20px}
+.sizes figure{text-align:center;color:#888;font-size:10px}
+.sizes figure svg{display:block;margin:0 auto 7px}
+.tbl{width:100%;border-collapse:collapse;font-size:12px;margin-top:8px}
+.tbl th,.tbl td{border:1px solid #303030;padding:6px 9px;text-align:left;color:#bbb}
+.tbl th{background:#242424;color:#ddd}
+
+/* ══ 화면 깨짐 무대 ══ */
+.stage{position:relative;width:100%;height:420px;overflow:hidden;border:1px solid #303030}
+.stage .desk{position:absolute;inset:0;grid-template-rows:repeat(4,94px)}
+#crack{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:5}
+.crtfx{position:absolute;inset:0;z-index:6;pointer-events:none}
+.crtfx .scan{position:absolute;inset:0;background:repeating-linear-gradient(rgba(0,0,0,0) 0 2px,rgba(0,0,0,.12) 2px 3px)}
+.crtfx .vig{position:absolute;inset:0;box-shadow:inset 0 0 70px rgba(0,0,0,.3)}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<h1>XP 파일 아이콘 (아이소메트릭) + 화면 깨짐</h1>
+<p class="lead">
+  XP 아이콘의 정체는 "평면 다색"이 아니라 <b>비스듬히 본 입체</b>다.
+  정면 평면으로 그리면 색을 아무리 넣어도 현대적으로 보인다.<br>
+  ★<b>그라데이션은 파일 아이콘에만 허용</b> — <code>linearGradient</code>는 filter가 아니라
+  합성 비용이 사실상 0이고, XP 입체감이 전적으로 여기서 나온다.
+  (UI 크롬 아이콘은 여전히 단색·그라데이션 금지)
+</p>
+
+<h2>1 · 평면 vs 아이소메트릭</h2>
+<p class="note">
+  왼쪽은 정면 평면 — 색은 다색인데도 "현대 플랫 아이콘"으로 읽힌다.<br>
+  오른쪽은 XP 실물 방식 — <b>기울어진 면 + 두께 + 그라데이션 음영 + 아래쪽 그림자</b>.
+</p>
+<div class="cmp">
+  <div class="box bad"><h3>✕ 정면 평면</h3><div class="desk" id="deskFlat"></div></div>
+  <div class="box good"><h3>✓ 아이소메트릭 (XP)</h3><div class="desk" id="deskIso"></div></div>
+</div>
+
+<h2>2 · 우리 게임 앱 아이콘</h2>
+<p class="note">
+  바탕화면에서 <b>이것만 찾아야 하는</b> 아이콘이다. 주변이 노란 폴더·흰 문서라
+  파란 창 + 초록 진행바면 색만으로 즉시 눈에 띈다.
+  기울어진 XP 창 + 진행바 — 16px에서도 "파랑 위 초록 막대"가 유지된다.
+</p>
+<div class="sizes" id="appSizes"></div>
+
+<h2>3 · 아이콘 전체</h2>
+<div class="grid" id="allIcons"></div>
+
+<h2>4 · XP 아이콘 문법</h2>
+<table class="tbl">
+  <tr><th>요소</th><th>규칙</th></tr>
+  <tr><td>시점</td><td>정면이 아니라 ★약간 위·왼쪽에서 본 3/4 시점</td></tr>
+  <tr><td>두께</td><td>납작한 것도 옆면이 보인다 (종이·폴더 모두)</td></tr>
+  <tr><td>음영</td><td>세로 <code>linearGradient</code> 2~3스톱. 위가 밝고 아래가 어둡다</td></tr>
+  <tr><td>그림자</td><td>filter 금지 → ★반투명 타원/도형을 아래에 깔아 흉내</td></tr>
+  <tr><td>외곽선</td><td>있으되 얇게 (1~1.4). 주색보다 어두운 같은 계열</td></tr>
+  <tr><td>모서리</td><td>살짝 둥글게. 각지면 9x, 완전히 둥글면 현대</td></tr>
+  <tr><td>채도</td><td>높다. XP는 파스텔이 아니라 ★쨍한 색이다</td></tr>
+</table>
+
+<h2>5 · 화면 깨짐 — 세로 픽셀 열 고장</h2>
+<p class="note">
+  노이즈 사각 블록은 "고장난 모니터"가 아니라 그냥 노이즈다.
+  실물 패널 고장은 <b>세로로 한 줄이 통째로 죽거나 색이 튄다</b>.<br>
+  ★구성: 세로 열 2~4개(폭 3~8px, 화면 관통) + 각 열의 성격이 다름 —
+  <b>죽은 열</b>(검정) / <b>박힌 열</b>(흰색) / <b>색 튀는 열</b>(RGB가 계속 바뀜).
+  여기에 CRT 어휘로 ★수평 지직 밴드를 가끔 얹는다.<br>
+  드래그로 문지르면 <b>열 단위로</b> 지워진다.
+</p>
+<div class="ctl">
+  <button onclick="crackOn()">화면 깨짐 발동</button>
+  <button onclick="crackTelegraph()">전조만 보기</button>
+  <button onclick="crackOff()">끄기</button>
+  <button onclick="toggleCrt()">CRT 오버레이</button>
+  <span style="font-size:11px;color:#777;align-self:center">★화면 위를 드래그하면 열이 지워집니다</span>
+</div>
+<div class="stage" id="stage">
+  <div class="desk" id="deskCrack"></div>
+  <canvas id="crack"></canvas>
+  <div class="crtfx" id="crtfx"><i class="vig"></i><i class="scan"></i></div>
+</div>
+<p class="note" style="margin-top:12px">
+  ★<b>전조</b>: 발동 1초 전에 세로선 하나가 짧게 번쩍했다 사라진다.
+  "무엇이 오는지"는 알려주되 막을 수는 없다 — 전조는 그 효과의 축소판이다.
+</p>
+
+<h2>6 · 하지 말 것</h2>
+<p class="note">
+  <b>1.</b> 파일 아이콘에 <code>currentColor</code> 금지. 지금 버그의 원인이다.<br>
+  <b>2.</b> UI 크롬 아이콘과 파일 아이콘을 ★같은 함수로 꺼내지 말 것. 계약이 다르다.<br>
+  <b>3.</b> 정면 평면으로 그리지 말 것. 색이 아니라 ★시점이 XP다움을 만든다.<br>
+  <b>4.</b> <code>filter: drop-shadow</code> 금지 — 그림자는 도형으로 흉내낸다.<br>
+  <b>5.</b> 화면 깨짐을 랜덤 노이즈로 만들지 말 것. ★세로 열이어야 고장으로 읽힌다.<br>
+  <b>6.</b> 깨짐 캔버스를 매 프레임 다시 그리지 말 것 — 열이 바뀐 프레임에만.
+</p>
+
+</div>
+
+<script>
+/* ══════════════════════════════════════════════════════════════
+   파일 아이콘 — 48×48 아이소메트릭, 고정 다색
+   ★currentColor 안 씀. 그라데이션은 파일 아이콘에만 허용.
+   ══════════════════════════════════════════════════════════════ */
+function sv(id, body, defs){
+  return '<svg viewBox="0 0 48 48">' + (defs || '') + body + '</svg>';
+}
+/* 공통 그림자 — filter 대신 반투명 타원 */
+var SH = '<ellipse cx="25" cy="43" rx="17" ry="3" fill="rgba(0,0,0,.20)"/>';
+
+var G = {};
+
+G.folder = sv('f',
+  SH +
+  /* 뒷판 (어두운 면) */
+  '<path d="M4 13h14l4 4h23v22H4z" fill="url(#gFolderBack)" stroke="#8a6208" stroke-width="1.2" stroke-linejoin="round"/>' +
+  /* 앞판 — ★기울어진 사다리꼴이 XP 폴더의 핵심 */
+  '<path d="M9 21h39l-6 19H3z" fill="url(#gFolderFront)" stroke="#8a6208" stroke-width="1.2" stroke-linejoin="round"/>' +
+  /* 윗면 하이라이트 */
+  '<path d="M9.8 22.4h36.6l-.7 2.2H9.1z" fill="rgba(255,255,255,.45)"/>',
+  '<defs>' +
+  '<linearGradient id="gFolderBack" x1="0" y1="0" x2="0" y2="1">' +
+    '<stop offset="0" stop-color="#f8c53f"/><stop offset="1" stop-color="#d99a10"/></linearGradient>' +
+  '<linearGradient id="gFolderFront" x1="0" y1="0" x2="0" y2="1">' +
+    '<stop offset="0" stop-color="#ffe08a"/><stop offset=".55" stop-color="#fdc63f"/><stop offset="1" stop-color="#e0a014"/></linearGradient>' +
+  '</defs>');
+
+G.folder_open = sv('fo',
+  SH +
+  '<path d="M4 13h14l4 4h23v22H4z" fill="url(#gFolderBack)" stroke="#8a6208" stroke-width="1.2" stroke-linejoin="round"/>' +
+  '<path d="M13 19h35l-9 21H2z" fill="url(#gFolderFront)" stroke="#8a6208" stroke-width="1.2" stroke-linejoin="round"/>',
+  '<defs>' +
+  '<linearGradient id="gFolderBack2" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#f8c53f"/><stop offset="1" stop-color="#d99a10"/></linearGradient>' +
+  '</defs>');
+
+/* 종이 — ★옆면 두께가 보여야 종이로 읽힌다 */
+function paper(inner, idsfx){
+  return sv('p',
+    SH +
+    /* 두께 (옆면) */
+    '<path d="M12 6h18l9 9v27H12z" fill="#c8c4b4"/>' +
+    /* 앞면 */
+    '<path d="M10 4h18l9 9v27H10z" fill="url(#gPaper' + idsfx + ')" stroke="#8b8778" stroke-width="1.2" stroke-linejoin="round"/>' +
+    /* 접힌 모서리 */
+    '<path d="M28 4v9h9z" fill="#dedac9" stroke="#8b8778" stroke-width="1.2" stroke-linejoin="round"/>' +
+    inner,
+    '<defs><linearGradient id="gPaper' + idsfx + '" x1="0" y1="0" x2="1" y2="1">' +
+    '<stop offset="0" stop-color="#ffffff"/><stop offset="1" stop-color="#e9e6da"/></linearGradient></defs>');
+}
+
+G.doc = paper('<path d="M15 20h17M15 25h17M15 30h11" stroke="#3a72c4" stroke-width="2"/>', 'd');
+
+G.psd = paper(
+  '<rect x="15" y="22" width="19" height="15" rx="1.5" fill="url(#gPs)"/>' +
+  '<text x="24.5" y="33.5" font-size="10" fill="#57d3ff" text-anchor="middle" font-family="monospace" font-weight="bold">Ps</text>' +
+  '<defs><linearGradient id="gPs" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#1b4a8f"/><stop offset="1" stop-color="#062043"/></linearGradient></defs>', 'p');
+
+G.virus = paper(
+  '<circle cx="30" cy="32" r="11" fill="url(#gVir)" stroke="#7a1c12" stroke-width="1.3"/>' +
+  '<path d="M25.6 27.6l8.8 8.8M34.4 27.6l-8.8 8.8" stroke="#fff" stroke-width="2.8" stroke-linecap="round"/>' +
+  '<defs><radialGradient id="gVir" cx=".35" cy=".3"><stop offset="0" stop-color="#f0705f"/><stop offset="1" stop-color="#c22a1c"/></radialGradient></defs>', 'v');
+
+/* zip — 상자 + 지퍼, 뚜껑 면이 보임 */
+G.zip = sv('z',
+  SH +
+  '<path d="M8 15l16-6 16 6v22l-16 6-16-6z" fill="url(#gZipB)" stroke="#8a6a12" stroke-width="1.2" stroke-linejoin="round"/>' +
+  '<path d="M8 15l16 6 16-6-16-6z" fill="url(#gZipT)" stroke="#8a6a12" stroke-width="1.2" stroke-linejoin="round"/>' +
+  '<path d="M24 21v22" stroke="#8a6a12" stroke-width="1.2"/>' +
+  '<rect x="21" y="18" width="6" height="9" rx="1.2" fill="#fff6d8" stroke="#8a6a12" stroke-width="1.1"/>' +
+  '<rect x="23.2" y="21" width="1.8" height="4" fill="#8a6a12"/>',
+  '<defs>' +
+  '<linearGradient id="gZipB" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#f6d76a"/><stop offset="1" stop-color="#cf9c14"/></linearGradient>' +
+  '<linearGradient id="gZipT" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffe89a"/><stop offset="1" stop-color="#efc849"/></linearGradient>' +
+  '</defs>');
+
+/* exe — 기울어진 XP 창 */
+function win(inner, idsfx){
+  return sv('w',
+    SH +
+    /* 두께 */
+    '<path d="M9 12h34v26H9z" fill="#9aa4b0"/>' +
+    /* 본체 */
+    '<rect x="6" y="9" width="36" height="27" rx="2.5" fill="#ECE9D8" stroke="#17427c" stroke-width="1.4"/>' +
+    /* 타이틀바 */
+    '<path d="M6 11.5A2.5 2.5 0 0 1 8.5 9h31A2.5 2.5 0 0 1 42 11.5V17H6z" fill="url(#gTitle' + idsfx + ')"/>' +
+    '<rect x="8.4" y="11" width="3.6" height="3.6" rx=".8" fill="#fff" opacity=".85"/>' +
+    inner,
+    '<defs><linearGradient id="gTitle' + idsfx + '" x1="0" y1="0" x2="0" y2="1">' +
+    '<stop offset="0" stop-color="#5fa8f0"/><stop offset=".5" stop-color="#2b73d8"/><stop offset="1" stop-color="#1a5ac4"/>' +
+    '</linearGradient></defs>');
+}
+
+G.exe = win(
+  '<rect x="10" y="20" width="28" height="12" rx="1" fill="#fff" stroke="#9a9584" stroke-width="1"/>' +
+  '<path d="M19 22.5l7 3.5-7 3.5z" fill="#2b73d8"/>', 'e');
+
+/* ★우리 게임 앱 아이콘 — 창 + 진행바 */
+G.game = win(
+  '<rect x="10" y="20" width="28" height="8" fill="#fff" stroke="#9a9584" stroke-width="1"/>' +
+  '<rect x="11.4" y="21.4" width="4" height="5.2" fill="url(#gBar)"/>' +
+  '<rect x="16.4" y="21.4" width="4" height="5.2" fill="url(#gBar)"/>' +
+  '<rect x="21.4" y="21.4" width="4" height="5.2" fill="url(#gBar)"/>' +
+  '<rect x="26.4" y="21.4" width="4" height="5.2" fill="url(#gBar)"/>' +
+  '<path d="M10 31.5h28M10 34h18" stroke="#b3aea0" stroke-width="1.6"/>' +
+  '<defs><linearGradient id="gBar" x1="0" y1="0" x2="0" y2="1">' +
+  '<stop offset="0" stop-color="#a4f07a"/><stop offset=".5" stop-color="#4bbb1a"/><stop offset="1" stop-color="#5fd02c"/>' +
+  '</linearGradient></defs>', 'g');
+
+/* 휴지통 — ★반투명 원통. XP 실물이 이렇다 */
+G.bin = sv('b',
+  SH +
+  '<path d="M13 15l2.5 25c.2 1.6 4 2.6 8.5 2.6s8.3-1 8.5-2.6L35 15z" fill="url(#gBin)" stroke="#5d6b7a" stroke-width="1.3" stroke-linejoin="round"/>' +
+  '<ellipse cx="24" cy="15" rx="11" ry="3.6" fill="#eef3f8" stroke="#5d6b7a" stroke-width="1.3"/>' +
+  '<ellipse cx="24" cy="12.4" rx="12.5" ry="4" fill="#b7c4d2" stroke="#5d6b7a" stroke-width="1.3"/>' +
+  '<path d="M19 20v18M24 20.4v19M29 20v18" stroke="rgba(93,107,122,.55)" stroke-width="1.4"/>',
+  '<defs><linearGradient id="gBin" x1="0" y1="0" x2="1" y2="0">' +
+  '<stop offset="0" stop-color="#cfdae6"/><stop offset=".4" stop-color="#eef4fa"/><stop offset="1" stop-color="#a9b8c8"/>' +
+  '</linearGradient></defs>');
+
+/* 방패 — XP 보안센터 4분할 */
+G.shield = sv('s',
+  SH +
+  '<path d="M24 4l16 6.5v11.5c0 9.6-6.6 16.8-16 19.6C14.6 38.8 8 31.6 8 22V10.5z" fill="url(#gShl)" stroke="#7a5c00" stroke-width="1.4" stroke-linejoin="round"/>' +
+  '<path d="M24 5.4v35.4M9.4 20.5h29.2" stroke="rgba(255,255,255,.75)" stroke-width="1.8"/>',
+  '<defs><linearGradient id="gShl" x1="0" y1="0" x2="0" y2="1">' +
+  '<stop offset="0" stop-color="#ffe071"/><stop offset=".55" stop-color="#f5bd1c"/><stop offset="1" stop-color="#cf9508"/>' +
+  '</linearGradient></defs>');
+
+G.help = sv('h',
+  SH +
+  '<circle cx="24" cy="23" r="17" fill="url(#gHelp)" stroke="#1b4a8f" stroke-width="1.4"/>' +
+  '<ellipse cx="19" cy="15" rx="7" ry="4.5" fill="rgba(255,255,255,.35)"/>' +
+  '<path d="M18.6 18.5a5.6 5.6 0 1 1 7.4 5.3v3.4" fill="none" stroke="#fff" stroke-width="4.2" stroke-linecap="round"/>' +
+  '<circle cx="24" cy="32.4" r="2.6" fill="#fff"/>',
+  '<defs><linearGradient id="gHelp" x1="0" y1="0" x2="0" y2="1">' +
+  '<stop offset="0" stop-color="#7cbcf5"/><stop offset="1" stop-color="#2160b8"/></linearGradient></defs>');
+
+G.pad = sv('g',
+  SH +
+  '<path d="M11 17h26l4 20H7z" fill="#7c8798"/>' +
+  '<rect x="5" y="15" width="38" height="19" rx="9" fill="url(#gPad)" stroke="#17427c" stroke-width="1.4"/>' +
+  '<ellipse cx="16" cy="21" rx="8" ry="3" fill="rgba(255,255,255,.28)"/>' +
+  '<path d="M12 21.5v6M9 24.5h6" stroke="#fff" stroke-width="2.6" stroke-linecap="round"/>' +
+  '<circle cx="34" cy="22.5" r="2.6" fill="#fff"/><circle cx="38" cy="27" r="2.6" fill="#fff"/>',
+  '<defs><linearGradient id="gPad" x1="0" y1="0" x2="0" y2="1">' +
+  '<stop offset="0" stop-color="#6fb2f2"/><stop offset=".5" stop-color="#2e6fd0"/><stop offset="1" stop-color="#1c4c9c"/></linearGradient></defs>');
+
+/* ══ 정면 평면판 (비교용 — 이렇게 하면 안 된다) ══ */
+var FLAT = {
+  folder:'<svg viewBox="0 0 48 48"><path d="M3 9h15l4 5h23v29H3z" fill="#f5b921" stroke="#9a6f0c" stroke-width="1.6"/><path d="M3 17h42v26H3z" fill="#ffd764" stroke="#9a6f0c" stroke-width="1.6"/></svg>',
+  doc:'<svg viewBox="0 0 48 48"><path d="M9 3h20l10 10v32H9z" fill="#fdfdfa" stroke="#8b8778" stroke-width="1.6"/><path d="M29 3v10h10" fill="#e6e3d5" stroke="#8b8778" stroke-width="1.6"/><path d="M15 21h18M15 27h18M15 33h12" stroke="#2f6fd0" stroke-width="2"/></svg>',
+  game:'<svg viewBox="0 0 48 48"><rect x="4" y="6" width="40" height="36" rx="3" fill="#ECE9D8" stroke="#17427c" stroke-width="1.8"/><path d="M4 9a3 3 0 0 1 3-3h34a3 3 0 0 1 3 3v6H4z" fill="#5fa8f0"/><rect x="9" y="20" width="30" height="9" fill="#fff" stroke="#9a9584" stroke-width="1.4"/><rect x="11" y="22" width="4" height="5" fill="#4bbb1a"/><rect x="16" y="22" width="4" height="5" fill="#4bbb1a"/><rect x="21" y="22" width="4" height="5" fill="#4bbb1a"/><rect x="26" y="22" width="4" height="5" fill="#4bbb1a"/></svg>',
+  bin:'<svg viewBox="0 0 48 48"><path d="M12 14h24l-2.5 29h-19z" fill="#cfd8e2" stroke="#5d6b7a" stroke-width="1.6"/><path d="M9 9h30v5H9z" fill="#9aa9ba" stroke="#5d6b7a" stroke-width="1.6"/><path d="M19 20v17M24 20v17M29 20v17" stroke="#5d6b7a" stroke-width="1.6"/></svg>',
+  zip:'<svg viewBox="0 0 48 48"><path d="M7 5h34v38H7z" fill="#d9a81c" stroke="#8a6a12" stroke-width="1.6"/><path d="M7 5h34v10H7z" fill="#f2cf5a" stroke="#8a6a12" stroke-width="1.6"/><rect x="21" y="5" width="6" height="22" fill="#fff8dc" stroke="#8a6a12" stroke-width="1.4"/></svg>',
+  shield:'<svg viewBox="0 0 48 48"><path d="M24 4l17 7v11c0 10-7 17.5-17 20.5C14 39.5 7 32 7 22V11z" fill="#f4c430" stroke="#a07d00" stroke-width="1.8"/></svg>',
+  help:'<svg viewBox="0 0 48 48"><circle cx="24" cy="24" r="19" fill="#5b8fd6" stroke="#2a5490" stroke-width="1.8"/><path d="M18 19a6 6 0 1 1 8 5.6V29" fill="none" stroke="#fff" stroke-width="4"/><circle cx="24" cy="35" r="2.6" fill="#fff"/></svg>',
+  psd:'<svg viewBox="0 0 48 48"><path d="M9 3h20l10 10v32H9z" fill="#fdfdfa" stroke="#8b8778" stroke-width="1.6"/><rect x="14" y="22" width="21" height="16" rx="1.5" fill="#0a2d5e"/><text x="24.5" y="34.5" font-size="11" fill="#4fd0ff" text-anchor="middle" font-family="monospace" font-weight="bold">Ps</text></svg>',
+  virus:'<svg viewBox="0 0 48 48"><path d="M9 3h20l10 10v32H9z" fill="#fdfdfa" stroke="#8b8778" stroke-width="1.6"/><circle cx="27" cy="31" r="12" fill="#d9382a" stroke="#7a1c12" stroke-width="1.6"/><path d="M22 26l10 10M32 26l-10 10" stroke="#fff" stroke-width="2.6"/></svg>',
+  pad:'<svg viewBox="0 0 48 48"><rect x="4" y="15" width="40" height="19" rx="8" fill="#2e6fd0" stroke="#17427c" stroke-width="1.6"/><path d="M11 21v7M7.5 24.5h7" stroke="#fff" stroke-width="2.6"/><circle cx="34" cy="22" r="2.6" fill="#fff"/><circle cx="38" cy="27" r="2.6" fill="#fff"/></svg>',
+  exe:'<svg viewBox="0 0 48 48"><rect x="5" y="7" width="38" height="34" rx="3" fill="#2e6fd0" stroke="#17427c" stroke-width="1.6"/><rect x="5" y="7" width="38" height="9" rx="3" fill="#5fa8f0"/><rect x="9" y="20" width="30" height="16" rx="1.5" fill="#dceafb"/><path d="M18 24l10 4-10 4z" fill="#17427c"/></svg>'
+};
+
+var FILES = [
+  {n:'새 폴더',                            i:'folder'},
+  {n:'절대_바이러스_아님_진짜_전드고래임.exe', i:'virus'},
+  {n:'숙제(안함)',                          i:'folder'},
+  {n:'V3보다좋음.exe',                      i:'shield'},
+  {n:'공부자료.exe',                        i:'pad'},
+  {n:'수정본.psd',                          i:'psd'},
+  {n:'제출용_최종.hwp',                     i:'doc'},
+  {n:'백업(지우지마).zip',                   i:'zip'},
+  {n:'진짜_최종_final_수정_진짜최종(5).exe',  i:'game', sel:true},
+  {n:'도움말',                              i:'help'},
+  {n:'setup.exe',                          i:'exe'},
+  {n:'휴지통',                              i:'bin'}
+];
+
+function buildDesk(el, set){
+  FILES.forEach(function(f){
+    var d = document.createElement('div');
+    d.className = 'ico' + (f.sel ? ' sel' : '');
+    d.innerHTML = '<div class="g">' + (set[f.i] || '') + '</div><div class="lb">' + f.n + '</div>';
+    el.appendChild(d);
+  });
+}
+buildDesk(document.getElementById('deskFlat'), FLAT);
+buildDesk(document.getElementById('deskIso'),  G);
+buildDesk(document.getElementById('deskCrack'), G);
+
+(function(){
+  var w = document.getElementById('appSizes');
+  [16,24,32,48,64].forEach(function(s){
+    var f = document.createElement('figure');
+    f.innerHTML = G.game.replace('<svg ', '<svg width="'+s+'" height="'+s+'" ') + s + 'px';
+    w.appendChild(f);
+  });
+  var a = document.getElementById('allIcons');
+  Object.keys(G).forEach(function(k){
+    var f = document.createElement('figure');
+    f.innerHTML = G[k] + k;
+    a.appendChild(f);
+  });
+})();
+
+
+/* ══════════════════════════════════════════════════════════════
+   화면 깨짐 — 세로 픽셀 열 고장
+   ★랜덤 노이즈가 아니라 "열"이어야 모니터 고장으로 읽힌다.
+   ★열이 바뀐 프레임에만 다시 그린다 (매 프레임 clearRect 금지)
+   ══════════════════════════════════════════════════════════════ */
+var cv = document.getElementById('crack'), cx = cv.getContext('2d');
+var stage = document.getElementById('stage');
+var W = 0, H = 0, cols = [], live = false, dirty = true, flickT = 0;
+
+function resize(){
+  var r = stage.getBoundingClientRect();
+  W = Math.round(r.width); H = Math.round(r.height);
+  cv.width = W; cv.height = H; dirty = true;
+}
+window.addEventListener('resize', resize);
+resize();
+
+var KIND = ['dead', 'stuck', 'rgb'];   /* 죽은 열 / 박힌 열 / 색 튀는 열 */
+function makeCol(){
+  var k = KIND[(Math.random() * KIND.length) | 0];
+  return {
+    x: Math.round(20 + Math.random() * (W - 60)),
+    w: Math.round(3 + Math.random() * 5),
+    kind: k,
+    /* 열 안에서도 세로로 몇 토막이 다르게 튄다 — 균일하면 그냥 막대로 보인다 */
+    segs: Array.from({length: 14}, function(){ return Math.random(); }),
+    phase: Math.random() * 6.28
+  };
+}
+
+function colColor(c, s, t){
+  if (c.kind === 'dead')  return s > .25 ? '#000000' : '#141414';
+  if (c.kind === 'stuck') return s > .3  ? '#ffffff' : '#c8c8c8';
+  /* rgb: 빨/초/파가 계속 바뀐다 */
+  var i = ((s * 3 + t) | 0) % 3;
+  return ['#ff2020', '#20ff40', '#3050ff'][i];
+}
+
+function drawCrack(t){
+  cx.clearRect(0, 0, W, H);
+  for (var i = 0; i < cols.length; i++) {
+    var c = cols[i], n = c.segs.length, sh = H / n;
+    for (var j = 0; j < n; j++) {
+      var s = c.segs[j];
+      if (s < .12) continue;                     /* 군데군데 멀쩡한 토막 */
+      cx.fillStyle = colColor(c, s, t + j * .3);
+      cx.fillRect(c.x, Math.round(j * sh), c.w, Math.ceil(sh));
+    }
+    /* 열 가장자리 번짐 — CRT 형광 잔상 */
+    cx.fillStyle = 'rgba(255,255,255,.25)';
+    cx.fillRect(c.x - 1, 0, 1, H);
+    cx.fillRect(c.x + c.w, 0, 1, H);
+  }
+  /* ★수평 지직 밴드 — CRT 어휘. 가끔만 */
+  if (((t * 2) | 0) % 7 === 0) {
+    var by = ((t * 137) % H) | 0;
+    cx.fillStyle = 'rgba(255,255,255,.16)';
+    cx.fillRect(0, by, W, 3);
+  }
+}
+
+var last = performance.now(), acc = 0;
+function loop(now){
+  var dt = (now - last) / 1000; last = now;
+  if (live) {
+    flickT += dt;
+    /* ★0.12초마다만 다시 그린다. 매 프레임 아님 */
+    acc += dt;
+    if (acc >= .12 || dirty) { acc = 0; dirty = false; drawCrack(flickT); }
+  }
+  requestAnimationFrame(loop);
+}
+requestAnimationFrame(loop);
+
+function crackOn(){
+  cols = [];
+  var n = 2 + ((Math.random() * 3) | 0);      /* 2~4열 */
+  for (var i = 0; i < n; i++) cols.push(makeCol());
+  live = true; dirty = true;
+}
+function crackOff(){ live = false; cols = []; cx.clearRect(0, 0, W, H); }
+
+/* ★전조 — 발동 1초 전, 세로선 하나가 짧게 번쩍 */
+function crackTelegraph(){
+  crackOff();
+  var c = makeCol(); c.kind = 'stuck';
+  var flashes = 0;
+  (function blink(){
+    cx.clearRect(0, 0, W, H);
+    if (flashes % 2 === 0) {
+      cx.fillStyle = 'rgba(255,255,255,.75)';
+      cx.fillRect(c.x, 0, c.w, H);
+    }
+    flashes++;
+    if (flashes < 5) setTimeout(blink, 90);
+    else setTimeout(function(){ cx.clearRect(0, 0, W, H); }, 90);
+  })();
+}
+
+/* 드래그로 열 단위 제거 */
+stage.addEventListener('pointerdown', wipe);
+stage.addEventListener('pointermove', function(e){ if (e.buttons) wipe(e); });
+function wipe(e){
+  if (!live) return;
+  var r = stage.getBoundingClientRect(), x = e.clientX - r.left;
+  var before = cols.length;
+  cols = cols.filter(function(c){ return !(x >= c.x - 4 && x <= c.x + c.w + 4); });
+  if (cols.length !== before) { dirty = true; if (!cols.length) crackOff(); }
+}
+
+function toggleCrt(){ document.getElementById('crtfx').classList.toggle('off'); }
+document.getElementById('crtfx').classList.toString();
+var st = document.createElement('style');
+st.textContent = '.crtfx.off{display:none}';
+document.head.appendChild(st);
+
+crackOn();
+</script>
+</body>
+</html>
