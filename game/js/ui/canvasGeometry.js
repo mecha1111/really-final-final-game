@@ -68,7 +68,7 @@ function ancestorScale(el) {
 }
 
 // ───────────────────────────────────────────────────────────────────────────
-// 화면 회전(환경 방해 "모니터 세로모드", ui/hazards/portrait.js)
+// 화면 회전(환경 방해 "상하반전", ui/hazards/flip.js)
 //
 // ★ 회전 보정은 이 파일 하나에만 있다. 다른 곳(systems/input.js, ui/*)에 회전
 //   보정 코드를 흩뿌리지 않는다 — clientToWorld / worldToClient가 이미 모든 좌표
@@ -95,7 +95,7 @@ let rotationRad = 0;
 let settleUntilMs = 0;
 
 /**
- * 화면 회전각을 설정한다(도 단위). ui/hazards/portrait.js가 켜고 끈다.
+ * 화면 회전각을 설정한다(도 단위). ui/hazards/flip.js가 켜고 끈다.
  * ★ 여기서 CSS를 건드리지 않는다 — 이 값은 "판정이 알아야 하는 각도"일 뿐이고,
  *   실제로 화면을 돌리는 건 그쪽 hazard의 CSS 클래스다. 둘을 한 함수에 묶으면
  *   "화면은 돌았는데 판정은 안 돌았다"(또는 그 반대)가 조용히 생길 수 있어서,

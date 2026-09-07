@@ -261,7 +261,7 @@ export function initSettingsPanel() {
   // 듣는 건 끄는 이유(지금 당장 어지럽다)와 안 맞는다(위 환경 방해와 같은 원칙).
   document.getElementById('set-rotation-on')?.addEventListener('change', (evt) => {
     config.hazard.rotationEnabled = evt.target.checked;
-    if (!config.hazard.rotationEnabled) dismissHazardById('portrait');
+    if (!config.hazard.rotationEnabled) dismissHazardById('flip');
     saveSettings();
   });
 

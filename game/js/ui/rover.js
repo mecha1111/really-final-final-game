@@ -53,7 +53,7 @@ export function initRover() {
   textEl = document.getElementById('rover-text');
 
   // 슬라이드 전환 시간을 CSS와 여기서 같은 값을 쓰게 CSS 변수로 흘려보낸다
-  // (config.hazard.portrait이 --rot-sec를 흘려보내는 것과 같은 패턴).
+  // (config.hazard.flip이 --rot-sec를 흘려보내는 것과 같은 패턴).
   layer.style.setProperty('--rover-slide-sec', `${config.tutorial.slideSec}s`);
   // 머리말 아이콘은 정적 마크업의 [data-icon="search"]라 applyIcons()(main.js가
   // 부팅 시 한 번 먼저 부른다)가 이미 채워뒀다 — 여기서 더 할 일이 없다.

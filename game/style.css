@@ -2235,16 +2235,16 @@ body {
    풍선만 얹는다(회전 자체는 아래 #stage 규칙이 한다). 다른 방해와 같은 이유로
    컨테이너·풍선 전부 pointer-events:none — 해제 조작이 없는(시간이 지나면 저절로
    돌아오는) 방해라 클릭을 받을 이유가 없다. */
-#desktop .hz-portrait { position: absolute; inset: 0; pointer-events: none; }
+#desktop .hz-flip { position: absolute; inset: 0; pointer-events: none; }
 
 /* ★ 회전은 #desktop이 아니라 #stage에 건다.
    ui/canvasFit.js가 리사이즈마다 desktop.style.transform을 통째로 다시 쓰기
    때문에, 거기 얹으면 방해가 떠 있는 도중 창 크기만 바뀌어도 회전이 지워진다.
    소유권을 갈라둔다: #desktop = 화면 맞춤 배율(canvasFit) / #stage = 회전(hazard).
 
-   ★ scale(--rot-fit)은 16:9를 90° 돌렸을 때 세로로 넘쳐 잘리는 걸 막는 배율이다
-   (canvasFit.js가 리사이즈마다 계산해 내려보낸다). 잘리면 그 자리의 방해꾼이
-   보이지도 눌리지도 않아 그냥 불공정해진다.
+   ★ 예전엔 여기에 scale(--rot-fit)이 함께 걸려 있었다 — 16:9를 90° 돌리면 세로로
+   넘쳐 잘려서, 그 자리의 방해꾼이 보이지도 눌리지도 않아 불공정해졌기 때문이다.
+   상하반전(180°)은 외접 사각형이 그대로라 그 보정 자체가 필요 없어져 걷어냈다.
 
    ★ transform 하나만 쓴다(GPU 합성 경로). SVG 필터·blur는 절대 안 쓴다 —
    이 프로젝트에 성능 랙의 주범으로 전부 걷어낸 이력이 있다(ui/icons.js 주석). */
@@ -2253,8 +2253,11 @@ body {
   transform-origin: center center;
   will-change: transform;
 }
-#stage.rot-portrait {
-  transform: rotate(var(--rot-deg, 90deg)) scale(var(--rot-fit, 1));
+/* ★상하반전(180°). 90° 세로모드였을 때는 폭/높이가 뒤바뀌어 --rot-fit으로 축소해
+   맞춰야 했지만, 180°는 외접 사각형이 그대로라 축소가 필요 없다 — 그래서 화면이
+   작아지지 않고 놀이 영역도 한 픽셀도 안 잘린다. */
+#stage.rot-flip {
+  transform: rotate(var(--rot-deg, 180deg));
 }
 
 /* ---------------------------------------------------------------------------

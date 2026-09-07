@@ -103,19 +103,11 @@ export function fitCanvasToViewport(canvas) {
   // 더 줄여서 통째로 담는다(실제 모니터를 세로로 돌리면 바탕화면이 새 방향에 맞게
   // 다시 맞춰지는 것과 같은 결).
   //
-  // ★ 여기서 계산해 CSS 변수로 내려보내는 이유: 회전 CSS(ui/hazards/portrait.js)가
-  //   이 값을 직접 계산하면 리사이즈 때 갱신할 사람이 없다. 화면 맞춤 계산은 원래
-  //   이 파일 소유고 리사이즈마다 여기가 다시 도니까, 값도 여기서 낸다.
-  //   회전 후 크기는 shownH × shownW(가로세로가 뒤바뀐다)이므로 그게 뷰포트에
-  //   들어가는 배율을 구한다. 1을 넘지 않게 막는다(굳이 키울 이유가 없다).
-  //
-  //   ★ ROT_MARGIN: 딱 맞게(=1.0으로) 채우면 실측에서 월드 (0,0)이 화면 y=-0.34px로
-  //     아슬아슬하게 걸쳤다 — 부동소수점 반올림이 어느 쪽으로 떨어지느냐에 따라
-  //     가장자리 한두 픽셀이 잘릴 수 있다는 뜻이다. 몇 px 여유를 두면 그 경계 자체가
-  //     사라지고, 보기에도 화면 끝에 딱 붙지 않아 낫다.
-  const ROT_MARGIN = 0.97;
-  const rotFit = Math.min(1, viewportW / shownH, viewportH / shownW) * ROT_MARGIN;
-  document.documentElement.style.setProperty('--rot-fit', String(rotFit));
+  // ★ 예전엔 여기서 --rot-fit(회전 시 화면을 줄여 끼워 맞추는 배율)을 계산해
+  //   CSS로 내려보냈다. 90° 세로모드가 폭/높이를 뒤바꿔서 그대로 두면 화면이
+  //   잘렸기 때문이다. 상하반전(180°)으로 바꾼 뒤로는 외접 사각형이 회전 전과
+  //   같아서 축소가 아예 필요 없어졌다 — 계산과 변수를 함께 걷어냈다
+  //   (ui/hazards/flip.js 상단 주석의 "왜 180°인가" 참고).
 
   if (USE_CSS_ZOOM) {
     stage?.classList.remove('no-zoom');

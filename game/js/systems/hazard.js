@@ -84,7 +84,7 @@ export function initHazards() {
   //   ★ 나가는 길이 여럿이라(클리어·실패·엔딩·BSOD의 [로비]·리로드 버튼) 각
   //     지점에 흩뿌리면 또 놓친다. 그래서 전이 자체를 한 곳에서 듣는다
   //     (core/state.js의 onPhaseChange).
-  //   ★ 되돌리기는 각 방해의 onEnd가 맡는다 — 화면 반전(portrait), 가짜 커서와
+  //   ★ 되돌리기는 각 방해의 onEnd가 맡는다 — 화면 반전(flip), 가짜 커서와
   //     커서 숨김(driver), window 리스너(cracked)가 전부 거기서 풀린다.
   //     --hz-dim/--hz-saver-dim과 캔버스 오버레이는 방해 자신의 엘리먼트에만
   //     걸려 있어서 endHazard()의 el.remove()로 같이 사라진다.
@@ -109,7 +109,7 @@ export function hazardIds() {
 export function eligibleHazardIds(stage) {
   // canFire()는 선택 사항이다 — 구간 해금(minStage) 말고 "지금 이 방해를 낼 수
   // 있는 다른 조건"이 있는 방해만 정의한다(지금은 화면 회전 접근성 토글을 보는
-  // portrait 하나뿐). 없으면 늘 낼 수 있는 것으로 친다.
+  // flip 하나뿐). 없으면 늘 낼 수 있는 것으로 친다.
   return [...DEFS.values()]
     .filter((d) => (d.minStage ?? 1) <= stage && d.canFire?.() !== false)
     .map((d) => d.id);
