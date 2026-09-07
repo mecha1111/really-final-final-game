@@ -4,6 +4,8 @@
 import { config } from '../config.js';
 import { addFloat } from '../systems/floats.js';
 import { clientToWorld } from './canvasGeometry.js';
+// 표시용 구간 이름의 유일한 출처(유한 "N 구간" / 무한 "무한 N층").
+import { stageLabel } from '../core/stageManager.js';
 
 // 매 프레임 DOM을 만지면 낭비라, 값이 바뀐 것만 갱신하려고 직전 값을 기억해둔다.
 const last = {};
@@ -192,10 +194,11 @@ export function updateStatusWindows(state) {
   if (state.phase !== 'playing' || !state.rules) return;
 
   // ── 상태.dat ──
-  // 표시 구간은 사람이 읽기 쉽게 n+1 ("1 구간"부터). 내부 n은 0부터.
+  // 표시 이름은 core/stageManager.js의 stageLabel() 하나만 쓴다 — 유한은 "1 구간",
+  // 무한모드는 ★"무한 1층"이다(예전엔 여기서 n+1을 직접 계산해 "6 구간"으로 셌다).
   // ★ 리뉴얼로 구간명 옆 "START/공격!/정지!" 라벨(st-tag)을 없앴다 — 그 정보는
   //   업로드 창의 up-caption + 일시정지 오버레이(아래)가 이미 더 명확하게 보여준다.
-  setText(el('st-stage'), `${state.stageIndex + 1} 구간`);
+  setText(el('st-stage'), stageLabel(state.stageIndex));
 
   const uploadedFloor = Math.floor(state.uploaded);
   const uploadedEl = el('st-uploaded');

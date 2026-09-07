@@ -321,8 +321,10 @@ body {
    .layer-crt-steady(9)는 상시 CRT 질감(주사선·비네트·곡률 인상) — .phase-playing일
    때만 보이므로 타이틀/BSOD(6)와 겹칠 일이 없다.
    .layer-crt(10)는 전부보다 위 — 항상 존재하지만 pointer-events:none + 평소엔
-   투명이라 클릭도 못 먹고 화면도 안 가린다(재생 중인 900ms만 예외, 그마저도
-   pointer-events:none이라 클릭은 그 밑 진짜 화면으로 그대로 간다). */
+   투명이라 클릭도 못 먹고 화면도 안 가린다(재생 중인 config.crt.durationMs
+   = 1600ms만 예외, 그마저도 pointer-events:none이라 클릭은 그 밑 진짜 화면으로
+   그대로 간다). ★예전엔 여기에 900을 적어뒀는데 config가 900 → 1600으로 바뀐 뒤
+   주석만 남아 어긋나 있었다 — 숫자를 또 박지 말고 config 쪽을 볼 것. */
 #desktop .layer-bg { position: absolute; inset: 0; z-index: 1; pointer-events: none; }
 #desktop .layer-deco { position: absolute; inset: 0; z-index: 2; pointer-events: none; }
 /* ★아이콘만 클릭을 받는다(부모가 none이어도 자식에서 auto로 되살릴 수 있다).

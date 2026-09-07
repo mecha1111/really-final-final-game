@@ -21,7 +21,7 @@ function setText(el, value) {
  *   바꾸면 이 문구도 같이 손볼 것(그렇지 않으면 "틀린 꿀팁"이 나간다):
  *     ransom hp=3(시트), bomb 수명만료 -20%(시트 special_effect),
  *     unplug blockDelaySec=1(config.enemy), fake_btn 오클릭 -10%(시트),
- *     clone cloneSplitMaxTierByStage(config.enemy, 3구간=n>=2부터 스몰까지),
+ *     clone cloneSplitMaxTierByStage(config.enemy, ★무한모드(n>=5)부터 스몰까지),
  *     copier maxConcurrentById=1(config.enemy), hidden 수명만료 -15MB(시트),
  *     bait는 hit_w/h=0이라 클릭 무반응+콤보 끊김(systems/combo.js),
  *     combo.tiers 최대 배율 1.5(config.combo).
@@ -34,7 +34,7 @@ const TIPS = [
   '콘센트 손이 나오면 곧 업데이트가 멈춰요. 1초 안에 처치하면 안 멈춥니다!',
   '팝업 광고는 X 버튼을 정확히 눌러야 닫혀요.',
   "'확인' 버튼은 함정! 커서를 따라오니 실수로 누르지 마세요. -10%.",
-  '복제 바이러스는 처치하면 분열해요. 3구간부턴 스몰까지 더 잘게!',
+  '복제 바이러스는 처치하면 분열해요. 무한 모드에선 더 잘게 쪼개집니다!',
   '복사기는 한 번에 하나만 나와요. 나타나면 빠르게 지우세요.',
   '숨어있는 방해꾼도 놓치지 마세요. 못 잡으면 다음 파일 -15MB!',
   '시선강탈은 눌러도 안 죽어요. 무시하고 진짜를 노리세요 — 낚이면 콤보가 끊깁니다.',

@@ -131,6 +131,31 @@ export function isInfiniteStage(stageIndex = state.stageIndex) {
 }
 
 /**
+ * 무한모드의 층 번호(1부터). 유한 구간에서 부르면 의미가 없다 — 부르는 쪽이
+ * isInfiniteStage()로 먼저 갈라야 한다(아래 stageLabel이 그 예다).
+ */
+export function infiniteLayer(stageIndex = state.stageIndex) {
+  return stageIndex - config.stage.finiteCount + 1;
+}
+
+/**
+ * ★사람에게 보여줄 구간 이름 — 화면에 구간 번호를 쓰는 곳은 전부 이 함수만 쓴다.
+ *
+ * 유한 5구간까지는 "1 구간" … "5 구간"이고, 그 뒤는 ★"무한 1층"부터다.
+ * 예전엔 표시부마다 `stageIndex + 1 구간`을 각자 계산해서, 무한모드에 들어가면
+ * "6 구간 / 7 구간 / 8 구간"으로 셌다 — 유한이 5구간까지뿐이라 "6구간"은 이
+ * 게임 어디에도 없는 말인데, 정작 타이틀 메뉴와 세이브(best.infiniteStage)는
+ * "무한"이라 부르고 있어서 같은 것을 두 이름으로 부르는 상태였다.
+ *
+ * ★변환을 여기 한 곳에만 두는 게 요점이다. HUD·클리어 창 제목·클리어 대화상자가
+ *   각자 계산하면 언젠가 한쪽만 고쳐져 갈라진다(이 프로젝트가 색·좌표에서 반복해
+ *   겪은 그 부류다).
+ */
+export function stageLabel(stageIndex = state.stageIndex) {
+  return isInfiniteStage(stageIndex) ? `무한 ${infiniteLayer(stageIndex)}층` : `${stageIndex + 1} 구간`;
+}
+
+/**
  * 방금 클리어한 판이 "마지막 유한 구간"인가 = 전체 완주인가.
  * 무한모드에는 끝이 없으므로 여기선 항상 false다(위 isInfiniteStage 참고).
  */

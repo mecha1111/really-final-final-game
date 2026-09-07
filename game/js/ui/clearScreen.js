@@ -17,7 +17,7 @@
 
 import { config } from '../config.js';
 import { state } from '../core/state.js';
-import { advanceStage, isRunCompleted } from '../core/stageManager.js';
+import { advanceStage, isRunCompleted, isInfiniteStage, stageLabel } from '../core/stageManager.js';
 import { playSfx, SFX } from '../systems/sound.js';
 import { setBar } from './statusWindow.js';
 
@@ -33,6 +33,7 @@ let gaugeCountEl = null;
 let gaugeEl = null;
 let flashEl = null;
 let dlgTitleEl = null;
+let dlgSubEl = null;
 let dlgRankEl = null;
 let statFilesEl = null;
 let statKilledEl = null;
@@ -172,15 +173,17 @@ function goToDone(now) {
   phaseName = 'done';
   phaseStartAt = now;
   if (layer) layer.classList.add('done');
-  if (wtitleEl) wtitleEl.textContent = `${state.stageIndex + 1} 구간 완료`;
+  if (wtitleEl) wtitleEl.textContent = `${stageLabel(state.stageIndex)} 완료`;
 
   const s = state.stats;
   const accRatio = s.clicks > 0 ? s.hits / s.clicks : 0;
   const acc = Math.round(accRatio * 100);
   const rank = calcRank(accRatio);
 
-  if (dlgTitleEl) dlgTitleEl.textContent = `${state.stageIndex + 1} 구간 정리 완료`;
+  if (dlgTitleEl) dlgTitleEl.textContent = `${stageLabel(state.stageIndex)} 정리 완료`;
   if (dlgRankEl) dlgRankEl.textContent = `${rank} 등급`;
+  // 본문도 "구간/층"을 맞춘다 — 제목만 바꾸면 한 대화상자 안에서 두 이름이 섞인다.
+  if (dlgSubEl) dlgSubEl.textContent = isInfiniteStage(state.stageIndex) ? '이 층의 파일을 모두 정리했습니다.' : '이 구간의 파일을 모두 정리했습니다.';
 
   countUpTargets = [
     { el: statFilesEl, target: s.filesDone, prefix: '', suffix: '' },
@@ -200,7 +203,15 @@ function goToDone(now) {
   // 마지막 유한 구간을 깼으면 다음 구간이 없다 — 버튼이 거짓말을 하면 안 되므로
   // 문구를 바꾼다(누르면 실제로 타이틀로 간다, core/stageManager.js의 advanceStage).
   // 엔딩 화면이 붙으면 이 자리는 그대로 두고 advanceStage 쪽만 바뀌면 된다.
-  if (nextBtnEl) nextBtnEl.textContent = isRunCompleted() ? '완주! 메인으로' : '다음 구간 ▶';
+  // ★무한모드는 "구간"이 아니라 "층"이다 — 창 제목·HUD가 stageLabel()로 "무한 N층"이라
+  //   부르는데 버튼만 "다음 구간"이면 같은 것을 두 이름으로 부르는 꼴이 된다.
+  if (nextBtnEl) {
+    nextBtnEl.textContent = isRunCompleted()
+      ? '완주! 메인으로'
+      : isInfiniteStage(state.stageIndex)
+        ? '다음 층 ▶'
+        : '다음 구간 ▶';
+  }
 
   for (const t of countUpTargets) if (t.el) t.el.textContent = t.prefix + '0' + t.suffix;
   countUpDone = false;
@@ -245,7 +256,7 @@ function enterClearedScreen(now) {
     layer.classList.remove('done');
     layer.style.setProperty('--flash-sec', `${c.flashSec}s`);
   }
-  if (wtitleEl) wtitleEl.textContent = `${state.stageIndex + 1} 구간 정리 중...`;
+  if (wtitleEl) wtitleEl.textContent = `${stageLabel(state.stageIndex)} 정리 중...`;
   if (viewerImgEl) viewerImgEl.classList.remove('on', 'developing');
   if (stampEl) stampEl.classList.remove('on');
   if (scene2El) scene2El.classList.add('hidden');
@@ -325,6 +336,7 @@ export function initClearScreen() {
   gaugeEl = document.getElementById('cleared-gauge');
   flashEl = document.getElementById('cleared-flash');
   dlgTitleEl = document.getElementById('cleared-dlg-title');
+  dlgSubEl = document.getElementById('cleared-dlg-sub');
   dlgRankEl = document.getElementById('cleared-dlg-rank');
   statFilesEl = document.getElementById('cleared-stat-files');
   statKilledEl = document.getElementById('cleared-stat-killed');
