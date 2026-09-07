@@ -1,7 +1,7 @@
 // 이 파일 역할: 시트 값을 게임이 바로 쓸 형태로 가공한다(판 규칙 묶음, 파일 3종, special_effect 문구 해석).
 
 import { gameData, getStageValue } from './loader.js';
-import { PROGRESSION } from './progression.js';
+import { PROGRESSION, INFINITE, FINITE_COUNT } from './progression.js';
 
 /** 업로드할 파일 3종(소/중/대)을 stage 시트에서 뽑아온다. */
 export function getFileTiers() {
@@ -26,6 +26,13 @@ export function getFileTiers() {
 export function createRules(stageIndex = 0) {
   const n = Math.max(0, Math.floor(stageIndex));
   const p = PROGRESSION;
+  // 무한모드인가(FINITE_COUNT 이상). quota가 이 값으로 갈린다 — 그 아래
+  // (spawnInterval/maxAlive 등)는 유한·무한이 여전히 같은 공식을 공유한다
+  // (progression.js의 INFINITE 주석 — 애초에 그 공식이 n=6/n=3에서 이미 상한에
+  // 닿아버려서 quota 곡선을 분리할 수밖에 없었다는 게 무한 전용 곡선의 존재 이유다).
+  const isInfinite = n >= FINITE_COUNT;
+  // 무한 1층부터 1,2,3…(INFINITE 곡선의 지수 자리). 유한일 때는 안 쓴다.
+  const layer = n - FINITE_COUNT + 1;
 
   // normal 행만 base로 쓴다(easy/hard는 의도적으로 무시).
   const base = gameData.difficulty.find((d) => d.difficulty === 'normal') ?? {};
@@ -38,8 +45,12 @@ export function createRules(stageIndex = 0) {
     // 지금 몇 번째 구간인지(0부터). UI 표시·로그가 이 값을 그대로 읽는다.
     stageIndex: n,
 
-    // 할당량: 곱해서 커진다
-    quota: Math.round(baseQuota * Math.pow(p.quotaMult, n)),
+    // 할당량: 유한/무한이 서로 다른 독립 곡선을 쓴다. 무한 쪽(INFINITE)은 유한
+    // 쪽 base/mult를 단 하나도 참조하지 않는다 — 유한을 튜닝해도 무한이 조용히
+    // 따라가지 않는다(progression.js의 INFINITE 주석 참고, 요구사항이기도 하다).
+    quota: isInfinite
+      ? Math.round(INFINITE.baseQuota * Math.pow(INFINITE.quotaMult, layer - 1))
+      : Math.round(baseQuota * Math.pow(p.quotaMult, n)),
     // 스폰 간격: **나눗셈**이라 n이 클수록 짧아진다(= 더 자주 나온다). 하한 클램프.
     spawnInterval: Math.max(baseSpawn / Math.pow(p.spawnMult, n), p.minSpawn),
     // 동시 최대: 더해서 늘고 상한에서 멈춘다. 정수.

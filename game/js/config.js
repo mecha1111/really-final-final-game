@@ -80,6 +80,10 @@ export const config = {
     //   직접 박지 않는다(nextStageIndex/완주 판정/무한모드 진입이 전부 이 값을
     //   읽는다). 늘릴 때 같이 볼 곳은 "그 구간에서 뭐가 새로 나오나"뿐이다
     //   (아래 enemyUnlockPlan / hazard.*.minStage / debug.js의 STAGE_JUMPS).
+    //   ★ 예외 하나: balance/progression.js의 FINITE_COUNT(무한모드 quota·제한시간
+    //   분기 기준)는 이 값과 반드시 같아야 하는 하드코딩 중복이다 — 그 잎 모듈이
+    //   순환참조 때문에 이 config를 못 읽는다(파일 상단 주석). 여기를 고치면
+    //   거기도 반드시 같이 고칠 것.
     finiteCount: 5,
 
     // ── 해금 배치의 정본 ───────────────────────────────────────────────────
