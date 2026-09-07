@@ -197,6 +197,12 @@
   --xp-balloon-bg: #ffffcc; /* Office 길잡이 말풍선 바탕 */
   --xp-balloon-line: #000; /* 그 각진 1px 테두리 + 꼬리 바깥겹 */
   --xp-balloon-bullet: #0a3aa0; /* 파란 원 불릿 */
+  /* XP 풍선 도움말(툴팁) 글자 — 임의색을 안 쓰기 위한 토큰. 본문/보조 두 단계뿐이다. */
+  --xp-tooltip-text: #111;
+  --xp-tooltip-sub: #333;
+  /* XP 대화상자 구분선 회색 — 창 바탕(--xp-win-face)보다 한 단계 어두운 그 선.
+     두 곳(.win 바닥 버튼줄, 재부팅 창 버튼줄)이 같은 값을 따로 적고 있었다. */
+  --xp-sep: #aca899;
 }
 
 /* 픽셀 폰트. base64 인라인이 아니라 파일 참조 — 시안(mockup7.html)은 2MB짜리
@@ -739,7 +745,7 @@ body {
    (index.html에서 이미 그 클래스를 같이 붙였다) 여기서는 이 버튼만 더 키운다는
    요구사항(버튼 ~22px)만 얹는다. */
 #desktop .cleared-dlg-foot {
-  background: var(--xp-win-face); border-top: 1px solid #aca899; /* .win 기본 배경(#ece9d8)과 같은 회색 */
+  background: var(--xp-win-face); border-top: 1px solid var(--xp-sep);
   padding: 14px 18px; display: flex; justify-content: flex-end;
 }
 #desktop .cleared-next-btn { font-size: 22px; padding: 13px 40px; }
@@ -2148,19 +2154,21 @@ body {
 
 /* ── A. 재부팅 카운트다운 ─────────────────────────────────────────────────── */
 #desktop .hz-reboot { width: 620px; }
-#desktop .hz-reboot .tbar .ico { background: #ffd34d; font-size: 20px; }
+/* ★타이틀바 아이콘 자리 — 임의 노랑(#ffd34d) 대신 XP 툴팁 노랑 토큰. */
+#desktop .hz-reboot .tbar .ico { background: var(--xp-tooltip-bg); font-size: 20px; }
 #desktop .hz-body { background: var(--xp-win-face); padding: 22px 26px 18px; }
 #desktop .hz-row { display: flex; gap: 18px; align-items: flex-start; }
 /* XP 업데이트 알림의 노란 방패 — 이모지 하나로 충분하다(새 이미지 에셋 없이). */
 #desktop .hz-shield { font-size: 46px; line-height: 1; flex-shrink: 0; }
-#desktop .hz-msg { color: #111; font-size: 19px; line-height: 1.55; }
+#desktop .hz-msg { color: var(--xp-tooltip-text); font-size: 19px; line-height: 1.55; }
 #desktop .hz-msg p { margin: 0; }
-#desktop .hz-sub { margin-top: 12px !important; color: #444; font-size: 17px; }
+#desktop .hz-sub { margin-top: 12px !important; color: var(--xp-tooltip-sub); font-size: 17px; }
 /* 카운트다운 — XP 대화상자의 남은 시간 표기. 숫자만 크게 도드라지게. */
-#desktop .hz-count { margin-top: 4px !important; font-size: 34px; color: #0a327a; }
+/* 카운트다운 숫자 — 임의 남색(#0a327a) 대신 XP 선택 남색 토큰. */
+#desktop .hz-count { margin-top: 4px !important; font-size: 34px; color: var(--xp-select-desk); }
 /* 하단 버튼바(우측 정렬 = XP 관례). 색·질감은 .settings-btn을 그대로 물려받는다. */
 #desktop .hz-foot {
-  margin-top: 20px; padding-top: 14px; border-top: 1px solid #aca899;
+  margin-top: 20px; padding-top: 14px; border-top: 1px solid var(--xp-sep);
   display: flex; justify-content: flex-end; gap: 10px;
 }
 
@@ -2191,6 +2199,7 @@ body {
    비네트(--vig-level)가 이미 쓰는 방식과 같다). */
 #desktop .hz-powersave .hz-dim {
   position: absolute; inset: 0;
+  /* 검정은 토큰을 안 만든다 — 브랜드 색이 아니라 "화면이 꺼진다"는 물리 현상이다. */
   background: #000; opacity: var(--hz-dim, 0);
 }
 /* XP 풍선 도움말 — 작업표시줄 알림 영역에서 튀어나오던 그 노란 말풍선.
@@ -2201,20 +2210,30 @@ body {
   position: absolute; left: 40px; bottom: 96px; width: 430px;
   display: flex; gap: 12px; align-items: flex-start;
   padding: 14px 16px;
-  background: var(--xp-tooltip-bg); border: 1px solid #000; /* XP 툴팁 노랑 */
+  background: var(--xp-tooltip-bg); /* XP 툴팁 노랑 */
+  border: 1px solid var(--xp-balloon-line); /* ★각진 검은 1px — 실물 풍선도움말 규칙 */
   box-shadow: 4px 4px 0 rgba(0, 0, 0, 0.35);
-  color: #111;
+  color: var(--xp-tooltip-text);
 }
-/* 말풍선 꼬리(작업표시줄 쪽을 가리킨다) — 테두리 트릭으로 삼각형만 그린다. */
+/* 말풍선 꼬리(작업표시줄 쪽을 가리킨다).
+   ★삼각형 2겹이다 — 바깥이 검은 테두리, 안쪽이 노란 면. 예전엔
+   filter:drop-shadow()로 테두리를 흉내 냈는데 그건 이 프로젝트의 필터 금지
+   규칙 위반이다(.intro-assist .balloon이 이미 2겹 방식을 쓰고 있었다 — 같은
+   어휘로 맞춘다). */
 #desktop .hz-balloon::after {
-  content: ''; position: absolute; left: 34px; bottom: -13px;
-  border: 6px solid transparent; border-top: 7px solid var(--xp-tooltip-bg);
-  filter: drop-shadow(0 1px 0 #000);
+  content: ''; position: absolute; left: 33px; bottom: -14px;
+  border: 7px solid transparent; border-top-color: var(--xp-balloon-line); border-bottom: 0;
+}
+#desktop .hz-balloon::before {
+  content: ''; position: absolute; left: 34px; bottom: -12px; z-index: 1;
+  border: 6px solid transparent; border-top-color: var(--xp-tooltip-bg); border-bottom: 0;
 }
 #desktop .hz-balloon-ico { font-size: 26px; line-height: 1.1; flex-shrink: 0; }
 #desktop .hz-balloon-txt { display: flex; flex-direction: column; gap: 3px; }
-#desktop .hz-balloon-txt b { font-size: 18px; }
-#desktop .hz-balloon-txt span { font-size: 16px; color: #333; }
+/* ★풍선 도움말 글자는 15px 규칙(참조 문서 §2·§8-5) — 굵기로만 위계를 준다.
+   예전엔 18/16px이라 규칙보다 컸다. */
+#desktop .hz-balloon-txt b { font-size: 15px; }
+#desktop .hz-balloon-txt span { font-size: 15px; color: var(--xp-tooltip-sub); }
 
 /* ── D. 드라이버 오류 ──────────────────────────────────────────────────────
    ★ 이 방해는 클릭도 이동도 아니라 "방치 후 자동 복구"뿐이다(요구사항: 6초
@@ -2310,12 +2329,17 @@ body {
   padding: 10px 12px; margin-bottom: 10px;
   box-shadow: 3px 3px 0 rgba(0, 0, 0, 0.3);
 }
+/* ★여기도 삼각형 2겹으로 바꿨다 — 예전엔 filter:drop-shadow()로 테두리를
+   흉내 냈다(필터 금지 규칙 위반). .hz-balloon·.intro-assist와 같은 어휘. */
 #desktop .rover-bubble::after {
-  content: ''; position: absolute; left: 50%; bottom: -11px; transform: translateX(-50%);
-  border: 6px solid transparent; border-top: 6px solid var(--xp-tooltip-bg);
-  filter: drop-shadow(0 1px 0 #000);
+  content: ''; position: absolute; left: 50%; bottom: -12px; transform: translateX(-50%);
+  border: 6px solid transparent; border-top-color: var(--xp-balloon-line); border-bottom: 0;
 }
-#desktop .rover-bubble-text { font-size: 15px; line-height: 1.5; color: #111; }
+#desktop .rover-bubble::before {
+  content: ''; position: absolute; left: 50%; bottom: -10px; transform: translateX(-50%); z-index: 1;
+  border: 5px solid transparent; border-top-color: var(--xp-tooltip-bg); border-bottom: 0;
+}
+#desktop .rover-bubble-text { font-size: 15px; line-height: 1.5; color: var(--xp-tooltip-text); }
 
 /* 강아지 — 128×128 원본을 그대로(업스케일 없음). 자산이 없거나 못 불러왔으면
    (.broken, ui/rover.js의 onerror) 통째로 숨긴다 — 깨진 이미지 아이콘 대신
@@ -2441,8 +2465,8 @@ body {
      · 팁이 있으면 캐릭터 위에 노란 전구가 깜빡인다
      · 배경 --xp-balloon-bg + 검은 각진 테두리 + 삼각형 2겹 꼬리
    ★꼬리는 투명 삼각형 2겹이다 — filter:drop-shadow()로 테두리를 흉내내지 않는다
-     (이 프로젝트의 필터 금지 규칙. .rover-bubble이 아직 그 방식을 쓰는데,
-     여기서 그걸 따라가지 않는다).
+     (이 프로젝트의 필터 금지 규칙). ★2026-09-08: .rover-bubble과 .hz-balloon도
+     같은 2겹 방식으로 맞췄다 — 이제 이 어휘를 쓰는 말풍선이 셋 다 같다.
    위치는 아이콘 격자(x 20~572)를 피해 그 오른쪽에 둔다. 말풍선+캐릭터를 합친
    높이가 약 580px라 top:300에서 시작해도 작업표시줄(y 1028)에 안 닿는다. */
 #desktop .intro-assist {

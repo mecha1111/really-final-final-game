@@ -66,8 +66,14 @@ registerHazard({
     const speed = awake ? -c.wakeRecoverPerSec : c.maxOpacity / c.dimInSec;
     inst.data.dim = clamp(inst.data.dim + speed * dt, 0, c.maxOpacity);
 
-    // 값이 실제로 바뀐 프레임에만 CSS 변수를 건드린다(매 프레임 스타일 쓰기는 낭비).
-    const next = inst.data.dim.toFixed(3);
+    // ★알파를 5단계로 끊는다(config.fx.alphaSteps) — 이 프로젝트는 매끄러운 연속
+    //   페이드를 전역으로 금지한다(손그림 톤에서 "흐릿하게 번지는" 인상이 되고,
+    //   CRT가 꺼지는 느낌과도 어긋난다). 예전엔 toFixed(3)로 소수 셋째 자리까지
+    //   흘려보내 사실상 연속이었다.
+    // 계단으로 끊으면 값이 바뀌는 프레임 자체가 확 줄어, 아래 "바뀐 프레임에만
+    // 스타일을 쓴다"는 최적화도 같이 더 잘 듣는다.
+    const steps = config.fx.alphaSteps;
+    const next = (Math.round((inst.data.dim / c.maxOpacity) * steps) / steps * c.maxOpacity).toFixed(3);
     if (inst.data.dimText !== next) {
       inst.data.dimText = next;
       inst.data.dimEl?.style.setProperty('--hz-dim', next);
