@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "bash -c 'rm -rf dist && cp -R game dist' _",
+    "build": "bash -c 'rm -rf dist && cp -R game dist && find dist -name .DS_Store -delete' _",
     "preview": "vite preview",
     "serve": "node tools/serve.mjs dist 8877"
   },

@@ -205,8 +205,11 @@
   --xp-sep: #aca899;
 }
 
-/* 픽셀 폰트. base64 인라인이 아니라 파일 참조 — 시안(mockup7.html)은 2MB짜리
-   base64를 물고 있었지만 그대로 쓰면 HTML이 그만큼 뚱뚱해진다. */
+/* 픽셀 폰트. base64 인라인이 아니라 파일 참조 — 시안(docs/mockup7.html)은 2MB짜리
+   base64를 물고 있었지만 그대로 쓰면 HTML이 그만큼 뚱뚱해진다.
+   ★ 2026-09-08: 그 시안 파일이 game/assets/enemies/ 안에 남아 있어서, 아무도
+     안 읽는 2.07MB가 매 배포본(dist)에 그대로 실려 나가고 있었다 — docs/로 옮겼다.
+     assets/ 아래에는 게임이 실제로 요청하는 것만 둔다. */
 @font-face {
   font-family: 'DGM';
   src: url('./assets/enemies/DungGeunMo.woff') format('woff');
