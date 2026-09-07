@@ -700,16 +700,22 @@
               </div>
             </div>
 
-            <!-- 튜토리얼(러버) — [환경 방해]·[화면 회전]과 완전히 독립된 토글이다.
+            <!-- 튜토리얼 — [환경 방해]·[화면 회전]과 완전히 독립된 토글이다.
                  안내(방해가 아님)라 hazard와 다른 축으로 뒀다(ui/settingsPanel.js).
                  ★ 위 저장 데이터 그룹의 주석 참고 — 되돌릴 수 있는 조작이라 스크롤
                  영역에 걸쳐도 괜찮은 쪽이라 일부러 여기(맨 아래 쪽)에 뒀다. 토글+
-                 버튼을 한 행에 묶어 한 줄만큼 덜 차지하게도 했다. -->
+                 버튼을 한 행에 묶어 한 줄만큼 덜 차지하게도 했다.
+                 ★ 2026-09-07: [러버 힌트]에서 이름을 바꿨다 — 인게임 러버 팁이
+                 걷어내지면서 그 라벨이 아무 동작도 안 하는 토글을 가리키게 됐다.
+                 지금 이 체크박스(#set-tutorial-on)는 인트로의 강아지 튜토리얼
+                 페이지를 보여줄지를 정한다(config.tutorial.enabled, ui/intro.js) —
+                 꺼도 부팅·바탕화면·클릭까지의 오프닝은 그대로 나오고 튜토리얼
+                 페이지만 건너뛴다. -->
             <div class="grp">
               <div class="h"><span data-icon="search"></span> 튜토리얼</div>
               <div class="c">
                 <div class="settings-row settings-row-check">
-                  <label for="set-tutorial-on">러버 힌트</label>
+                  <label for="set-tutorial-on">시작 시 튜토리얼 보기</label>
                   <input type="checkbox" id="set-tutorial-on" />
                 </div>
                 <div class="settings-row settings-row-check">
@@ -719,8 +725,10 @@
                 <!-- 이 버튼이 가리키는 "튜토리얼"의 본체는 이제 인트로의 강아지
                      튜토리얼이다(ui/intro.js). 세이브의 seenIntro를 되돌리므로
                      다음 실행에서 부팅부터 다시 재생된다 — 지금 화면은 이미 타이틀
-                     이후라 그 자리에서 되감을 데가 없어서 "다음 실행부터"다. -->
-                <div class="settings-hint">인트로 튜토리얼을 다음 실행 때 다시 보여줍니다.</div>
+                     이후라 그 자리에서 되감을 데가 없어서 "다음 실행부터"다.
+                     ★ 위 토글이 꺼져 있어도 이 버튼을 누르면 자동으로 다시 켠다
+                     (ui/settingsPanel.js) — 안 그러면 눌러도 안 뜨는 버튼이 된다. -->
+                <div class="settings-hint">다음 실행에 인트로 튜토리얼을 다시 보여주고, 이 토글도 자동으로 켭니다.</div>
               </div>
             </div>
 

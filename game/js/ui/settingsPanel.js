@@ -265,20 +265,30 @@ export function initSettingsPanel() {
     saveSettings();
   });
 
-  // 튜토리얼(러버) 힌트 끄기 — [환경 방해]/[화면 회전]과 독립. 끄는 순간 지금
-  // 떠 있는 팁도 즉시 치운다(같은 원칙: "다음부터"가 아니라 "지금 당장").
+  // [시작 시 튜토리얼 보기] 끄기 — [환경 방해]/[화면 회전]과 독립. 끄면 다음
+  // 실행의 인트로에서 강아지 튜토리얼 페이지만 건너뛴다(부팅·바탕화면·클릭
+  // 연출은 그대로 나온다 — config.tutorial 상단 주석 참고). resetRoverQueue()는
+  // 러버 사이드바 몫이라 지금 인게임에서 실제로 뭘 치울 일은 없지만, 그 모듈이
+  // 아직 살아있고(__game.showTip 디버그 손잡이) 이 토글이 여전히 그 게이트라
+  // 그대로 둔다.
   document.getElementById('set-tutorial-on')?.addEventListener('change', (evt) => {
     config.tutorial.enabled = evt.target.checked;
     if (!config.tutorial.enabled) resetRoverQueue();
     saveSettings();
   });
 
-  // 튜토리얼 다시 보기 — 본 기록(seenTips)만 지운다. 진행·해금 등 실제 진행에
-  // 영향이 없는 되돌릴 수 있는 조작이라 [저장 데이터 초기화]와 달리 확인
-  // 대화상자를 안 거친다(눌러도 잃을 게 없다 — 다음에 조건이 맞으면 다시 뜰 뿐).
+  // 튜토리얼 다시 보기 — 본 기록(seenTips·seenIntro)을 지운다. 진행·해금 등
+  // 실제 진행에 영향이 없는 되돌릴 수 있는 조작이라 [저장 데이터 초기화]와
+  // 달리 확인 대화상자를 안 거친다(눌러도 잃을 게 없다).
+  // ★ [시작 시 튜토리얼 보기]가 꺼져 있으면 여기서 강제로 다시 켠다 — "다시
+  //   보기"를 누르는 행위 자체가 "튜토리얼을 다시 보고 싶다"는 뜻이라, 토글이
+  //   꺼진 채로 두면 눌러도 다음 실행에 조용히 안 뜨는 버튼이 되어버린다.
   document.getElementById('settings-tips-reset')?.addEventListener('click', () => {
     playSfx(SFX.UI_CLICK, { ui: true });
     resetSeenTips();
+    config.tutorial.enabled = true;
+    syncHazardControl(); // 체크박스를 켜진 상태로 되비춘다(그 함수가 이 토글도 맞춘다)
+    saveSettings();
   });
 
   const fsBox = document.getElementById('set-fullscreen');

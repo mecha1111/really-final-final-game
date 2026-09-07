@@ -69,7 +69,11 @@ function defaultSave() {
     // 지금까지 메모리에만 있던 설정값(core/state.js의 state.settings + 환경 방해
     // 토글 config.hazard.enabled). 슬라이더 셋은 state.settings와 같은 이름을 쓴다.
     // rotationEnabled는 [환경 방해]와 별개인 접근성 토글이다(화면 회전만 끄기).
-    // tutorialEnabled도 마찬가지로 독립 토글이다(러버 힌트만 끄기, ui/rover.js).
+    // tutorialEnabled도 마찬가지로 독립 토글이다. ★2026-09-07: 인게임 러버 팁이
+    // 걷어내지면서 의미가 인트로의 강아지 튜토리얼 표시 여부로 옮겨갔다(끄면
+    // 인트로 안의 부팅·바탕화면·클릭 연출까지만 나오고 튜토리얼 페이지는 건너뛴다,
+    // config.tutorial 상단 주석 참고) — "안내를 보고 싶은가"라는 상위 의미가
+    // 그대로라 필드 이름은 그대로 재사용했다.
     settings: {
       soundMaster: 100, soundSfx: 100, soundBgm: 100,
       hazardEnabled: true, rotationEnabled: true, tutorialEnabled: true,
