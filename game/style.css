@@ -42,7 +42,11 @@
   --color-hp-pip: #ffffff;
   --color-hp-pip-empty: #4a5266;
   --color-life-bar: #6b7385;
-  --color-life-bar-danger: #ff4d4d;
+  /* 2026-09-07: #ff4d4d(순수 웹 네온) → #d9382a — --color-float-plus/minus와
+     같은 색이다. 캔버스(플로트)와 HTML(이 수명바)이 "위험/손실"이라는 같은
+     의미에 서로 다른 빨강을 쓰고 있었다(A·B 커밋이 캔버스 쪽만 XP 팔레트로
+     옮기고 HTML을 놓쳤다) — 이번에 맞춘다. */
+  --color-life-bar-danger: #d9382a;
   --color-hitbox: #35c8ff;
   --color-enemy-fallback: #7a4dff;
 
@@ -1766,10 +1770,13 @@ body {
   100% { opacity: 0; }
 }
 
-/* "완료!" 라벨 — 그림 중앙에 팝하며 떴다 사라진다. */
+/* "완료!" 라벨 — 그림 중앙에 팝하며 떴다 사라진다.
+   2026-09-07: #44ff88(순수 웹 네온) → #4ea832 — 캔버스 플로트의 획득색
+   (--color-float-plus)과 같은 값이다. "좋은 일"이라는 같은 의미인데 이 라벨만
+   HTML이라 A·B 커밋(캔버스만 XP 팔레트로) 때 같이 안 옮겨져 있었다. */
 #desktop .file-complete-label {
   position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%) scale(0.6);
-  font-size: 44px; font-weight: 700; color: #44ff88;
+  font-size: 44px; font-weight: 700; color: #4ea832;
   text-shadow:
     -3px -3px 0 #111, 3px -3px 0 #111, -3px 3px 0 #111, 3px 3px 0 #111,
     0 -3px 0 #111, 0 3px 0 #111, -3px 0 0 #111, 3px 0 0 #111;
@@ -1810,10 +1817,12 @@ body {
 /* 피해 수치("-20%") 텍스트 — 바 오른쪽 위에서 살짝 떠오르며 사라진다.
    외곽선을 8방향 text-shadow로 두껍게(.file-complete-label/.layer-title .btn과
    같은 어휘) — 밝은 XP 배경 위에서도 잘 읽히게(시인성 요구사항). DGM은
-   #desktop에서 이미 물려받는다. */
+   #desktop에서 이미 물려받는다.
+   2026-09-07: #ff4d4d(순수 웹 네온) → #d9382a — 캔버스 플로트의 손실색
+   (--color-float-minus)과 같은 값이다. 위 .file-complete-label과 같은 이유. */
 #desktop .dmg-float {
   position: absolute; right: 4px; bottom: 100%; margin-bottom: 4px;
-  font-size: 24px; font-weight: 700; color: #ff4d4d;
+  font-size: 24px; font-weight: 700; color: #d9382a;
   text-shadow:
     -2px -2px 0 #111, 2px -2px 0 #111, -2px 2px 0 #111, 2px 2px 0 #111,
     0 -2px 0 #111, 0 2px 0 #111, -2px 0 0 #111, 2px 0 0 #111;

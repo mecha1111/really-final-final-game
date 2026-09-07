@@ -56,9 +56,13 @@ export function text(
  *
  * @param {string} color 채움색. '--'로 시작하면 cssColor()로 CSS 변수를 읽고,
  *   아니면 그대로 CSS 색 문자열로 쓴다(예: config.combo.tiers의 리터럴 hex).
- * @param {string} [lineJoin] 기본은 'round'(둥근 이음매, 콤보 카운터가 이 기본값을
- *   그대로 쓴다). ui/renderEnemies.js의 drawFloats만 'miter'를 넘겨 각진 얇은
- *   외곽선을 쓴다 — 손그림 낙서 톤엔 두꺼운 둥근 테두리가 "말랑"해 보였다.
+ * @param {string} [lineJoin] 기본은 'round'(둥근 이음매) — 지금은 이 기본값을
+ *   그대로 쓰는 호출부가 없다. ui/renderEnemies.js의 drawFloats·drawCombo가
+ *   둘 다 'miter'를 넘겨 각진 얇은 외곽선을 쓴다 — 손그림 낙서 톤엔 두꺼운
+ *   둥근 테두리가 "말랑"해 보였다. 기본값은 향후 다른 호출부를 위해 남겨둔다.
+ * @param {number} [miterLimit] 기본 2 — 대부분의 모서리를 베벨로 깎아버려서
+ *   lineJoin:'miter'를 넘겨도 실제로는 각짐이 잘 안 보인다. drawFloats·
+ *   drawCombo는 8을 넘겨 실제로 뾰족한 모서리가 나오게 한다.
  */
 export function outlinedText(
   ctx,

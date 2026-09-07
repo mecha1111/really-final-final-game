@@ -404,6 +404,11 @@ function drawClickEnv(ctx, c) {
  * 콤보부터 강해지나"가 절대 어긋나지 않는다.
  * 잡을 때마다 comboPopMs(systems/combo.js의 registerKill)가 켜지고 여기서
  * 그 값을 스케일로 바꿔 살짝 부풀었다 가라앉는 "팝"을 낸다.
+ * 2026-09-07: 외곽선을 lineJoin:'miter'로 — 플로트(drawFloats)에 이미 적용한
+ * 것과 같은 이유(둥근 이음매가 손그림 낙서 톤과 안 어울리게 "말랑"하다). ★두께
+ * (strokeWidth 3/4)는 그대로 뒀다 — 시인성을 담당하는 값이라 줄이면 안 된다.
+ * miterLimit도 플로트와 같은 8 — 기본값 2는 대부분의 모서리를 베벨로 깎아
+ * 각짐이 실제로 안 보인다(draw.js의 outlinedText 주석 참고).
  */
 export function drawCombo(ctx, state) {
   if (state.combo < config.combo.showFrom) return;
@@ -415,8 +420,20 @@ export function drawCombo(ctx, state) {
   ctx.save();
   ctx.translate(state.pointer.x, state.pointer.y - config.combo.followOffsetY);
   ctx.scale(popScale, popScale);
-  outlinedText(ctx, 'COMBO', 0, -tier.size * 0.72, { size: Math.round(tier.size * 0.42), color: tier.color, strokeWidth: 3 });
-  outlinedText(ctx, `x${state.combo}`, 0, 0, { size: tier.size, color: tier.color, strokeWidth: 4 });
+  outlinedText(ctx, 'COMBO', 0, -tier.size * 0.72, {
+    size: Math.round(tier.size * 0.42),
+    color: tier.color,
+    strokeWidth: 3,
+    lineJoin: 'miter',
+    miterLimit: 8,
+  });
+  outlinedText(ctx, `x${state.combo}`, 0, 0, {
+    size: tier.size,
+    color: tier.color,
+    strokeWidth: 4,
+    lineJoin: 'miter',
+    miterLimit: 8,
+  });
   ctx.restore();
 }
 
