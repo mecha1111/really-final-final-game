@@ -1061,8 +1061,22 @@ body {
 #desktop .gallery-modal { width: 640px; }
 #desktop .gallery-modal .tbar { cursor: default; }
 
-/* 상단 "수집 N / 36" — .grp .h와 같은 톤(배경 #dfe6f2, 글자 #0a327a)이지만
-   섹션 헤더가 아니라 창 전체에 하나뿐인 상시 표시줄이라 별도로 뺐다. */
+/* [그림]/[도감] 탭 바 — 새 CSS를 안 만들고 설정창의 CRT 강도(약/중/강)
+   세그먼트(.segset/.segset-btn)를 그대로 재사용했다. 여기선 버튼 두 개뿐이라
+   flex:1로 폭을 반반 나눠 "탭"답게 넓힌다(원래 세그먼트는 내용 크기만큼만
+   좁게 잡는다 — 그쪽엔 이 규칙을 안 걸어 기존 화면은 그대로다). */
+#desktop .gallery-tabs { margin: 14px 18px 0; }
+#desktop .gallery-tab { flex: 1; text-align: center; }
+
+/* 탭 내용 — hidden 속성이 아니라 .show 클래스로 여닫는다. 아래 .gallery-viewer
+   주석의 전례(hidden이 display:flex 규칙에 밀려 계속 보인 실제 버그)를 여기서
+   또 밟지 않으려고 처음부터 class로 시작한다. */
+#desktop .gallery-page { display: none; }
+#desktop .gallery-page.show { display: block; }
+
+/* 상단 "수집 N / 36" / "발견 N / 12" — .grp .h와 같은 톤(배경 #dfe6f2, 글자
+   #0a327a)이지만 섹션 헤더가 아니라 탭 하나에 하나뿐인 상시 표시줄이라
+   별도로 뺐다. */
 #desktop .gallery-count-row {
   background: #dfe6f2; border-bottom: 2px solid #a9a488; padding: 10px 18px;
   font-size: 18px; color: #0a327a; text-align: center;

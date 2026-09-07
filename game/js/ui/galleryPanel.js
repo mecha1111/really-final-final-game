@@ -30,6 +30,10 @@ let totalEl = null;
 let viewerEl = null;
 let viewerImgEl = null;
 
+// [그림]/[도감] 탭 — index.html의 정적 버튼 두 개와 .gallery-page 두 개.
+let tabButtons = null;
+let pageEls = null;
+
 // 그리드를 다시 그릴 때마다(openGallery()) 새로 만든다 — 이전 관찰자가 이미
 // 사라진 <img>를 계속 들고 있게 두지 않는다.
 let thumbObserver = null;
@@ -119,6 +123,21 @@ function closeViewer() {
   if (viewerImgEl) viewerImgEl.src = '';
 }
 
+/**
+ * 탭을 바꾼다 — [그림]/[도감] 두 쪽 다 정적 마크업(index.html)이라 새 창이나
+ * DOM 이동 없이 .active/.show 클래스만 토글한다.
+ * ★ hidden 속성이 아니라 class로 여닫는다 — 이 갤러리 창의 다른 오버레이
+ *   (.gallery-viewer)가 hidden을 썼다가 #desktop .gallery-viewer{display:flex}
+ *   규칙(구체성이 더 높다)에 밀려 계속 보이는 실제 버그를 낸 전례가 있다
+ *   (style.css의 그 주석 참고) — 같은 함정을 여기서 또 밟지 않는다.
+ */
+function switchTab(tab) {
+  if (!tabButtons || !pageEls) return;
+  closeViewer(); // [그림] 뷰어가 떠 있는 채로 탭을 넘기면 뒤에서 계속 열려 있게 된다
+  for (const [name, btn] of Object.entries(tabButtons)) btn?.classList.toggle('active', name === tab);
+  for (const [name, page] of Object.entries(pageEls)) page?.classList.toggle('show', name === tab);
+}
+
 /** 최초 1회(main.js). 버튼에 핸들러를 붙인다. */
 export function initGallery() {
   layer = document.getElementById('layer-gallery');
@@ -130,6 +149,11 @@ export function initGallery() {
   viewerEl = document.getElementById('gallery-viewer');
   viewerImgEl = document.getElementById('gallery-viewer-img');
 
+  tabButtons = { pics: document.getElementById('gallery-tab-pics'), dex: document.getElementById('gallery-tab-dex') };
+  pageEls = { pics: document.getElementById('gallery-page-pics'), dex: document.getElementById('gallery-page-dex') };
+  tabButtons.pics?.addEventListener('click', () => switchTab('pics'));
+  tabButtons.dex?.addEventListener('click', () => switchTab('dex'));
+
   document.getElementById('gallery-close')?.addEventListener('click', closeGallery);
   document.getElementById('gallery-done')?.addEventListener('click', closeGallery);
   // 뷰어 배경 아무 데나(닫기 버튼 포함) 클릭하면 닫힌다 — 버튼도 클릭이 결국
@@ -138,10 +162,10 @@ export function initGallery() {
   viewerEl?.addEventListener('click', closeViewer);
 }
 
-/** 갤러리를 연다 — 매번 최신 세이브로 그리드를 새로 그린다. */
+/** 갤러리를 연다 — 매번 최신 세이브로 그리드를 새로 그린다. 항상 [그림] 탭부터. */
 export function openGallery() {
   if (!layer) return;
-  closeViewer();
+  switchTab('pics');
   buildGrid();
   playSfx(SFX.UI_OPEN, { ui: true });
   layer.classList.add('open');
