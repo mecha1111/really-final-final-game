@@ -73,6 +73,68 @@
   --color-debug-bg: rgba(8, 10, 16, 0.6);
   --color-debug-border: #444444;
   --color-debug-text: #00ff00;
+
+  /* ═══════════════════════════════════════════════════════════════════
+     ■ XP 디자인 토큰 — docs/xp-design-system.html이 이 프로젝트 UI의 기준이다.
+     새 UI는 여기 토큰을 가져다 쓰고, 없으면 그 문서에 먼저 추가한 뒤 여기로 옮긴다.
+
+     ★ 값은 전부 "이미 게임에서 실제로 쓰이던 색"을 그대로 담았다 — 이번엔
+       시각적 변화가 0인 순수 리팩터(같은 값에 이름만 붙임)다. 참조 문서의
+       값이 다른 경우 그 값을 주석으로 같이 남겨둔다 — 문서 쪽이 실물 XP에
+       더 가까울 수 있지만, 색 조정 자체는 이 커밋의 목적이 아니라서 미룬다
+       (섞으면 나중에 회귀가 났을 때 원인이 토큰 도입인지 색 변경인지 못 가린다).
+       구체적인 항목별 차이는 커밋 메시지에 표로 남겨뒀다.
+
+     ★ 위 --color-* 와는 다른 계층이다 — --color-*는 캔버스에 그리는 게임
+       오브젝트(방해꾼 판정색·바 채움색 등) 색이고, --xp-*는 XP 창/버튼 같은
+       HTML UI 크롬 색이다. 섞어 쓰지 않는다.
+
+     ★ 아직 게임에 실제 쓰임이 없는 카테고리(베벨 3D 테두리, 데스크톱 아이콘
+       선택색, Office 길잡이 말풍선 고유색, 그루브)는 이번엔 넣지 않았다 —
+       "실제 쓰이는 색을 담는다"는 원칙상 쓰는 곳이 없으면 토큰도 아직 없다.
+       인트로·말풍선·갤러리 단계에서 실제로 그 컴포넌트를 옮길 때 그 문서의
+       값으로 새로 추가한다.
+     ═══════════════════════════════════════════════════════════════════ */
+
+  /* ── 타이틀바 (Luna Blue) — .tbar / .rover-head 2곳 ── */
+  --xp-title-grad: linear-gradient(180deg, #3c91f2 0, #177bea 6%, #0f66d8 50%, #1a72e0 92%, #0f5fc8 100%);
+  /* 문서 값: linear-gradient(180deg,#3d95ff 0%,#0e60e8 12%,#0a56e2 60%,#0a4ad6 100%) — 4단 그라데이션, 더 밝은 채도. */
+
+  /* ── 창 테두리 — .win / .rover-panel / urgentBlink 키프레임 3곳.
+     ★ 게임은 2겹 구조다(안쪽 진남색 1px 테두리 + 바깥 파란 링 box-shadow).
+       문서는 --xp-win-border 하나(단일 1px)뿐이라 토큰을 둘로 나눴다. ── */
+  --xp-win-border: #003c9d;
+  --xp-win-ring: #0054e3;
+  /* 문서 값(단일): --xp-win-border:#0055ea */
+  --xp-win-face: #ece9d8; /* 문서 --xp-win-face:#ECE9D8 — 일치 */
+
+  /* ── 입력/필드 — xpbar 테두리(2곳) + 볼륨 슬라이더 트랙(webkit/moz 2곳) ── */
+  --xp-field-bg: #fff;
+  --xp-field-border: #7f9db9; /* 문서 --xp-field-border와 일치 */
+
+  /* ── 말풍선 꼬리표(툴팁) 바탕 — 러버/hazard 말풍선 2곳(각 배경+화살표) ── */
+  --xp-tooltip-bg: #ffffe1; /* 문서 --xp-tooltip-bg와 일치 */
+
+  /* ── 작업표시줄 — 지금은 각 1곳뿐이지만(.taskbar / .clock) 이름 붙일 값이라
+     명시적으로 포함시켰다. ★시작 버튼(초록)은 실물 XP와 이미 맞는 부분이라
+     그대로 두고 토큰화 대상에서 뺐다(별도 지시). ── */
+  --xp-taskbar: linear-gradient(180deg, #3c91f2 0, #1c6fd8 8%, #1358c4 100%);
+  --xp-tray: linear-gradient(180deg, #1560c8, #1250b0);
+  /* 문서 값: --xp-taskbar:linear-gradient(#4a95f5,#2f6ee0 10%,#1c50c8 55%,#1746b0 92%,#0f3690)
+     --xp-tray:linear-gradient(#2f7fd8,#1a5cb8) */
+
+  /* ── 진행바(xpbar) 세그먼트 — .xpbar i 1곳(정의는 한 곳, .big 변형은 이 색을
+     그대로 물려받는다). ★색이 아니라 구조 자체가 문서와 다르다: 게임은 칸마다
+     단색 플랫을 채우고, 문서(--xp-bar-seg)는 칸 하나 안에서도 위→아래로
+     밝기가 도는 그라데이션이다. 색만 바꿔 끼운다고 그 느낌이 안 난다 —
+     구조를 바꾸는 건 이 커밋 범위 밖이라 색 토큰만 우선 둔다. ── */
+  --xp-bar-seg: #3fae2a;
+  /* 문서 값(그라데이션): linear-gradient(#a4f07a,#4bbb1a 46%,#3aa010 52%,#5fd02c) */
+
+  /* ── 폰트 — #desktop 포함 6곳에서 반복되던 값 ── */
+  --xp-font: 'DGM', 'Galmuri11', monospace;
+  /* 문서 값: "DGM","DungGeunMo",monospace — 폴백 이름만 다르고(Galmuri11이 이
+     프로젝트가 실제로 쓰는 폴백), DGM이 우선인 건 같다. */
 }
 
 /* 픽셀 폰트. base64 인라인이 아니라 파일 참조 — 시안(mockup7.html)은 2MB짜리
@@ -163,7 +225,7 @@ body {
   height: 1080px;
   flex: none; /* flex 컨테이너가 1920x1080을 줄이지 못하게 — 배율은 canvasFit.js만 정한다 */
   overflow: hidden;
-  font-family: 'DGM', 'Galmuri11', monospace;
+  font-family: var(--xp-font);
   -webkit-font-smoothing: none;
   image-rendering: pixelated;
   /* 게임 영역 커서 — ui/cursor.js가 config.cursor(이미지 경로+hotspot)로 조립해
@@ -407,7 +469,7 @@ body {
   display: none; /* .phase-failed일 때만 style.css 위쪽 규칙이 block으로 바꾼다 */
   background: #0000aa;
   color: #fff;
-  font-family: 'DGM', 'Galmuri11', monospace;
+  font-family: var(--xp-font);
   -webkit-font-smoothing: none;
 }
 #desktop .layer-bsod .bsod-inner {
@@ -491,7 +553,7 @@ body {
 #desktop .layer-cleared {
   display: none; /* .phase-cleared일 때만 위쪽 규칙이 block으로 바꾼다 */
   align-items: center; justify-content: center;
-  font-family: 'DGM', 'Galmuri11', monospace;
+  font-family: var(--xp-font);
   -webkit-font-smoothing: none;
   cursor: pointer; /* 배경 전체가 "건너뛰기" 클릭 대상이라는 걸 커서로도 알린다 */
   /* #desktop의 Bliss 그라디언트(위 #desktop 규칙)를 그대로 복제 — 이 레이어가
@@ -525,7 +587,7 @@ body {
    배경색(베이지 #ece9d8, .frame .img와 동일)으로 자연스럽게 섞이게 한다. */
 #desktop .cleared-viewer {
   position: relative; width: 100%; aspect-ratio: 1 / 1;
-  background: #ece9d8;
+  background: var(--xp-win-face);
   border: 3px solid #111; box-shadow: 4px 4px 0 #999;
   overflow: hidden;
 }
@@ -607,7 +669,7 @@ body {
    (index.html에서 이미 그 클래스를 같이 붙였다) 여기서는 이 버튼만 더 키운다는
    요구사항(버튼 ~22px)만 얹는다. */
 #desktop .cleared-dlg-foot {
-  background: #ece9d8; border-top: 1px solid #aca899; /* .win 기본 배경(#ece9d8)과 같은 회색 */
+  background: var(--xp-win-face); border-top: 1px solid #aca899; /* .win 기본 배경(#ece9d8)과 같은 회색 */
   padding: 14px 18px; display: flex; justify-content: flex-end;
 }
 #desktop .cleared-next-btn { font-size: 22px; padding: 13px 40px; }
@@ -685,7 +747,7 @@ body {
    display:flex, 나머지는 기본값(none)으로 숨는다.
    --------------------------------------------------------------------------- */
 #desktop .layer-ending {
-  font-family: 'DGM', 'Galmuri11', monospace;
+  font-family: var(--xp-font);
   -webkit-font-smoothing: none;
   background: linear-gradient(180deg, #3f7fc8 0%, #5c9bd8 20%, #8fbfe8 38%, #bfe0f2 50%, #5aa832 50%, #4f9c2a 74%, #3f8420 100%);
 }
@@ -710,7 +772,7 @@ body {
    비율이 달라도 안 잘린다. */
 #desktop .ending-slide-frame {
   position: relative; width: 420px; aspect-ratio: 1 / 1;
-  background: #ece9d8; border: 3px solid #111; box-shadow: 4px 4px 0 #999;
+  background: var(--xp-win-face); border: 3px solid #111; box-shadow: 4px 4px 0 #999;
   overflow: hidden; cursor: pointer; /* 클릭 = 다음 슬라이드(ui/endingScreen.js) */
 }
 #desktop .ending-slide-img {
@@ -1068,7 +1130,7 @@ body {
   display: flex; gap: 12px; padding: 16px 22px; border-top: 2px solid #c9c5b0; justify-content: flex-end;
 }
 #desktop .settings-btn {
-  font-family: 'DGM', 'Galmuri11', monospace; font-size: 18px; padding: 9px 20px;
+  font-family: var(--xp-font); font-size: 18px; padding: 9px 20px;
   background: linear-gradient(180deg, #fff, #cfcbb2); border: 2px solid #111; cursor: pointer;
 }
 #desktop .settings-btn:hover { filter: brightness(1.05); }
@@ -1221,7 +1283,7 @@ body {
   height: 28px; background: transparent; cursor: pointer;
 }
 #desktop .settings-body input[type='range']::-webkit-slider-runnable-track {
-  height: 24px; background: #fff; border: 2px solid #7f9db9;
+  height: 24px; background: var(--xp-field-bg); border: 2px solid var(--xp-field-border);
 }
 #desktop .settings-body input[type='range']::-webkit-slider-thumb {
   appearance: none; -webkit-appearance: none;
@@ -1229,7 +1291,7 @@ body {
   background: linear-gradient(180deg, #4a9bf5, #1668d4); border: 2px solid #111; cursor: pointer;
 }
 #desktop .settings-body input[type='range']::-moz-range-track {
-  height: 24px; background: #fff; border: 2px solid #7f9db9;
+  height: 24px; background: var(--xp-field-bg); border: 2px solid var(--xp-field-border);
 }
 #desktop .settings-body input[type='range']::-moz-range-thumb {
   width: 20px; height: 28px; background: linear-gradient(180deg, #4a9bf5, #1668d4);
@@ -1339,7 +1401,7 @@ body {
    쓰므로, 여기 숫자를 따로 박으면 둘이 갈라져 방해꾼이 작업표시줄에 반쯤 걸친다. */
 #desktop .taskbar {
   position: absolute; left: 0; right: 0; bottom: 0; height: var(--taskbar-h, 52px);
-  background: linear-gradient(180deg, #3c91f2 0, #1c6fd8 8%, #1358c4 100%);
+  background: var(--xp-taskbar);
   border-top: 2px solid #5aa0f5; display: flex; align-items: center;
 }
 #desktop .start {
@@ -1355,7 +1417,7 @@ body {
 }
 #desktop .clock {
   margin-left: auto; height: 100%; padding: 0 20px; display: flex; align-items: center;
-  background: linear-gradient(180deg, #1560c8, #1250b0); border-left: 2px solid #5aa0f5; font-size: 17px; color: #fff;
+  background: var(--xp-tray); border-left: 2px solid #5aa0f5; font-size: 17px; color: #fff;
 }
 
 /* ===== 개그 팝업 (레이어3) ===== */
@@ -1368,7 +1430,7 @@ body {
   background: #d1330f; color: #fff; width: 20px; height: 18px; text-align: center; line-height: 16px;
   border: 1px solid #fff; cursor: pointer;
 }
-#desktop .gagpop .c { background: #ece9d8; padding: 14px 16px; font-size: 16px; color: #111; line-height: 1.5; text-align: center; }
+#desktop .gagpop .c { background: var(--xp-win-face); padding: 14px 16px; font-size: 16px; color: #111; line-height: 1.5; text-align: center; }
 #desktop .gagpop .c button {
   margin-top: 10px; font-family: 'DGM', monospace; font-size: 15px; padding: 5px 16px;
   background: linear-gradient(180deg, #fff, #cfcbb2); border: 2px solid #111; cursor: pointer;
@@ -1376,12 +1438,12 @@ body {
 
 /* ===== 창 공통 (레이어2, 항상 위) ===== */
 #desktop .win {
-  position: absolute; background: #ece9d8; border: 1px solid #003c9d; border-radius: 8px 8px 0 0;
-  box-shadow: 0 0 0 1px #0054e3, 4px 4px 0 rgba(0, 0, 0, 0.25), 10px 14px 30px rgba(0, 0, 0, 0.35);
+  position: absolute; background: var(--xp-win-face); border: 1px solid var(--xp-win-border); border-radius: 8px 8px 0 0;
+  box-shadow: 0 0 0 1px var(--xp-win-ring), 4px 4px 0 rgba(0, 0, 0, 0.25), 10px 14px 30px rgba(0, 0, 0, 0.35);
   display: flex; flex-direction: column; overflow: hidden;
 }
 #desktop .tbar {
-  height: 48px; background: linear-gradient(180deg, #3c91f2 0, #177bea 6%, #0f66d8 50%, #1a72e0 92%, #0f5fc8 100%);
+  height: 48px; background: var(--xp-title-grad);
   display: flex; align-items: center; gap: 8px; padding: 0 6px 0 10px; cursor: move;
 }
 #desktop .tbar .ico {
@@ -1466,9 +1528,9 @@ body {
   0%, 100% { text-shadow: 0 0 6px rgba(255, 200, 40, 0.45); }
   50% { text-shadow: 0 0 16px rgba(255, 200, 40, 0.95); }
 }
-#desktop .xpbar { height: 20px; background: #fff; border: 2px solid #7f9db9; margin-top: 10px; padding: 2px; display: flex; gap: 2px; overflow: hidden; }
-#desktop .xpbar i { width: 13px; background: #3fae2a; flex-shrink: 0; }
-#desktop .xpbar.big { height: 34px; padding: 3px; gap: 3px; border: 3px solid #7f9db9; }
+#desktop .xpbar { height: 20px; background: var(--xp-field-bg); border: 2px solid var(--xp-field-border); margin-top: 10px; padding: 2px; display: flex; gap: 2px; overflow: hidden; }
+#desktop .xpbar i { width: 13px; background: var(--xp-bar-seg); flex-shrink: 0; }
+#desktop .xpbar.big { height: 34px; padding: 3px; gap: 3px; border: 3px solid var(--xp-field-border); }
 #desktop .xpbar.big i { width: 19px; }
 
 /* 2026-08-23 VFX: 업로드 진행바(#up-bar) 맨 앞칸 반짝임 — "차오르는 선두가
@@ -1506,7 +1568,7 @@ body {
 #desktop .frame .img {
   display: block; /* canvas 기본값(inline-block)의 바닥 여백 틈을 없앤다 */
   width: 540px; height: 540px;
-  background: #ece9d8;
+  background: var(--xp-win-face);
 }
 #desktop .frame .cap { margin-top: 14px; padding: 0 6px; display: flex; justify-content: space-between; align-items: baseline; font-size: 20px; color: #444; }
 /* 2026-08-24: 34px→46px + 살짝 더 진한 색으로 — "사진 쪽에 시선이 안 간다"는
@@ -1679,8 +1741,8 @@ body {
 /* 업로드 창 전체가 순간 빨갛게 번쩍 — 방금 맞았다는 걸 창째로 알린다. */
 #desktop .winB.hit-flash { animation: winHitFlash 0.25s ease-out; }
 @keyframes winHitFlash {
-  0% { box-shadow: 0 0 0 4px rgba(255, 40, 40, 0.9), 0 0 0 1px #0054e3, 4px 4px 0 rgba(0, 0, 0, 0.25), 10px 14px 30px rgba(0, 0, 0, 0.35); }
-  100% { box-shadow: 0 0 0 1px #0054e3, 4px 4px 0 rgba(0, 0, 0, 0.25), 10px 14px 30px rgba(0, 0, 0, 0.35); }
+  0% { box-shadow: 0 0 0 4px rgba(255, 40, 40, 0.9), 0 0 0 1px var(--xp-win-ring), 4px 4px 0 rgba(0, 0, 0, 0.25), 10px 14px 30px rgba(0, 0, 0, 0.35); }
+  100% { box-shadow: 0 0 0 1px var(--xp-win-ring), 4px 4px 0 rgba(0, 0, 0, 0.25), 10px 14px 30px rgba(0, 0, 0, 0.35); }
 }
 
 /* 화면 가장자리 빨간 비네트. radial-gradient로 중앙은 투명, 가장자리만 붉게 —
@@ -1888,7 +1950,7 @@ body {
 /* ── A. 재부팅 카운트다운 ─────────────────────────────────────────────────── */
 #desktop .hz-reboot { width: 620px; }
 #desktop .hz-reboot .tbar .ico { background: #ffd34d; font-size: 20px; }
-#desktop .hz-body { background: #ece9d8; padding: 22px 26px 18px; }
+#desktop .hz-body { background: var(--xp-win-face); padding: 22px 26px 18px; }
 #desktop .hz-row { display: flex; gap: 18px; align-items: flex-start; }
 /* XP 업데이트 알림의 노란 방패 — 이모지 하나로 충분하다(새 이미지 에셋 없이). */
 #desktop .hz-shield { font-size: 46px; line-height: 1; flex-shrink: 0; }
@@ -1940,14 +2002,14 @@ body {
   position: absolute; left: 40px; bottom: 96px; width: 430px;
   display: flex; gap: 12px; align-items: flex-start;
   padding: 14px 16px;
-  background: #ffffe1; border: 1px solid #000; /* XP 툴팁 노랑 */
+  background: var(--xp-tooltip-bg); border: 1px solid #000; /* XP 툴팁 노랑 */
   box-shadow: 4px 4px 0 rgba(0, 0, 0, 0.35);
   color: #111;
 }
 /* 말풍선 꼬리(작업표시줄 쪽을 가리킨다) — 테두리 트릭으로 삼각형만 그린다. */
 #desktop .hz-balloon::after {
   content: ''; position: absolute; left: 34px; bottom: -13px;
-  border: 6px solid transparent; border-top: 7px solid #ffffe1;
+  border: 6px solid transparent; border-top: 7px solid var(--xp-tooltip-bg);
   filter: drop-shadow(0 1px 0 #000);
 }
 #desktop .hz-balloon-ico { font-size: 26px; line-height: 1.1; flex-shrink: 0; }
@@ -2007,10 +2069,10 @@ body {
 #desktop .rover-panel {
   position: absolute; left: 0; bottom: 40px; width: 240px;
   display: flex; flex-direction: column;
-  font-family: 'DGM', 'Galmuri11', monospace;
+  font-family: var(--xp-font);
   -webkit-font-smoothing: none;
-  border: 2px solid #003c9d; border-left: none; border-radius: 0 10px 10px 0;
-  box-shadow: 0 0 0 1px #0054e3, 4px 4px 0 rgba(0, 0, 0, 0.3);
+  border: 2px solid var(--xp-win-border); border-left: none; border-radius: 0 10px 10px 0;
+  box-shadow: 0 0 0 1px var(--xp-win-ring), 4px 4px 0 rgba(0, 0, 0, 0.3);
   overflow: hidden;
   /* 슬라이드 인/아웃 — ui/rover.js가 --rover-slide-sec를 config.tutorial.slideSec로 채운다. */
   transform: translateX(-100%);
@@ -2022,7 +2084,7 @@ body {
 
 /* 머리말 — 기존 .tbar와 같은 파란 그라디언트를 그대로 물려받는다(새 팔레트 금지). */
 #desktop .rover-head {
-  height: 34px; background: linear-gradient(180deg, #3c91f2 0, #177bea 6%, #0f66d8 50%, #1a72e0 92%, #0f5fc8 100%);
+  height: 34px; background: var(--xp-title-grad);
   display: flex; align-items: center; gap: 6px; padding: 0 10px;
   color: #fff; flex-shrink: 0;
 }
@@ -2042,13 +2104,13 @@ body {
    새로 정의한다 — 위치 기준(좌하단 고정 vs 패널 내부)이 달라 그대로 못 물려받는다). */
 #desktop .rover-bubble {
   position: relative; width: 100%;
-  background: #ffffe1; border: 1px solid #000; border-radius: 3px;
+  background: var(--xp-tooltip-bg); border: 1px solid #000; border-radius: 3px;
   padding: 10px 12px; margin-bottom: 10px;
   box-shadow: 3px 3px 0 rgba(0, 0, 0, 0.3);
 }
 #desktop .rover-bubble::after {
   content: ''; position: absolute; left: 50%; bottom: -11px; transform: translateX(-50%);
-  border: 6px solid transparent; border-top: 6px solid #ffffe1;
+  border: 6px solid transparent; border-top: 6px solid var(--xp-tooltip-bg);
   filter: drop-shadow(0 1px 0 #000);
 }
 #desktop .rover-bubble-text { font-size: 15px; line-height: 1.5; color: #111; }
