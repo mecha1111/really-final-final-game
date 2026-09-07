@@ -70,10 +70,11 @@ function defaultSave() {
     // 토글 config.hazard.enabled). 슬라이더 셋은 state.settings와 같은 이름을 쓴다.
     // rotationEnabled는 [환경 방해]와 별개인 접근성 토글이다(화면 회전만 끄기).
     // tutorialEnabled도 마찬가지로 독립 토글이다. ★2026-09-07: 인게임 러버 팁이
-    // 걷어내지면서 의미가 인트로의 강아지 튜토리얼 표시 여부로 옮겨갔다(끄면
-    // 인트로 안의 부팅·바탕화면·클릭 연출까지만 나오고 튜토리얼 페이지는 건너뛴다,
-    // config.tutorial 상단 주석 참고) — "안내를 보고 싶은가"라는 상위 의미가
-    // 그대로라 필드 이름은 그대로 재사용했다.
+    // 걷어내지면서 의미가 강아지 튜토리얼 표시 여부로 옮겨갔고, ★2026-09-08:
+    // 그 튜토리얼 자체가 인트로에서 [게임 시작] 뒤(ui/gameOpening.js)로 다시
+    // 옮겨갔다(끄면 오프닝의 렉·로딩 연출까지만 나오고 튜토리얼 페이지는
+    // 건너뛴다, config.tutorial 상단 주석 참고) — "안내를 보고 싶은가"라는
+    // 상위 의미가 그대로라 필드 이름은 그대로 재사용했다.
     settings: {
       soundMaster: 100, soundSfx: 100, soundBgm: 100,
       hazardEnabled: true, rotationEnabled: true, tutorialEnabled: true,
@@ -84,11 +85,16 @@ function defaultSave() {
     // [튜토리얼 다시 보기]가 이 배열을 비운다.
     seenTips: [],
 
-    // 인트로 연출(부팅 → 바탕화면 → 커서가 게임을 찾아 클릭 → 강아지 튜토리얼,
-    // ui/intro.js)을 한 번이라도 끝까지 본 적 있나. false면 다음 부팅에서
-    // loading → intro → title, true면 곧장 loading → title이다(main.js).
-    // ★ "봤다"는 인트로가 타이틀로 넘어가는 그 순간에만 찍는다 — 도중에
-    //   새로고침하면 다시 처음부터 본다(중간에 끊긴 걸 봤다고 치지 않는다).
+    // ★ 2026-09-08: 이 필드가 커버하는 범위가 넓어졌다 — 인트로 연출(부팅 →
+    //   바탕화면 → 커서가 게임을 찾아 클릭, ui/intro.js)과 그 뒤 첫 [게임 시작]의
+    //   강아지 튜토리얼(ui/gameOpening.js)을 합쳐 하나로 본다. false면 다음
+    //   부팅에서 loading → intro → title이 나오고(main.js), 그 뒤 첫 [게임 시작]에
+    //   강아지 튜토리얼도 뜬다(gameOpening.js의 wantTutorial). true면 인트로 자체를
+    //   건너뛰고 곧장 loading → title이며, [게임 시작]도 튜토리얼 없이 바로 판이
+    //   시작된다.
+    // ★ "봤다"는 인트로가 아니라 강아지 튜토리얼이 끝나는 그 순간에만 찍는다
+    //   (ui/gameOpening.js의 finish) — 도중에 새로고침하거나 [건너뛰기]를 안 누르고
+    //   나가면 다음에 처음부터 다시 본다(중간에 끊긴 걸 봤다고 치지 않는다).
     // 설정창의 [튜토리얼 다시 보기]가 seenTips와 함께 이 값도 false로 되돌린다.
     seenIntro: false,
 
@@ -435,9 +441,13 @@ export function markTipSeen(id) {
 
 /** 설정창의 [튜토리얼 다시 보기] — 본 기록을 전부 지운다(팁은 다시 조건대로 뜬다).
  * ★ 인트로(seenIntro)까지 같이 지운다 — 지금 그 버튼이 가리키는 "튜토리얼"의
- *   본체가 인트로의 강아지 튜토리얼이라, 러버 팁 기록만 지우면 눌러도 아무 일도
- *   안 일어나는 버튼이 된다. 인트로는 다음 실행(새로고침)부터 다시 재생된다 —
- *   지금 화면은 이미 타이틀 이후라 그 자리에서 되감을 데가 없다. */
+ *   본체가 강아지 튜토리얼이라, 러버 팁 기록만 지우면 눌러도 아무 일도 안
+ *   일어나는 버튼이 된다.
+ * ★ 2026-09-08 정정: "인트로는 다음 실행(새로고침)부터 다시 재생된다"던 예전
+ *   설명은 지금은 틀렸다 — 강아지 튜토리얼이 [게임 시작] 뒤(ui/gameOpening.js)로
+ *   옮겨가면서, 이 버튼을 누른 바로 다음 [게임 시작]에 곧바로 다시 뜬다(새로고침
+ *   불필요). 다만 인트로(부팅·바탕화면·클릭 연출) 자체는 여전히 다음 부팅부터만
+ *   다시 나온다 — 지금 화면은 이미 타이틀 이후라 그 자리에서 되감을 데가 없다. */
 export function resetSeenTips() {
   return updateSave((save) => {
     save.seenTips = [];
@@ -445,12 +455,14 @@ export function resetSeenTips() {
   });
 }
 
-/** 인트로를 이미 끝까지 본 적 있나 — main.js가 loading 다음 착지 지점을 고를 때 본다. */
+/** 인트로 + 강아지 튜토리얼을 이미 끝까지 본 적 있나 — main.js가 loading 다음
+ * 착지 지점을 고를 때, ui/gameOpening.js가 튜토리얼을 보여줄지 고를 때 둘 다 본다. */
 export function hasSeenIntro() {
   return getSave().seenIntro === true;
 }
 
-/** 인트로를 "봤다"고 못박는다(ui/intro.js가 타이틀로 넘기는 그 순간에만 부른다). */
+/** "봤다"고 못박는다(ui/gameOpening.js가 오프닝을 끝내는 그 순간에만 부른다 —
+ * 2026-09-08 전에는 ui/intro.js가 타이틀로 넘기는 순간이었다). */
 export function markIntroSeen() {
   return updateSave((save) => {
     save.seenIntro = true;

@@ -273,8 +273,8 @@ export function initSettingsPanel() {
   });
 
   // [시작 시 튜토리얼 보기] 끄기 — [환경 방해]/[화면 회전]과 독립. 끄면 다음
-  // 실행의 인트로에서 강아지 튜토리얼 페이지만 건너뛴다(부팅·바탕화면·클릭
-  // 연출은 그대로 나온다 — config.tutorial 상단 주석 참고). resetRoverQueue()는
+  // [게임 시작]의 오프닝에서 강아지 튜토리얼 페이지만 건너뛴다(렉·로딩 연출은
+  // 그대로 나온다 — config.tutorial 상단 주석 참고). resetRoverQueue()는
   // 러버 사이드바 몫이라 지금 인게임에서 실제로 뭘 치울 일은 없지만, 그 모듈이
   // 아직 살아있고(__game.showTip 디버그 손잡이) 이 토글이 여전히 그 게이트라
   // 그대로 둔다.
@@ -289,7 +289,7 @@ export function initSettingsPanel() {
   // 달리 확인 대화상자를 안 거친다(눌러도 잃을 게 없다).
   // ★ [시작 시 튜토리얼 보기]가 꺼져 있으면 여기서 강제로 다시 켠다 — "다시
   //   보기"를 누르는 행위 자체가 "튜토리얼을 다시 보고 싶다"는 뜻이라, 토글이
-  //   꺼진 채로 두면 눌러도 다음 실행에 조용히 안 뜨는 버튼이 되어버린다.
+  //   꺼진 채로 두면 눌러도 다음 [게임 시작]에 조용히 안 뜨는 버튼이 되어버린다.
   document.getElementById('settings-tips-reset')?.addEventListener('click', () => {
     playSfx(SFX.UI_CLICK, { ui: true });
     resetSeenTips();

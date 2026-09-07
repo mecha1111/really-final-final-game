@@ -99,8 +99,10 @@ async function applyLoadedData() {
   loadEnemyImages(buildAssetKeys(gameData.enemies));
 
   // 최초 로드가 끝나면 타이틀로 착지한다 — 단 ★첫 실행이면 그 앞에 인트로가 하나
-  // 더 있다(loading → intro → title). 인트로가 [시작]/[닫기]로 끝나는 자리에서
-  // ui/intro.js가 setPhase('title')을 불러 기존 타이틀 화면으로 넘긴다.
+  // 더 있다(loading → intro → title). ★인트로엔 이제 버튼이 없다(2026-09-08 —
+  // [시작]/[닫기]로 끝나던 강아지 튜토리얼은 [게임 시작] 뒤로 옮겨갔다) — 부팅~
+  // 클릭 타임라인이 끝까지 재생되면 그 자리에서 ui/intro.js가 곧장
+  // setPhase('title')을 불러 기존 타이틀 화면으로 넘긴다.
   // ★ 타임라인 시작(startIntro)을 여기 — settlePhase가 실제로 먹은 그 자리 — 에
   //   묶는 게 중요하다. 부팅 화면 자체는 initIntro()가 로딩 중에 이미 띄워두지만,
   //   그건 커튼일 뿐이고 시계는 여기서만 돈다. 그래야 "로딩이 늦게 끝나 뒤늦게

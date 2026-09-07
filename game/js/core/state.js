@@ -26,9 +26,11 @@ export const state = {
   // 아무것도 안 그리고 클릭도 안 받는다(ui/render.js·systems/input.js의 title 가드).
   // main.js가 최초 로드 완료 시 여기로 착지시킨다(loading → title).
   // 'intro'는 ★첫 실행에만 들어가는, 타이틀보다 앞에 오는 연출이다(부팅 → 바탕화면
-  // → 커서가 우리 게임을 찾아 클릭 → 강아지 튜토리얼). 세이브의 seenIntro가 false일
-  // 때만 main.js가 loading → intro로 착지시키고, 튜토리얼이 끝나면 ui/intro.js가
-  // setPhase('title')로 기존 타이틀 화면에 넘긴다. 이 동안 게임은 한 프레임도 안
+  // → 커서가 우리 게임을 찾아 클릭). ★2026-09-08: 강아지 튜토리얼은 여기 안 산다 —
+  // 그건 [게임 시작] 뒤(phase는 그대로 'title', ui/gameOpening.js)에서 따로 돈다.
+  // 세이브의 seenIntro가 false일 때만 main.js가 loading → intro로 착지시키고,
+  // 이 부팅~클릭 연출이 끝나면 ui/intro.js가 곧장 setPhase('title')로 기존
+  // 타이틀 화면에 넘긴다. 이 동안 게임은 한 프레임도 안
   // 돈다 — main.js의 update가 phase==='intro'면 통째로 건너뛰고(다른 화면들처럼
   // stageManager의 playing 가드에만 기대지 않는다), 캔버스도 아무것도 안 그린다
   // (ui/render.js의 loading/title과 같은 자리).

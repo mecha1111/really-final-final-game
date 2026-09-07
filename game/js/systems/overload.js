@@ -81,7 +81,12 @@ function writeVar(name, value) {
   layerEl.style.setProperty(name, value);
 }
 
-/** 지금 강도(0~1). 디버그 표시나 테스트가 읽는다. */
+/** 지금 강도(0~1).
+ * ★ 2026-09-08 정정: "디버그 표시나 테스트가 읽는다"고 적혀 있었지만 실제로는
+ *   아무도 안 부른다(debug.js에도 안 걸려 있다) — 죽은 코드는 아니고, 나중에
+ *   디버그 패널에 오버로드 강도 줄을 추가하고 싶어질 때를 위해 남겨둔
+ *   전용 게터다. 지금 당장 쓰는 곳이 없다는 사실을 숨기지 않기 위해 문구를
+ *   고쳤다. */
 export function getOverloadLevel() {
   return level;
 }

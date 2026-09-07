@@ -57,9 +57,10 @@ export class Spawner {
     const pos = findSpawnPos(spec, enemies, playArea, rules);
     // ★ 2026-09-07: 여기 있던 bait/popup "첫 등장 팁"(showTip) 두 줄을 걷어냈다.
     //   방해꾼이 날뛰는 와중에 화면 구석에서 뜨는 안내는 아무도 안 읽어서 튜토리얼로
-    //   기능하지 못했다. 조작 설명은 이제 게임 시작 전 인트로의 도우미 튜토리얼
-    //   (ui/intro.js)이 통째로 맡는다 — 그리고 bait/popup은 ★일부러 안 알려준다.
-    //   직접 눌러보고 알아내는 게 이 게임의 재미다(인트로 대본에도 없다).
+    //   기능하지 못했다. 조작 설명은 이제 게임 시작 전 도우미 튜토리얼
+    //   (ui/gameOpening.js, 2026-09-08 전에는 ui/intro.js였다)이 통째로 맡는다 —
+    //   그리고 bait/popup은 ★일부러 안 알려준다. 직접 눌러보고 알아내는 게 이
+    //   게임의 재미다(그 튜토리얼 대본에도 없다).
     return new Enemy(spec, { x: pos.x, y: pos.y, rules, playArea, pointer });
   }
 }
