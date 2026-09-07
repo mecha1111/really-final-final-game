@@ -2,7 +2,8 @@
 // 버튼 3개(재도전/로비/나가기) 클릭 훅. ui/titleScreen.js와 같은 패턴이다.
 
 import { state, setPhase } from '../core/state.js';
-import { startGame } from '../core/stageManager.js';
+import { startGame, isInfiniteStage } from '../core/stageManager.js';
+import { config } from '../config.js';
 import { playSfx, SFX } from '../systems/sound.js';
 
 const last = {};
@@ -54,13 +55,18 @@ let wasFailed = false;
 
 /** 최초 1회. 버튼 3개에 핸들러를 붙인다. */
 export function initBsodScreen() {
-  // 재도전 — "현 실패규칙대로 n=0 리셋". 이 프로젝트엔 판을 넘어 남는 영구강화
-  // 시스템이 아직 없다(state 전체가 startGame()에서 매번 새로 만들어진다) — 그래서
-  // "영구강화 보존"은 지금은 자명하게 참이다(애초에 지워질 영구 상태가 없다).
-  // 나중에 그런 시스템이 생기면 여기서 그 부분만 안 건드리게 손봐야 한다.
+  // 재도전 — 방금 진 그 모드의 처음으로 되돌린다(유한이면 1구간, 무한이면 무한 1층).
+  // 이 프로젝트엔 판을 넘어 남는 영구강화 시스템이 아직 없다(state 전체가
+  // startGame()에서 매번 새로 만들어진다) — 그래서 "영구강화 보존"은 지금은 자명하게
+  // 참이다(애초에 지워질 영구 상태가 없다). 나중에 그런 시스템이 생기면 여기서
+  // 그 부분만 안 건드리게 손봐야 한다.
   document.getElementById('bsod-retry')?.addEventListener('click', () => {
     playSfx(SFX.UI_CLICK, { ui: true });
-    startGame(0);
+    // ★"재도전"은 방금 진 그 모드를 다시 하는 것이다. 예전엔 startGame(0)을
+    //   하드코딩해서, 무한모드에서 지면 이미 완주한 캠페인의 1구간으로 되돌아갔다
+    //   (플레이스루 실측: 무한 4층에서 게임오버 → n=0·250MB·180초).
+    //   무한모드였으면 무한 1층(=finiteCount)으로, 유한이었으면 예전처럼 1구간으로.
+    startGame(isInfiniteStage(state.stageIndex) ? config.stage.finiteCount : 0);
   });
 
   // 로비 — 타이틀로. startGame()을 거치지 않고 phase만 바로 바꾼다(최초 부팅 때
