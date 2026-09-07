@@ -19,12 +19,19 @@ export function emptyStats() {
 }
 
 export const state = {
-  // 'loading' | 'title' | 'playing' | 'cleared' | 'failed' | 'ending'
+  // 'loading' | 'intro' | 'title' | 'playing' | 'cleared' | 'failed' | 'ending'
   // (예전엔 'select'(시작/다음 구간 대기 화면)가 하나 더 있었는데, advanceStage()가
   //  곧장 startGame()으로 가게 바뀌면서 도달할 수 없게 돼 2026-09-07에 걷어냈다)
   // 'title'은 HTML 오버레이(.layer-title, ui/titleScreen.js)가 전담한다 — 캔버스는
   // 아무것도 안 그리고 클릭도 안 받는다(ui/render.js·systems/input.js의 title 가드).
   // main.js가 최초 로드 완료 시 여기로 착지시킨다(loading → title).
+  // 'intro'는 ★첫 실행에만 들어가는, 타이틀보다 앞에 오는 연출이다(부팅 → 바탕화면
+  // → 커서가 우리 게임을 찾아 클릭 → 강아지 튜토리얼). 세이브의 seenIntro가 false일
+  // 때만 main.js가 loading → intro로 착지시키고, 튜토리얼이 끝나면 ui/intro.js가
+  // setPhase('title')로 기존 타이틀 화면에 넘긴다. 이 동안 게임은 한 프레임도 안
+  // 돈다 — main.js의 update가 phase==='intro'면 통째로 건너뛰고(다른 화면들처럼
+  // stageManager의 playing 가드에만 기대지 않는다), 캔버스도 아무것도 안 그린다
+  // (ui/render.js의 loading/title과 같은 자리).
   // 'ending'은 유한 5구간을 전부 깼을 때만 들어간다(core/stageManager.js의
   // advanceStage() → ui/endingScreen.js의 openEnding()) — title/failed/cleared와
   // 같은 자리(HTML 오버레이가 전담, systems/input.js가 캔버스 클릭을 막는다).

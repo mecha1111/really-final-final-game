@@ -716,6 +716,11 @@
                   <label for="settings-tips-reset">본 팁 기록</label>
                   <button type="button" class="settings-btn" id="settings-tips-reset">다시 보기</button>
                 </div>
+                <!-- 이 버튼이 가리키는 "튜토리얼"의 본체는 이제 인트로의 강아지
+                     튜토리얼이다(ui/intro.js). 세이브의 seenIntro를 되돌리므로
+                     다음 실행에서 부팅부터 다시 재생된다 — 지금 화면은 이미 타이틀
+                     이후라 그 자리에서 되감을 데가 없어서 "다음 실행부터"다. -->
+                <div class="settings-hint">인트로 튜토리얼을 다음 실행 때 다시 보여줍니다.</div>
               </div>
             </div>
 
@@ -806,6 +811,38 @@
             <img class="gallery-viewer-img" id="gallery-viewer-img" alt="" />
             <button type="button" class="settings-btn" id="gallery-viewer-close">닫기</button>
           </div>
+        </div>
+      </div>
+
+      <!-- ★인트로 연출(레이어14 — 이 게임의 모든 레이어보다 위). 첫 실행에만,
+           타이틀 화면보다 "앞"에 온다: 부팅 → 바탕화면(가짜 파일 더미) → 커서가
+           우리 게임을 찾아 클릭 → 강아지 튜토리얼 → 기존 타이틀 화면.
+           ui/intro.js가 config.intro 타임라인을 dt로 돌리고, 여기 마크업에
+           클래스만 토글한다. 정본 디자인은 docs/xp-design-system.html의
+           "1 · 인트로 연출" 섹션이다(.xp-boot/.xp-deico/.xp-assist 규칙 그대로,
+           1000x625 기준 값을 이 게임의 1920x1080 좌표계로 옮겼다).
+
+           z14인 이유: 인트로 동안에는 그 위에 열릴 수 있는 화면이 하나도 없다 —
+           ESC 설정창은 ESC_OPENABLE_PHASES(ui/settingsPanel.js)에 'intro'가 없어
+           안 열리고, 갤러리(11)/나가기(12)/확인(13)은 전부 타이틀 이후에만
+           열린다. 그래서 "무조건 맨 위"가 가장 단순하고 안전하다.
+           ★ 표시/숨김은 hidden 속성이 아니라 .on 클래스 토글이다(이 프로젝트가
+           두 번 겪은 함정 — display가 박힌 규칙에 [hidden]이 특이도로 밀린다). -->
+      <div class="layer-intro" id="layer-intro">
+        <!-- 부팅 화면. ★참조 문서의 .xp-boot 규칙 그대로 —
+             CRT 전원 켜짐(scaleY(.003)→1 + opacity, ★filter/brightness 아님)
+             + XP 로고 + 분절 로딩바 + "부팅 중 . . ." + 주사선. -->
+        <div class="intro-boot" id="intro-boot">
+          <div class="power"></div>
+          <div class="logo">
+            <div class="brand">
+              <span class="flag" data-icon="xp_flag" data-size="84"></span>
+              <div class="t">My<b>Windows</b> XP</div>
+            </div>
+            <div class="loadbar"><div class="blk"><i></i><i></i><i></i></div></div>
+            <div class="st">부팅 중 . . .</div>
+          </div>
+          <div class="scan"></div>
         </div>
       </div>
       </div>

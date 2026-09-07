@@ -37,11 +37,13 @@ import { initSettingsPanel, applySavedSettings } from './ui/settingsPanel.js';
 import { initConfirmDialog } from './ui/confirmDialog.js';
 import { initGallery } from './ui/galleryPanel.js';
 import { initRover, updateRover, showTip } from './ui/rover.js';
+import { initIntro, startIntro, updateIntro } from './ui/intro.js';
 import { initCursor, updateCursor } from './ui/cursor.js';
 import { updateStatusWindows } from './ui/statusWindow.js';
 import { initUploadPicture, updateUploadPicture } from './ui/uploadPicture.js';
 import { initDebugPanel, bindRules, updateDebugStats } from './debug.js';
 import { applyIcons } from './ui/icons.js';
+import { hasSeenIntro } from './core/save.js';
 import { Enemy } from './enemies/Enemy.js';
 
 const canvas = document.getElementById('game-canvas');
@@ -81,14 +83,22 @@ async function applyLoadedData() {
 
   await loadEnemyImages(buildAssetKeys(gameData.enemies));
 
-  // 최초 로드가 끝나면 타이틀로 착지한다(loading → title).
+  // 최초 로드가 끝나면 타이틀로 착지한다 — 단 ★첫 실행이면 그 앞에 인트로가 하나
+  // 더 있다(loading → intro → title). 인트로가 [시작]/[닫기]로 끝나는 자리에서
+  // ui/intro.js가 setPhase('title')을 불러 기존 타이틀 화면으로 넘긴다.
+  // ★ 타임라인 시작(startIntro)을 여기 — settlePhase가 실제로 먹은 그 자리 — 에
+  //   묶는 게 중요하다. 부팅 화면 자체는 initIntro()가 로딩 중에 이미 띄워두지만,
+  //   그건 커튼일 뿐이고 시계는 여기서만 돈다. 그래야 "로딩이 늦게 끝나 뒤늦게
+  //   도착한 착지"가 이미 끝난 인트로를 되감는 사고가 구조적으로 안 생긴다
+  //   (아래 settlePhase 주석이 경고하는 것과 같은 부류의 레이스다).
   // ★ settlePhase는 "아직 판이 시작 안 됐을 때만" 적용된다(core/state.js의 정착
   //   가드) — 이 함수는 fetch와 이미지 프리로드를 await한 뒤에야 여기 도달하므로,
   //   그 사이에 판이 시작됐다면(지금은 그런 경로가 없지만 세이브 [이어하기]가
   //   붙으면 생긴다) 뒤늦은 이 대입이 'playing'을 덮어써선 안 된다.
   //   리로드 버튼처럼 "일부러 타이틀로 돌아가는" 경로는 자기 자리에서 setPhase를
   //   따로 부른다(아래 initReloadButton) — 그래야 의도한 복귀는 그대로 살아있다.
-  settlePhase('title');
+  const firstRun = !hasSeenIntro();
+  if (settlePhase(firstRun ? 'intro' : 'title') && firstRun) startIntro();
 
   // 대기 화면에서도 디버그 슬라이더가 그럴듯한 숫자를 보여주도록 미리 채워둔다.
   // 지금 대기 중인 구간(state.stageIndex)의 값을 쓴다.
@@ -163,6 +173,11 @@ async function main() {
   initConfirmDialog(); // 공용 확인 대화상자(새 게임 덮어쓰기 등) — 설정창보다 뒤여도 무관
   initGallery(); // 그림 갤러리(타이틀 전용) — 버튼/그리드/뷰어 핸들러
   initRover(); // 튜토리얼 도우미(러버) — 슬라이드 패널 DOM/클릭 배선
+  // 인트로(첫 실행 전용, 타이틀보다 앞) — DOM/버튼 배선 + 가짜 파일 아이콘 생성.
+  // ★ 첫 실행이면 이 시점에 부팅 화면이 곧바로 뜬다(밸런스를 받아오는 동안 보이는
+  //   로딩 오버레이를 덮는다). 타임라인 자체는 로딩이 끝난 뒤 applyLoadedData()가
+  //   startIntro()로 돌린다.
+  initIntro();
   // 저장된 설정(사운드 셋·환경 방해)을 입힌다. ★ 반드시 initSound()/initBgm() 뒤여야
   // 한다 — 볼륨 노드가 그때 만들어지고, 여기서 그 노드에 값을 흘려보낸다.
   applySavedSettings();
@@ -179,6 +194,16 @@ async function main() {
 
   startLoop({
     update: (dt) => {
+      // ★ 인트로(첫 실행 연출)는 게임 밖이다 — 게임 갱신을 통째로 건너뛰고 자기
+      //   타임라인만 돌린다. update()의 playing 가드(core/stageManager.js)만으로도
+      //   방해꾼은 안 돌지만, 그 아래 updateParticles/updateRipples/updateRover는
+      //   가드 밖이라 그냥 두면 인트로 중에도 돈다. "인트로 중엔 게임 update가 돌지
+      //   않는다"를 여기 한 줄로 못박는다.
+      if (state.phase === 'intro') {
+        updateIntro(dt);
+        return;
+      }
+
       // ★ 설정 팝업이 열려 있으면 완전히 멈춘다(일시정지) — 히트스톱과 같은 자리에
       //   같은 방식으로 걸었다: 그리기(render)는 계속 돌아서 멈춘 화면이 그대로
       //   보이고, 갱신만 건너뛴다. floats/juice까지 전부 여기서 같이 멈춘다.

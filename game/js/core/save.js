@@ -28,7 +28,10 @@ const STORAGE_KEY = 'rff-save-v1';
 // 생겼다. ★ 예전에 이 필드들을 세이브 스키마 없이 그냥 얹으려다 v1 전체를 날릴
 // 뻔한 적이 있어서, 반드시 migrate()를 거쳐 옛 필드(해금 그림·이어할 구간 등)를
 // 그대로 물려받는다 — 아래 v2→v3 분기 참고.
-const SCHEMA_VERSION = 3;
+// v4(2026-09-07): 인트로 연출(ui/intro.js) 신설로 seenIntro가 생겼다. 위 v3의
+// 경고가 그대로 적용된다 — 필드 하나 늘었다고 옛 세이브를 버리면 해금 그림과
+// 이어할 구간이 통째로 날아간다. 아래 v3→v4 분기가 나머지를 전부 물려받는다.
+const SCHEMA_VERSION = 4;
 
 /** 세이브의 초기값 = 스키마의 정의 그 자체. 손상·구버전·저장소 없음이 전부 여기로 온다. */
 function defaultSave() {
@@ -76,6 +79,14 @@ function defaultSave() {
     // (ui/rover.js의 showTip이 여기 있는 id는 다시 큐에 안 넣는다). 설정창의
     // [튜토리얼 다시 보기]가 이 배열을 비운다.
     seenTips: [],
+
+    // 인트로 연출(부팅 → 바탕화면 → 커서가 게임을 찾아 클릭 → 강아지 튜토리얼,
+    // ui/intro.js)을 한 번이라도 끝까지 본 적 있나. false면 다음 부팅에서
+    // loading → intro → title, true면 곧장 loading → title이다(main.js).
+    // ★ "봤다"는 인트로가 타이틀로 넘어가는 그 순간에만 찍는다 — 도중에
+    //   새로고침하면 다시 처음부터 본다(중간에 끊긴 걸 봤다고 치지 않는다).
+    // 설정창의 [튜토리얼 다시 보기]가 seenTips와 함께 이 값도 false로 되돌린다.
+    seenIntro: false,
 
     // 방해꾼 도감(ui/dexPanel.js) 해금 목록(중복 없음, enemies 시트의 id).
     // recordEnemyEncounter()가 killCounts를 올리다가 문턱값(config.dex.
@@ -142,6 +153,13 @@ function migrate(raw) {
       killCounts: {},
     };
   }
+  // v3 → v4: 인트로 연출 신설. 옛 세이브에는 인트로 자체가 없었으니 "아직 안 봤다"
+  // 쪽으로 둔다(위 v1→v2의 completed와 같은 판단 기준) — 새 연출이니 기존
+  // 플레이어도 한 번은 보는 게 맞고, 반대로 true로 두면 아무도 못 보게 된다.
+  // 나머지 필드(해금 그림·이어할 구간·도감 등)는 여기서 전부 그대로 물려받는다.
+  if (cur.schemaVersion === 3) {
+    cur = { ...cur, schemaVersion: 4, seenIntro: false };
+  }
   return cur.schemaVersion === SCHEMA_VERSION ? cur : null;
 }
 
@@ -192,6 +210,7 @@ function sanitize(raw) {
     seenTips: Array.isArray(raw.seenTips)
       ? [...new Set(raw.seenTips.filter((s) => typeof s === 'string'))]
       : d.seenTips,
+    seenIntro: bool(raw.seenIntro, d.seenIntro),
     unlockedEnemies: Array.isArray(raw.unlockedEnemies)
       ? [...new Set(raw.unlockedEnemies.filter((s) => typeof s === 'string'))]
       : d.unlockedEnemies,
@@ -410,10 +429,27 @@ export function markTipSeen(id) {
   });
 }
 
-/** 설정창의 [튜토리얼 다시 보기] — 본 기록을 전부 지운다(팁은 다시 조건대로 뜬다). */
+/** 설정창의 [튜토리얼 다시 보기] — 본 기록을 전부 지운다(팁은 다시 조건대로 뜬다).
+ * ★ 인트로(seenIntro)까지 같이 지운다 — 지금 그 버튼이 가리키는 "튜토리얼"의
+ *   본체가 인트로의 강아지 튜토리얼이라, 러버 팁 기록만 지우면 눌러도 아무 일도
+ *   안 일어나는 버튼이 된다. 인트로는 다음 실행(새로고침)부터 다시 재생된다 —
+ *   지금 화면은 이미 타이틀 이후라 그 자리에서 되감을 데가 없다. */
 export function resetSeenTips() {
   return updateSave((save) => {
     save.seenTips = [];
+    save.seenIntro = false;
+  });
+}
+
+/** 인트로를 이미 끝까지 본 적 있나 — main.js가 loading 다음 착지 지점을 고를 때 본다. */
+export function hasSeenIntro() {
+  return getSave().seenIntro === true;
+}
+
+/** 인트로를 "봤다"고 못박는다(ui/intro.js가 타이틀로 넘기는 그 순간에만 부른다). */
+export function markIntroSeen() {
+  return updateSave((save) => {
+    save.seenIntro = true;
   });
 }
 

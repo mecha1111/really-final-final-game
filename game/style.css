@@ -148,6 +148,25 @@
   --xp-btn-border: #003c74;
   --xp-btn-ring: #a5c8ff;
   --xp-btn-disabled: #9a9a90;
+
+  /* ── 인트로 전용(2026-09-07) — 위 "아직 쓰임이 없어 안 넣었다"고 적어둔 항목 중
+     인트로가 실제로 쓰게 된 것들을 문서 값 그대로 가져왔다(.layer-intro).
+     ★ 여기 값은 docs/xp-design-system.html과 한 글자도 다르지 않다 — 다른
+       토큰들과 달리 "게임 현재 값 유지"라는 전제 자체가 없다(새 컴포넌트다). ── */
+  --xp-bliss: linear-gradient(
+    #3f83cd 0%,
+    #5f9fda 30%,
+    #8ec4ea 46%,
+    #bcdcf0 50%,
+    #a9d17a 52%,
+    #7cc44e 58%,
+    #5da236 80%,
+    #478c2b 100%
+  );
+  --xp-select-desk: #0a246a; /* 바탕화면 아이콘 라벨 선택 배경 */
+  --xp-balloon-bg: #ffffcc; /* Office 길잡이 말풍선 바탕 */
+  --xp-balloon-line: #000; /* 그 각진 1px 테두리 + 꼬리 바깥겹 */
+  --xp-balloon-bullet: #0a3aa0; /* 파란 원 불릿 */
 }
 
 /* 픽셀 폰트. base64 인라인이 아니라 파일 참조 — 시안(mockup7.html)은 2MB짜리
@@ -2182,3 +2201,98 @@ body {
 #desktop .rover-dog { width: 128px; height: 128px; }
 #desktop .rover-dog img { width: 100%; height: 100%; object-fit: contain; image-rendering: pixelated; }
 #desktop .rover-dog img.broken { display: none; }
+
+/* ---------------------------------------------------------------------------
+   ===== 인트로 연출 (레이어14, ui/intro.js) =====
+   ★첫 실행에만, 타이틀 화면보다 "앞"에 온다:
+     부팅 → 바탕화면(가짜 파일 더미) → 커서가 우리 게임을 찾아 클릭 →
+     강아지 튜토리얼 → 기존 타이틀 화면.
+
+   정본은 docs/xp-design-system.html의 "1 · 인트로 연출" 섹션이다. 그 문서의
+   무대는 1000x625고 이 게임은 1920x1080이라, 문서의 px 값을 전부 ×1.92 해서
+   옮겼다(그래서 아래 숫자들이 문서와 딱 떨어지지 않는다 — 임의로 흔든 게 아니다).
+   예외 하나: 작업표시줄 높이만 문서의 30px(→58px)이 아니라 게임의
+   var(--taskbar-h)(=config.desktop.taskbarPx, 52px)를 쓴다. 같은 화면에 두 개의
+   작업표시줄 높이가 생기면 인트로에서 타이틀·플레이로 넘어갈 때 눈에 띄게 튄다.
+
+   ★ 이 프로젝트의 절대 규칙 그대로:
+     · filter / backdrop-filter / SVG 필터 하나도 안 쓴다(말풍선 꼬리는 투명
+       삼각형 2겹, CRT 전원 켜짐은 opacity — brightness가 아니다).
+     · 표시/숨김은 .on 클래스 토글(hidden 속성 금지).
+     · vh 금지 — 전부 px 고정(#desktop이 transform으로 축소되는 좌표계다).
+     · 색은 --xp-* 토큰.
+   --------------------------------------------------------------------------- */
+#desktop .layer-intro {
+  position: absolute; inset: 0; z-index: 14;
+  display: none; /* .on이 붙어야 보인다 */
+  overflow: hidden;
+  pointer-events: none;
+}
+/* 인트로가 떠 있는 동안은 아래(캔버스·타이틀)로 클릭이 절대 안 샌다 — 레이어
+   자신이 auto라 물리적으로 다 받아버린다(.layer-settings와 같은 원리). */
+#desktop .layer-intro.on { display: block; pointer-events: auto; }
+/* 부팅~클릭 구간에는 가짜 커서가 혼자 움직인다 — 진짜 커서까지 같이 보이면
+   "누가 조작하는 건지" 가 흐려진다. 튜토리얼에 들어가는 순간 ui/intro.js가 이
+   클래스를 떼서 진짜 커서를 돌려준다(버튼을 눌러야 하므로 반드시 보여야 한다). */
+#desktop .layer-intro.nocursor { cursor: none; }
+
+/* ===== 부팅 화면 (참조 문서 .xp-boot 그대로) ===== */
+#desktop .intro-boot { position: absolute; inset: 0; z-index: 60; background: #000; overflow: hidden; }
+/* 사라짐은 opacity 전환 → 그다음 .gone으로 완전히 뺀다(ui/intro.js가 두 번에
+   나눠 건다). transition 시간은 config.intro.bootFadeSec가 --intro-boot-fade로
+   흘러들어온다 — 숫자를 CSS에 또 박지 않는다(ui/rover.js의 --rover-slide-sec와
+   같은 패턴). */
+#desktop .intro-boot { transition: opacity var(--intro-boot-fade, 0.55s) linear; }
+#desktop .intro-boot.out { opacity: 0; }
+#desktop .intro-boot.gone { display: none; }
+
+/* ★CRT 전원 켜짐 — 가로선 한 줄이 위아래로 열리며 밝은 판이 번쩍였다 가라앉는다.
+   scaleY + opacity만 쓴다. filter:brightness()가 아니다(이 프로젝트 금지 규칙). */
+#desktop .intro-boot .power {
+  position: absolute; inset: 0; background: #eaf6ff;
+  transform-origin: center; animation: introCrtOn 1s ease-out forwards;
+}
+@keyframes introCrtOn {
+  0% { transform: scaleY(0.003); opacity: 1; }
+  9% { transform: scaleY(0.006); opacity: 1; }
+  42% { transform: scaleY(1); opacity: 0.85; }
+  62% { opacity: 0.3; }
+  100% { transform: scaleY(1); opacity: 0; }
+}
+
+#desktop .intro-boot .logo {
+  position: absolute; inset: 0;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 50px;
+  opacity: 0; animation: introFadeIn 0.5s ease 0.95s forwards;
+}
+@keyframes introFadeIn { to { opacity: 1; } }
+
+#desktop .intro-boot .brand { display: flex; align-items: center; gap: 23px; }
+/* 아이콘은 ui/icons.js의 xp_flag(단색 currentColor) — 게임 작업표시줄의 [시작]이
+   이미 같은 아이콘을 쓰고 있어서 톤이 갈리지 않는다(문서 쪽 4색 깃발을 그대로
+   가져오면 이 게임에서 유일한 다색 아이콘이 된다). */
+#desktop .intro-boot .brand .flag { color: #fff; font-size: 84px; display: flex; }
+#desktop .intro-boot .brand .t { color: #fff; font-size: 50px; letter-spacing: 2px; }
+#desktop .intro-boot .brand .t b { color: #ff8a3d; }
+
+/* 로딩바 — ★XP는 연속 채우기가 아니라 분절 블록이 흘러가는 형태다. */
+#desktop .intro-boot .loadbar {
+  position: relative; width: 330px; height: 31px; overflow: hidden;
+  background: #0a0a0a; border: 2px solid #3a3a3a; border-radius: 17px;
+}
+#desktop .intro-boot .loadbar .blk {
+  position: absolute; top: 4px; left: -100px; display: flex; gap: 10px; height: 21px;
+  animation: introSlide 1.5s linear infinite;
+}
+#desktop .intro-boot .loadbar .blk i {
+  width: 27px; height: 21px; border-radius: 4px; background: linear-gradient(#9be9ff, #1c74e0);
+}
+@keyframes introSlide { from { left: -100px; } to { left: 350px; } }
+
+#desktop .intro-boot .st { color: #9fb4c8; font-size: 25px; letter-spacing: 2px; }
+/* 주사선 — 상시 CRT(.layer-crt-steady)는 playing에서만 뜨므로 부팅 화면은 자기
+   주사선을 따로 갖는다(문서와 같다). 정적 그라데이션이라 매 프레임 비용이 없다. */
+#desktop .intro-boot .scan {
+  position: absolute; inset: 0; pointer-events: none;
+  background: repeating-linear-gradient(rgba(0, 0, 0, 0) 0 4px, rgba(0, 0, 0, 0.22) 4px 6px);
+}

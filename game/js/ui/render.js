@@ -89,7 +89,9 @@ export function render({ ctx, canvas, state, gameData, now }) {
   // title도 여기서 제외한다 — 타이틀은 HTML 오버레이(.layer-title, z-index 6)가
   // 캔버스보다 위에서 전담하므로 캔버스는 아무것도 안 그린다. state.enemies가
   // (디버그 콘솔 등으로) 비어있지 않더라도 그릴 필요가 없다.
-  if (state.phase !== 'loading' && state.phase !== 'title') {
+  // intro도 같은 자리 — 인트로 연출은 HTML 오버레이(.layer-intro, z-index 14)가
+  // 화면을 통째로 덮으므로 그 밑에 뭘 그려봐야 보이지도 않는다.
+  if (state.phase !== 'loading' && state.phase !== 'title' && state.phase !== 'intro') {
     ctx.save();
     ctx.translate(shake.x, shake.y);
 
