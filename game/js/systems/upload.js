@@ -65,7 +65,6 @@ export function triggerHitFeedback(text, opts) {
   // 자동으로 따라온다. 다만 전용 소리를 이미 내는 이벤트(bomb/fake_btn)는 silent로
   // 와서 공통음을 얹지 않는다 — 겹치면 탁해지고 전용 소리가 묻히기 때문.
   if (!opts?.silent) playSfx(SFX.HIT);
-  state.hitFlash = config.hud.hitFlashSec;
   state.vignetteMs = config.hud.vignettePulseSec * 1000;
   state.dmgFloatText = text;
   state.dmgFloatMs = config.hud.dmgFloatMs;
@@ -123,7 +122,6 @@ export function updateUpload(dt, rules) {
     state.fileCompleteHoldMs = Math.max(0, state.fileCompleteHoldMs - dt * 1000);
     setBlocked(false);
     setAttackWarning(false);
-    state.hitFlash = Math.max(0, state.hitFlash - dt);
     state.vignetteMs = Math.max(0, state.vignetteMs - dt * 1000);
     state.dmgFloatMs = Math.max(0, state.dmgFloatMs - dt * 1000);
     if (state.dmgFloatMs <= 0) state.dmgFloatText = null;
@@ -154,7 +152,6 @@ export function updateUpload(dt, rules) {
   setAttackWarning(anyTelegraph);
 
   // 피해 피드백 타이머들 감쇠. 전부 triggerHitFeedback()이 켜고 여기서만 줄어든다.
-  state.hitFlash = Math.max(0, state.hitFlash - dt);
   state.vignetteMs = Math.max(0, state.vignetteMs - dt * 1000);
   state.dmgFloatMs = Math.max(0, state.dmgFloatMs - dt * 1000);
   if (state.dmgFloatMs <= 0) state.dmgFloatText = null;

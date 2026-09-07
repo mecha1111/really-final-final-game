@@ -72,7 +72,6 @@ export function startGame(stageIndex = 0) {
   state.blocked = false;
   state.blockedBy = [];
   state.attackWarning = false;
-  state.hitFlash = 0;
   state.cursorDisguise = 0;
   // hourglass 조작 불능 잔여가 새 판까지 새어 들어가지 않게(부활 대기 zombie가
   // 새 판으로 안 넘어가는 것과 같은 이유 — 아래 state.enemies = [] 참고).
@@ -357,7 +356,6 @@ function checkWinLose(rules) {
   // 특히 눈에 띈다. 실제로 벌어지려면 "제한시간이 다 됨 == 마침 그 프레임에
   // 공격을 맞음"이 겹쳐야 해서 드물지만, 새 화면 첫인상에 남는 빨간 잔광이라
   // 눈에 띄면 어색하다.
-  state.hitFlash = 0;
   state.vignetteMs = 0;
   state.dmgFloatMs = 0;
   state.dmgFloatText = null;

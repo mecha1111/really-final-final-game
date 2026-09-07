@@ -235,8 +235,10 @@ export function drawKillParticles(ctx, particles) {
   ctx.restore();
 }
 
-/** 클릭 리플(systems/clickRipple.js) — 눌린 자리에서 커지며 옅어지는 링.
- * 채워진 원이 아니라 테두리만 그려서 처치 파편과 겹쳐도 화면이 안 빽빽해 보인다. */
+/** 클릭 리플(systems/clickRipple.js) — 눌린 자리에서 커지며 옅어지는 테두리.
+ * 채워진 도형이 아니라 테두리만 그려서 처치 파편과 겹쳐도 화면이 안 빽빽해 보인다.
+ * 2026-09-07: 원형 링(arc) → 각진 사각 테두리(strokeRect)로 바꿨다 — 낙서
+ * 방해꾼 톤에 원보다 각진 모양이 맞고, 곡선이 없어 안티에일리어싱도 덜 생긴다. */
 export function drawClickRipples(ctx, ripples) {
   if (!ripples || ripples.length === 0) return;
   const c = config.fx.clickRipple;
@@ -245,12 +247,13 @@ export function drawClickRipples(ctx, ripples) {
   ctx.lineWidth = c.lineWidth;
   for (const r of ripples) {
     const t = r.maxLife > 0 ? 1 - Math.max(0, r.life) / r.maxLife : 1; // 0(막 생김)→1(다 됨)
-    const radius = c.startRadius + (c.endRadius - c.startRadius) * t;
+    // 확대도 알파와 같은 이유로 계단식으로 끊는다(연속 확대는 매끄러워서
+    // 손그림 톤과 안 맞는다) — sizeSteps는 alphaSteps와 별도 값이라 따로 조절된다.
+    const radius = c.startRadius + (c.endRadius - c.startRadius) * quantizeStep(t, c.sizeSteps);
     ctx.globalAlpha = quantizeStep(1 - t, config.fx.alphaSteps) * c.maxAlpha;
     ctx.strokeStyle = r.color;
-    ctx.beginPath();
-    ctx.arc(r.x, r.y, radius, 0, Math.PI * 2);
-    ctx.stroke();
+    const half = Math.round(radius);
+    ctx.strokeRect(Math.round(r.x) - half, Math.round(r.y) - half, half * 2, half * 2);
   }
   ctx.restore();
 }

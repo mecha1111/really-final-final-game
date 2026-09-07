@@ -128,7 +128,6 @@ export const state = {
   urgent: false,
   // 반대로 할당량을 거의 다 채웠으면 true(긍정 신호, 선택 요구사항).
   nearGoal: false,
-  hitFlash: 0, // 방금 피해를 입어 업로드 바가 번쩍이는 남은 시간(초) — systems/upload.js의 triggerHitFeedback
   cursorDisguise: 0, // copier 안착 후 진짜 커서가 가짜와 똑같이 위장되는 남은 시간(초)
   // ★ cursorDisguise와 다른 것 — 저건 "진짜 위치에도 가짜와 똑같은 글자를 그려서
   //   헷갈리게" 하는 copier 전용 연출이라, ui/render.js가 cursorDisguise>0이면
