@@ -1,0 +1,523 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<title>튜토리얼 연출 재설계</title>
+<style>
+/* ╔══════════════════════════════════════════════════════════════════╗
+   ║  튜토리얼 연출 재설계                                             ║
+   ║                                                                  ║
+   ║  ★흐름이 바뀐다                                                   ║
+   ║   전: 인트로 → 강아지 튜토리얼 → 타이틀 → 게임                    ║
+   ║   후: 인트로 → 타이틀 → [게임 시작] → ★렉 → 로딩 → 강아지 → 게임  ║
+   ║                                                                  ║
+   ║   설명을 "쓰기 직전"에 준다. 전엔 타이틀을 한 번 거쳐야 해서       ║
+   ║   설명과 실행 사이에 한 박자가 떴다.                              ║
+   ║                                                                  ║
+   ║  ★말풍선 가독성                                                   ║
+   ║   본문이 13px이었다. DGM 한글은 15px 아래에서 자소가 뭉갠다        ║
+   ║   (도감에서 "처치"가 "저지"로 읽힌 전례).                          ║
+   ║   → 본문 16px / 줄간 1.85 / word-break:keep-all                   ║
+   ║                                                                  ║
+   ║  ★설명에 그림을 넣는다                                            ║
+   ║   글만으로는 "진행바"가 뭔지 모른다. 각 쪽에 그 대상을 그려준다.   ║
+   ╚══════════════════════════════════════════════════════════════════╝ */
+:root{
+  --xp-title-grad:linear-gradient(180deg,#3d95ff 0%,#0e60e8 12%,#0a56e2 60%,#0a4ad6 100%);
+  --xp-title-dead:linear-gradient(180deg,#9db9eb 0%,#8299cf 12%,#7a91c6 60%,#7188bd 100%);
+  --xp-win-face:#ECE9D8; --xp-win-border:#0055ea;
+  --xp-btn-face:linear-gradient(180deg,#fff 0%,#f4f2eb 46%,#ecebe5 50%,#e1dfd2 100%);
+  --xp-btn-hover:linear-gradient(180deg,#fff 0%,#fff8e0 46%,#fff2c9 50%,#ffd98f 100%);
+  --xp-btn-down:linear-gradient(180deg,#cdcdb8 0%,#e3e3d4 8%,#e6e6d8 94%,#dcdcc8 100%);
+  --xp-btn-border:#003c74; --xp-btn-ring:#a5c8ff;
+  --balloon-bg:#ffffcc; --balloon-line:#000; --bullet:#0a3aa0;
+  --bliss:linear-gradient(#3f83cd 0%,#5f9fda 30%,#8ec4ea 46%,#bcdcf0 50%,
+                          #a9d17a 52%,#7cc44e 58%,#5da236 80%,#478c2b 100%);
+  --taskbar:linear-gradient(#4a95f5,#2f6ee0 10%,#1c50c8 55%,#1746b0 92%,#0f3690);
+  --start:linear-gradient(#7cc576,#4ea832 45%,#3c8f26 55%,#2f7a1e);
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:"DGM","DungGeunMo",monospace;background:#101010;color:#c8c8c8;padding:26px 22px 80px}
+.wrap{max-width:1080px;margin:0 auto}
+h1{font-size:20px;color:#fff;margin-bottom:6px}
+.lead{font-size:13px;color:#8a8a8a;line-height:1.85;margin-bottom:20px}
+.lead b{color:#e0b84d}
+h2{font-size:15px;color:#7ec850;padding-bottom:6px;border-bottom:1px solid #2a2a2a;margin:32px 0 10px}
+.note{font-size:12.5px;color:#8d8d8d;line-height:1.9;margin-bottom:14px}
+.note b{color:#e0b84d}
+code{background:#242424;padding:1px 5px;color:#9fd0ff;font-size:12px}
+.ctl{display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap}
+.ctl button{font-family:inherit;font-size:12px;padding:6px 14px;background:#2b2b2b;color:#ddd;border:1px solid #444;cursor:pointer}
+.ctl button:hover{background:#383838}
+.tbl{width:100%;border-collapse:collapse;font-size:12px;margin-top:8px}
+.tbl th,.tbl td{border:1px solid #303030;padding:7px 10px;text-align:left;color:#bbb;vertical-align:top}
+.tbl th{background:#242424;color:#ddd}
+
+/* ══ 무대 ══ */
+.stage{position:relative;width:1000px;height:600px;overflow:hidden;background:#000;border:1px solid #333;cursor:none}
+.desk{position:absolute;left:0;top:0;right:0;bottom:30px;background:var(--bliss);overflow:hidden}
+.taskbar{position:absolute;left:0;right:0;bottom:0;height:30px;z-index:35;display:flex;align-items:center;
+  background:var(--taskbar);box-shadow:inset 0 1px 0 rgba(255,255,255,.35)}
+.taskbar .st{display:flex;align-items:center;gap:5px;height:100%;padding:0 17px 0 9px;font-size:13px;
+  font-weight:bold;color:#fff;background:var(--start);border-radius:0 11px 11px 0;text-shadow:0 1px 2px rgba(0,0,0,.5)}
+.taskbar .sp{flex:1}
+.taskbar .tr{color:#fff;font-size:12px;padding:0 12px;height:100%;display:flex;align-items:center;background:linear-gradient(#2f7fd8,#1a5cb8)}
+
+/* 타이틀 화면 */
+.title{position:absolute;inset:0;z-index:10}
+.title .logo{position:absolute;left:50%;top:22%;transform:translateX(-50%);font-size:26px;color:#fff;
+  text-align:center;line-height:1.5;text-shadow:2px 2px 0 #000,-1px -1px 0 #000,1px -1px 0 #000,-1px 1px 0 #000}
+.title .menu{position:absolute;right:9%;bottom:14%;display:flex;flex-direction:column;align-items:stretch;gap:12px}
+.bigbtn{font-family:inherit;font-size:17px;color:#003;padding:11px 28px;cursor:pointer;
+  background:linear-gradient(#ffe680,#ffcf3f);border:4px outset #ffe680;box-shadow:2px 2px 0 rgba(0,0,0,.3)}
+.bigbtn:active{border-style:inset}
+
+/* ★렉 걸린 상태 — XP "응답 없음" */
+.hangwin{
+  position:absolute;left:50%;top:34%;transform:translate(-50%,-50%);z-index:14;
+  width:430px;display:none;
+  background:var(--xp-win-face);border:1px solid var(--xp-win-border);
+  border-radius:8px 8px 0 0;box-shadow:0 14px 34px rgba(0,0,0,.55);overflow:hidden;
+}
+.hangwin.on{display:block}
+.hangwin .tb{display:flex;align-items:center;gap:6px;height:28px;padding:0 5px 0 9px;
+  background:var(--xp-title-grad);box-shadow:inset 0 1px 0 rgba(255,255,255,.5)}
+.hangwin.dead .tb{background:var(--xp-title-dead)}     /* ★굳으면 타이틀바가 흐려진다 */
+.hangwin .tb .t{flex:1;color:#fff;font-size:13px;font-weight:bold;text-shadow:1px 1px 1px rgba(0,0,0,.45);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.hangwin .wb{width:21px;height:19px;border-radius:3px;border:1px solid rgba(255,255,255,.75);color:#fff;
+  font-size:10px;text-align:center;line-height:17px;background:linear-gradient(#5aa0ff,#1c63e0)}
+.hangwin .wb.x{background:linear-gradient(#f6a081,#e04a1e 55%,#c9330a)}
+.hangwin .bd{background:#fff;padding:16px 16px 14px;font-size:15px;color:#222;line-height:1.8;position:relative}
+/* ★XP가 응답 없는 창을 흰색으로 바래게 덮는 것 */
+.hangwin .ghost{position:absolute;inset:0;background:rgba(255,255,255,.55);display:none}
+.hangwin.dead .ghost{display:block}
+
+/* 로딩 오버레이 */
+.loadlayer{position:absolute;inset:0;z-index:20;background:rgba(0,0,0,0);display:none;
+  align-items:center;justify-content:center;flex-direction:column;gap:20px;transition:background .5s}
+.loadlayer.on{display:flex}
+.loadlayer.dim{background:rgba(0,0,0,.72)}
+/* ★강아지가 뜨면 로딩바를 아래로 — 겹치면 둘 다 안 보인다 */
+.loadlayer.low{justify-content:flex-end;align-items:center;padding-bottom:14px;gap:8px}
+.loadlayer .cap{color:#dbe6f2;font-size:15px;letter-spacing:1px;opacity:0;transition:opacity .4s}
+.loadlayer.dim .cap{opacity:1}
+/* XP 분절 로딩바 */
+.xpload{width:190px;height:18px;border:1px solid #3a3a3a;border-radius:9px;overflow:hidden;
+  background:#0a0a0a;position:relative;opacity:0;transition:opacity .4s}
+.loadlayer.dim .xpload{opacity:1}
+.xpload .blk{position:absolute;top:2.5px;left:-58px;display:flex;gap:5px;height:12px;animation:xpslide 1.5s linear infinite}
+.xpload .blk i{width:15px;height:12px;border-radius:2px;background:linear-gradient(#9be9ff,#1c74e0)}
+@keyframes xpslide{from{left:-58px}to{left:200px}}
+
+/* ══ 강아지 도우미 ══ */
+.assist{position:absolute;left:50%;top:45%;transform:translate(-50%,-50%) scale(.92);
+  z-index:30;width:380px;opacity:0;pointer-events:none;
+  transition:opacity .26s ease, transform .3s cubic-bezier(.18,.9,.28,1.2)}
+.assist.on{opacity:1;transform:translate(-50%,-50%) scale(1);pointer-events:auto}
+.assist .balloon{position:relative;background:var(--balloon-bg);border:1px solid var(--balloon-line);
+  box-shadow:2px 2px 0 rgba(0,0,0,.35);padding:13px 15px 12px}
+.assist .hd{font-size:17px;font-weight:bold;color:#000;margin-bottom:9px}
+/* ★그림 자리 — 글만으로는 "진행바"가 뭔지 모른다 */
+.assist .fig{background:#fff;border:1px solid #b9b39c;padding:9px;margin-bottom:10px;
+  display:grid;place-items:center;min-height:74px}
+.assist .fig svg{display:block}
+.assist .tx{font-size:16px;color:#000;line-height:1.85;word-break:keep-all;min-height:58px}  /* ★16px */
+.assist .tx em{font-style:normal;background:#ffe680;padding:0 3px;box-shadow:0 1px 0 #c9a800}
+.assist .bset{display:flex;gap:6px;justify-content:flex-end;align-items:center;
+  margin-top:11px;padding-top:9px;border-top:1px solid #d8d29c}
+.assist .bset .pg{margin-right:auto;font-size:12px;color:#6b6640}
+.assist .balloon::after{content:"";position:absolute;right:64px;bottom:-11px;
+  border:11px solid transparent;border-top-color:var(--balloon-line);border-bottom:0}
+.assist .balloon::before{content:"";position:absolute;right:65px;bottom:-10px;z-index:1;
+  border:10px solid transparent;border-top-color:var(--balloon-bg);border-bottom:0}
+.assist .char{position:relative;margin:11px 22px 0 auto;width:112px;height:112px}
+.assist .char .ph{width:100%;height:100%;background:#4a4a4a;image-rendering:pixelated}
+.assist .bulb{position:absolute;left:-6px;top:-6px;width:26px;height:26px;animation:blb 1.4s steps(1) infinite}
+@keyframes blb{50%{opacity:.35}}
+
+.xpbtn{font-family:inherit;font-size:13px;color:#000;min-width:74px;padding:5px 13px;cursor:pointer;
+  background:var(--xp-btn-face);border:1px solid var(--xp-btn-border);border-radius:3px}
+.xpbtn:hover:not(:disabled){background:var(--xp-btn-hover)}
+.xpbtn:active:not(:disabled){background:var(--xp-btn-down)}
+.xpbtn.default{box-shadow:inset 0 0 0 1px var(--xp-btn-ring)}
+.xpbtn:disabled{color:#9a9a90;cursor:default}
+
+/* 커서 */
+.cur{position:absolute;z-index:60;pointer-events:none;width:22px;height:22px}
+.cur .hg{display:none}
+.cur.wait .ar{display:none}
+.cur.wait .hg{display:block}
+
+/* CRT */
+.crt{position:absolute;inset:0;z-index:50;pointer-events:none}
+.crt .sc{position:absolute;inset:0;background:repeating-linear-gradient(rgba(0,0,0,0) 0 2px,rgba(0,0,0,.12) 2px 3px)}
+.crt .vg{position:absolute;inset:0;box-shadow:inset 0 0 70px rgba(0,0,0,.3)}
+
+.side{display:flex;gap:20px;flex-wrap:wrap}
+.side .bx{background:#1c1c1c;border:1px solid #303030;padding:15px}
+.side .bx h3{font-size:12px;color:#999;margin-bottom:10px;font-weight:normal}
+.side .bx.bad h3{color:#d9382a}
+.side .bx.good h3{color:#7ec850}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<h1>튜토리얼 연출 재설계</h1>
+<p class="lead">
+  <b>전</b> 인트로 → 강아지 튜토리얼 → 타이틀 → 게임<br>
+  <b>후</b> 인트로 → 타이틀 → <b>[게임 시작]</b> → ★렉 → 로딩 → 강아지 → 게임<br>
+  설명을 <b>쓰기 직전</b>에 준다. 전엔 타이틀을 한 번 거쳐야 해서 설명과 실행 사이에 한 박자가 떴다.
+</p>
+
+<div class="ctl">
+  <button onclick="reset()">타이틀로</button>
+  <button onclick="startSeq()">▶ [게임 시작] 눌린 상태부터</button>
+  <button onclick="showTut()">강아지만</button>
+</div>
+
+<div class="stage" id="stage">
+  <div class="desk" id="desk">
+
+    <!-- 타이틀 -->
+    <div class="title" id="title">
+      <div class="logo">진짜_최종_final<br>수정_진짜최종(5).exe</div>
+      <div class="menu">
+        <button class="bigbtn" onclick="startSeq()">게임 시작</button>
+        <button class="bigbtn">갤러리</button>
+        <button class="bigbtn">설정</button>
+      </div>
+    </div>
+
+    <!-- ★렉 걸린 창 -->
+    <div class="hangwin" id="hang">
+      <div class="tb">
+        <svg width="15" height="15" viewBox="0 0 48 48"><rect x="6" y="9" width="36" height="27" rx="2.5" fill="#ECE9D8" stroke="#17427c" stroke-width="1.4"/><path d="M6 11.5A2.5 2.5 0 0 1 8.5 9h31A2.5 2.5 0 0 1 42 11.5V17H6z" fill="#2b73d8"/><rect x="10" y="20" width="28" height="8" fill="#fff" stroke="#9a9584"/><rect x="11.4" y="21.4" width="4" height="5.2" fill="#4bbb1a"/><rect x="16.4" y="21.4" width="4" height="5.2" fill="#4bbb1a"/></svg>
+        <span class="t" id="hangt">진짜_최종_final_수정_진짜최종(5).exe</span>
+        <span class="wb">_</span><span class="wb">□</span><span class="wb x">×</span>
+      </div>
+      <div class="bd">
+        업데이트 준비 중입니다...
+        <div class="ghost"></div>
+      </div>
+    </div>
+
+    <!-- 로딩 오버레이 -->
+    <div class="loadlayer" id="load">
+      <div class="xpload"><div class="blk"><i></i><i></i><i></i></div></div>
+      <div class="cap" id="loadcap">잠시만 기다려 주십시오 . . .</div>
+    </div>
+
+    <!-- 강아지 -->
+    <div class="assist" id="assist">
+      <div class="balloon">
+        <div class="hd" id="ahd"></div>
+        <div class="fig" id="afig"></div>
+        <div class="tx" id="atx"></div>
+        <div class="bset">
+          <span class="pg" id="apg"></span>
+          <button class="xpbtn" id="aback" onclick="tb()">뒤로</button>
+          <button class="xpbtn default" id="anext" onclick="tn()">다음</button>
+          <button class="xpbtn" onclick="tc()">건너뛰기</button>
+        </div>
+      </div>
+      <div class="char">
+        <div class="ph" title="rover_idle.png"></div>
+        <svg class="bulb" viewBox="0 0 24 24"><path d="M12 2a7 7 0 0 0-4 12.7V17h8v-2.3A7 7 0 0 0 12 2z" fill="#ffe14d" stroke="#8a6a00" stroke-width="1.4"/><rect x="9" y="18" width="6" height="2.2" rx="1" fill="#b0aa8a"/><rect x="9.6" y="21" width="4.8" height="1.8" rx=".9" fill="#b0aa8a"/></svg>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="taskbar">
+    <div class="st">
+      <svg width="15" height="15" viewBox="0 0 18 16"><g transform="translate(1 2) skewY(-9)"><rect width="7" height="6" rx="1" fill="#e64a19"/><rect x="8" width="7" height="6" rx="1" fill="#43a047"/><rect y="7" width="7" height="6" rx="1" fill="#1e88e5"/><rect x="8" y="7" width="7" height="6" rx="1" fill="#fdd835"/></g></svg>
+      시작
+    </div>
+    <div class="sp"></div>
+    <div class="tr">오후 11:42</div>
+  </div>
+
+  <div class="crt"><i class="vg"></i><i class="sc"></i></div>
+
+  <div class="cur" id="cur" style="left:640px;top:430px">
+    <svg class="ar" viewBox="0 0 20 20" width="22" height="22"><path d="M2 1l7 16 2.3-6.6L18 8.2z" fill="#fff" stroke="#000" stroke-width="1.3" stroke-linejoin="round"/></svg>
+    <svg class="hg" viewBox="0 0 20 20" width="22" height="22"><path d="M5 2h10M5 18h10M6 2v3l4 5-4 5v3M14 2v3l-4 5 4 5v3" fill="none" stroke="#000" stroke-width="2.4" stroke-linejoin="round"/><path d="M6 2v3l4 5-4 5v3M14 2v3l-4 5 4 5v3" fill="none" stroke="#fff" stroke-width="1.1"/></svg>
+  </div>
+</div>
+
+
+<h2>1 · 연출 타임라인</h2>
+<table class="tbl">
+  <tr><th>시각</th><th>일어나는 일</th><th>근거</th></tr>
+  <tr><td>0.0s</td><td>[게임 시작] 클릭 → 작은 XP 창이 뜸 "업데이트 준비 중입니다..."</td><td>프로그램을 실행한 것처럼</td></tr>
+  <tr><td>0.5s</td><td>★창이 굳는다 — 제목에 <b>(응답 없음)</b>, 본문이 흰색으로 바램, 커서가 모래시계</td><td>XP가 응답 없는 창을 처리하는 실제 방식</td></tr>
+  <tr><td>1.6s</td><td>화면 전체가 검게 어두워짐(0.72) + XP 분절 로딩바 + "잠시만 기다려 주십시오"</td><td>렉이 로딩으로 넘어감</td></tr>
+  <tr><td>3.0s</td><td>★강아지가 <b>뿅</b> 하고 등장 (scale 0.92 → 1, 살짝 튕김)</td><td>"기다리게 해서 미안" 뒤 나타나는 도우미</td></tr>
+  <tr><td>—</td><td>5쪽 설명 → [시작] → 로딩바·오버레이 걷히며 게임 시작</td><td></td></tr>
+</table>
+
+<h2>2 · 말풍선 — 무엇이 빈약했나</h2>
+<div class="side">
+  <div class="bx bad">
+    <h3>✕ 지금</h3>
+    <p class="note" style="margin:0">
+      <b>본문 13px</b> — DGM 한글이 뭉갠다. 도감에서 "처치"가 "저지"로 읽힌 하한이 15px다<br>
+      <b>1쪽이 순수 인사</b> — "저는 검색 도우미예요"는 정보가 0<br>
+      <b>글만 있다</b> — "진행바"가 뭔지 모르는 사람에게 글로 설명한다<br>
+      <b>내용이 얕다</b> — 피해·콤보·수집을 아예 안 알려줬다
+    </p>
+  </div>
+  <div class="bx good">
+    <h3>✓ 바꾼 것</h3>
+    <p class="note" style="margin:0">
+      <b>본문 16px</b> / 줄간 1.85 / <code>word-break:keep-all</code><br>
+      <b>★각 쪽에 그림</b> — 설명하는 대상을 그려준다<br>
+      <b>핵심 단어에 노란 형광</b> — 눈이 먼저 붙는다<br>
+      <b>5쪽</b> — 인사 삭제. 목표/파일/방해꾼/피해/콤보<br>
+      제목 17px, 페이지 표시, [뒤로]는 1쪽에서 비활성
+    </p>
+  </div>
+</div>
+
+<h2>3 · 설명 내용 — 5쪽</h2>
+<p class="note">
+  ★<b>"알려주지 않으면 모르는 것"만 넣었다.</b> 부딪혀서 알 수 있는 건 뺐다.
+</p>
+<table class="tbl">
+  <tr><th>쪽</th><th>왜 필요한가</th><th>글</th></tr>
+  <tr><td>1 · 목표</td><td>바가 둘(할당량·파일)이라 처음엔 뭘 봐야 할지 모른다</td>
+      <td>제한시간 안에 할당량을 채우면 다음 구간</td></tr>
+  <tr><td>2 · 파일과 그림</td><td>★수집이 이 게임의 보상인데 안 알려주면 모른다.
+      100% 올려야 그림이 완성된다는 규칙도</td>
+      <td>파일은 하나씩. 끝까지 올린 파일만 갤러리에 모임</td></tr>
+  <tr><td>3 · 방해꾼</td><td>기본 조작</td>
+      <td>클릭해서 쫓아내면 업데이트가 오른다</td></tr>
+  <tr><td>4 · 놔두면 손해</td><td>★가장 중요한데 빠져 있었다.
+      "방해만 한다"고 생각하면 급할 이유가 없다. 실제로는 진행도가 <b>되돌아간다</b></td>
+      <td>화면에 오래 남을수록 업데이트를 갉아먹는다</td></tr>
+  <tr><td>5 · 연속 처치</td><td>★콤보가 보통 실력 수입의 37~46%다.
+      모르면 그냥 아무거나 누른다. UI에 뜨긴 하지만 "왜" 뜨는지는 안 알려준다</td>
+      <td>연달아 잡으면 배율. 빗나가면 처음부터</td></tr>
+</table>
+<p class="note" style="margin-top:10px">
+  ★<b>여전히 알려주지 않는 것</b> — 방해꾼 12종의 개별 동작.
+  bait가 안 죽는 것도, popup이 X만 눌러야 하는 것도, fake_btn이 함정인 것도
+  직접 당해봐야 재미다. 환경 방해 6종의 해제법도 마찬가지.
+</p>
+
+<h2>4 · 하지 말 것</h2>
+<p class="note">
+  <b>1.</b> 말풍선 본문을 15px 아래로 내리지 말 것. DGM 한글이 뭉갠다.<br>
+  <b>2.</b> 렉 연출을 진짜로 멈추지 말 것 — ★프레임을 실제로 막으면 입력이 씹힌다.
+  타이틀바 색·고스트 오버레이·커서만 바꾸는 <b>연기</b>다.<br>
+  <b>3.</b> 로딩바를 진짜 진행률로 만들지 말 것. XP 분절바는 원래 <b>불확정</b>(계속 흐름)이다.<br>
+  <b>4.</b> 전체 시퀀스가 3초를 넘지 않게. 심사위원이 매번 본다.
+  ★[건너뛰기]는 항상 노출.<br>
+  <b>5.</b> <code>filter</code> 금지. 고스트는 반투명 흰 도형으로.
+</p>
+
+</div>
+
+<script>
+var hang = document.getElementById('hang'), load = document.getElementById('load'),
+    assist = document.getElementById('assist'), title = document.getElementById('title'),
+    cur = document.getElementById('cur'), T = [];
+function later(f, ms){ T.push(setTimeout(f, ms)); }
+function clearT(){ T.forEach(clearTimeout); T = []; }
+
+/* ══ 설명 그림 ══════════════════════════════════════════════
+   ★글만으로는 "진행바"가 뭔지 모른다. 설명하는 대상을 그려준다.
+   ══════════════════════════════════════════════════════════ */
+function segbar(x, y, w, total, on, seg){
+  var s = '<rect x="'+x+'" y="'+y+'" width="'+w+'" height="20" fill="#d7d3c4" stroke="#9a9584"/>';
+  var sw = (w - 6) / total;
+  for (var i = 0; i < total; i++) {
+    if (i >= on) continue;
+    s += '<rect x="'+(x+3+i*sw)+'" y="'+(y+3)+'" width="'+(sw-2)+'" height="14" fill="url(#gb)"/>';
+  }
+  return s;
+}
+var GDEF = '<defs><linearGradient id="gb" x1="0" y1="0" x2="0" y2="1">' +
+  '<stop offset="0" stop-color="#a4f07a"/><stop offset=".5" stop-color="#4bbb1a"/>' +
+  '<stop offset="1" stop-color="#5fd02c"/></linearGradient></defs>';
+
+/* 1 · 목표 — 할당량 + 제한시간 */
+function figGoal(){
+  return '<svg viewBox="0 0 280 96" width="280" height="96">' + GDEF +
+    '<text x="8" y="17" font-size="12" fill="#444" font-family="monospace">할당량</text>' +
+    segbar(8, 24, 190, 14, 9) +
+    '<text x="204" y="39" font-size="14" fill="#0a3aa0" font-family="monospace">250MB</text>' +
+    '<text x="8" y="66" font-size="12" fill="#444" font-family="monospace">남은 시간</text>' +
+    '<rect x="80" y="52" width="80" height="24" fill="#fff" stroke="#7f9db9" stroke-width="1.6"/>' +
+    '<text x="120" y="70" font-size="17" fill="#111" text-anchor="middle" font-family="monospace">02:41</text>' +
+    '<path d="M176 64h28M198 58l7 6-7 6" fill="none" stroke="#4ea832" stroke-width="2.6"/>' +
+    '<text x="238" y="70" font-size="14" fill="#4ea832" font-family="monospace">통과</text>' +
+    '</svg>';
+}
+
+/* 2 · 파일과 그림 — 완성하면 갤러리에 모인다 */
+function figFile(){
+  return '<svg viewBox="0 0 280 96" width="280" height="96">' + GDEF +
+    /* 그림 액자 (일부만 드러남) */
+    '<rect x="10" y="10" width="58" height="58" fill="#fff" stroke="#9a9584" stroke-width="1.6"/>' +
+    '<rect x="14" y="14" width="50" height="50" fill="#c9d8e8"/>' +
+    '<rect x="14" y="40" width="50" height="24" fill="#8fb8dc"/>' +
+    '<rect x="14" y="14" width="50" height="26" fill="rgba(120,120,120,.55)"/>' +
+    segbar(10, 74, 58, 8, 4) +
+    /* 화살표 */
+    '<path d="M80 42h26M100 36l7 6-7 6" fill="none" stroke="#4ea832" stroke-width="2.6"/>' +
+    /* 완성본 */
+    '<rect x="116" y="10" width="58" height="58" fill="#fff" stroke="#9a9584" stroke-width="1.6"/>' +
+    '<rect x="120" y="14" width="50" height="50" fill="#c9d8e8"/>' +
+    '<rect x="120" y="40" width="50" height="24" fill="#8fb8dc"/>' +
+    '<circle cx="150" cy="26" r="7" fill="#fdd835"/>' +
+    '<text x="145" y="83" font-size="12" fill="#4ea832" font-family="monospace">완료!</text>' +
+    /* 갤러리로 */
+    '<path d="M184 42h20M198 36l7 6-7 6" fill="none" stroke="#4ea832" stroke-width="2.6"/>' +
+    '<rect x="212" y="18" width="58" height="46" fill="#fff" stroke="#5a86c9" stroke-width="1.6"/>' +
+    '<rect x="217" y="23" width="15" height="15" fill="#e0a0a0"/><rect x="235" y="23" width="15" height="15" fill="#a0c8e0"/>' +
+    '<rect x="253" y="23" width="13" height="15" fill="#b8dca0"/>' +
+    '<rect x="217" y="42" width="15" height="15" fill="#d8c0e8"/><rect x="235" y="42" width="15" height="15" fill="#e8d8a0"/>' +
+    '<rect x="253" y="42" width="13" height="15" fill="#dcdcdc"/>' +
+    '<text x="241" y="79" font-size="11" fill="#0a3aa0" text-anchor="middle" font-family="monospace">갤러리</text>' +
+    '</svg>';
+}
+
+/* 3 · 방해꾼 — 클릭 */
+function figEnemy(){
+  return '<svg viewBox="0 0 280 86" width="280" height="86">' +
+    '<circle cx="66" cy="44" r="23" fill="#8fd07f" stroke="#12161f" stroke-width="2.6"/>' +
+    '<circle cx="58" cy="39" r="3.2" fill="#12161f"/><circle cx="74" cy="39" r="3.2" fill="#12161f"/>' +
+    '<path d="M57 53q9 7 18 0" fill="none" stroke="#12161f" stroke-width="2.6"/>' +
+    '<rect x="44" y="22" width="44" height="44" fill="none" stroke="#fdd835" stroke-width="2.6"/>' +
+    '<rect x="35" y="13" width="62" height="62" fill="none" stroke="#fdd835" stroke-width="1.6" opacity=".5"/>' +
+    '<path d="M82 50l9 20 2.9-8.2L104 59z" fill="#fff" stroke="#000" stroke-width="1.6" stroke-linejoin="round"/>' +
+    '<path d="M124 44h34M152 38l7 6-7 6" fill="none" stroke="#4ea832" stroke-width="2.8"/>' +
+    '<text x="196" y="51" font-size="19" fill="#4ea832" font-family="monospace">+1MB</text>' +
+    '</svg>';
+}
+
+/* 4 · 피해 — 놔두면 깎인다 */
+function figDamage(){
+  return '<svg viewBox="0 0 280 96" width="280" height="96">' + GDEF +
+    /* 방해꾼 셋이 바 위에 올라앉음 */
+    '<circle cx="44" cy="24" r="14" fill="#e08f8f" stroke="#12161f" stroke-width="2.2"/>' +
+    '<circle cx="39" cy="21" r="2.2" fill="#12161f"/><circle cx="49" cy="21" r="2.2" fill="#12161f"/>' +
+    '<path d="M38 30q6 4 12 0" fill="none" stroke="#12161f" stroke-width="2.2"/>' +
+    '<circle cx="96" cy="24" r="14" fill="#e0b08f" stroke="#12161f" stroke-width="2.2"/>' +
+    '<circle cx="91" cy="21" r="2.2" fill="#12161f"/><circle cx="101" cy="21" r="2.2" fill="#12161f"/>' +
+    '<path d="M90 30q6 4 12 0" fill="none" stroke="#12161f" stroke-width="2.2"/>' +
+    '<circle cx="148" cy="24" r="14" fill="#c8a0d8" stroke="#12161f" stroke-width="2.2"/>' +
+    '<circle cx="143" cy="21" r="2.2" fill="#12161f"/><circle cx="153" cy="21" r="2.2" fill="#12161f"/>' +
+    '<path d="M142 30q6 4 12 0" fill="none" stroke="#12161f" stroke-width="2.2"/>' +
+    /* 바 — 빨간 잔상이 뒤로 밀림 */
+    segbar(10, 50, 190, 14, 6) +
+    '<rect x="10" y="50" width="190" height="20" fill="none" stroke="#9a9584"/>' +
+    '<rect x="88" y="53" width="52" height="14" fill="#d9382a" opacity=".8"/>' +
+    /* 되돌아가는 화살표 */
+    '<path d="M138 44l-14 0M128 39l-6 5 6 5" fill="none" stroke="#d9382a" stroke-width="2.6"/>' +
+    '<text x="214" y="65" font-size="18" fill="#d9382a" font-family="monospace">-3%</text>' +
+    '<text x="10" y="88" font-size="11" fill="#666" font-family="monospace">놔두면 진행도가 되돌아갑니다</text>' +
+    '</svg>';
+}
+
+/* 5 · 콤보 — 연속으로 잡으면 배율 */
+function figCombo(){
+  var s = '<svg viewBox="0 0 280 96" width="280" height="96">';
+  /* 연속 처치 3개 */
+  var xs = [24, 68, 112];
+  for (var i = 0; i < 3; i++) {
+    s += '<circle cx="'+xs[i]+'" cy="30" r="13" fill="#8fd07f" stroke="#12161f" stroke-width="2.2" opacity="'+(0.35+i*0.32)+'"/>';
+    s += '<path d="M'+(xs[i]-6)+' 24l5 5 8-8" fill="none" stroke="#12161f" stroke-width="2.4" opacity="'+(0.35+i*0.32)+'"/>';
+  }
+  s += '<path d="M38 30h14M82 30h14" stroke="#4ea832" stroke-width="2.2" stroke-dasharray="3 3"/>';
+  /* 콤보 배율 */
+  s += '<text x="150" y="38" font-size="26" fill="#fdd835" stroke="#12161f" stroke-width="3" stroke-linejoin="miter" paint-order="stroke" font-family="monospace">x3</text>';
+  s += '<text x="212" y="38" font-size="15" fill="#4ea832" font-family="monospace">+3MB</text>';
+  /* 끊기면 */
+  s += '<circle cx="24" cy="72" r="13" fill="#8fd07f" stroke="#12161f" stroke-width="2.2"/>';
+  s += '<path d="M46 66l14 12M60 66l-14 12" stroke="#d9382a" stroke-width="3"/>';
+  s += '<text x="74" y="78" font-size="13" fill="#d9382a" font-family="monospace">빗나가면 처음부터</text>';
+  s += '</svg>';
+  return s;
+}
+
+var TIPS = [
+  { hd:'목표', fig:figGoal,
+    tx:'<em>제한시간</em> 안에 이번 구간의 <em>할당량</em>을 채우면 다음 구간으로 넘어갑니다.' },
+  { hd:'파일과 그림', fig:figFile,
+    tx:'파일은 한 번에 하나씩 올라갑니다. <em>끝까지</em> 올린 파일은 그림이 완성되어 <em>갤러리</em>에 모여요.' },
+  { hd:'방해꾼', fig:figEnemy,
+    tx:'화면을 돌아다니는 방해꾼을 <em>클릭</em>해서 쫓아내세요. 쫓아낼 때마다 업데이트가 조금씩 올라갑니다.' },
+  { hd:'놔두면 손해', fig:figDamage,
+    tx:'방해꾼을 그냥 두면 업데이트를 <em>갉아먹습니다</em>. 화면에 오래 남을수록 진행도가 되돌아가요.' },
+  { hd:'연속 처치', fig:figCombo,
+    tx:'빗나가지 않고 <em>연달아</em> 잡으면 배율이 올라 더 많이 오릅니다. 한 번 빗나가면 처음부터예요.' }
+];
+
+var ti = 0;
+function render(){
+  var t = TIPS[ti];
+  document.getElementById('ahd').textContent = t.hd;
+  document.getElementById('afig').innerHTML = t.fig();
+  document.getElementById('atx').innerHTML = t.tx;
+  document.getElementById('apg').textContent = (ti + 1) + ' / ' + TIPS.length;
+  document.getElementById('aback').disabled = (ti === 0);
+  document.getElementById('anext').textContent = (ti === TIPS.length - 1) ? '시작' : '다음';
+}
+function tn(){ ti++; if (ti >= TIPS.length) { finish(); return; } render(); }
+function tb(){ if (ti > 0) { ti--; render(); } }
+function tc(){ finish(); }
+function finish(){
+  assist.classList.remove('on');
+  later(function(){
+    load.classList.remove('dim');
+    later(function(){ load.classList.remove('on','low'); hang.classList.remove('on','dead');
+      cur.classList.remove('wait'); }, 500);
+  }, 260);
+}
+
+/* ══ 시퀀스 ══ */
+function reset(){
+  clearT();
+  title.style.display = ''; hang.classList.remove('on','dead');
+  load.classList.remove('on','dim','low'); assist.classList.remove('on');
+  cur.classList.remove('wait');
+  document.getElementById('hangt').textContent = '진짜_최종_final_수정_진짜최종(5).exe';
+}
+function startSeq(){
+  reset();
+  /* 0.0s 창이 뜬다 */
+  hang.classList.add('on');
+  /* 0.5s ★굳는다 — 제목에 (응답 없음), 본문 바램, 커서 모래시계 */
+  later(function(){
+    hang.classList.add('dead');
+    document.getElementById('hangt').textContent =
+      '진짜_최종_final_수정_진짜최종(5).exe (응답 없음)';
+    cur.classList.add('wait');
+  }, 500);
+  /* 1.6s 검게 + 로딩바 */
+  later(function(){ load.classList.add('on'); }, 1500);
+  later(function(){ load.classList.add('dim'); }, 1600);
+  /* 3.0s 강아지 뿅 */
+  later(function(){ load.classList.add('low'); }, 2820);
+  later(function(){ ti = 0; render(); assist.classList.add('on'); }, 3000);
+}
+function showTut(){
+  reset(); load.classList.add('on','dim','low');
+  ti = 0; render(); assist.classList.add('on');
+}
+
+/* 커서 따라다니기 (데모용) */
+document.getElementById('stage').addEventListener('pointermove', function(e){
+  var r = this.getBoundingClientRect();
+  cur.style.left = (e.clientX - r.left) + 'px';
+  cur.style.top = (e.clientY - r.top) + 'px';
+});
+
+render();
+</script>
+</body>
+</html>
