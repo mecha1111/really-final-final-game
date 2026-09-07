@@ -57,6 +57,12 @@ const rand = (min, max) => min + Math.random() * (max - min);
  *   mount(inst)  {function} 레이어에 넣을 DOM을 만들어 inst.el에 대입한다.
  *   update(inst, dt) {function=} 매 프레임(카운트다운·연출).
  *   onEnd(inst, reason) {function=} 끝날 때 1회. reason: 'dismissed'|'timeout'|'reset'
+ *   telegraph  {object=} 본 효과 직전에 config.hazard.telegraphSec만큼 재생할 "축소판".
+ *                 { mount(t), update(t, dt), unmount(t) } — 전부 선택.
+ *                 t.el에 DOM을 대입하면 프레임워크가 레이어에 넣고 끝나면 지운다.
+ *                 ★t.el에는 pointer-events:none이 강제로 박힌다(클릭 판정 불변).
+ *                 ★unmount는 mount가 건드린 것을 반드시 전부 되돌려야 한다 —
+ *                   DOM 밖(예: #stage 클래스)을 만졌다면 특히.
  */
 export function registerHazard(def) {
   DEFS.set(def.id, def);
@@ -120,6 +126,9 @@ export function eligibleHazardIds(stage) {
  * 두 번 불려도 안전하다(이미 빈 배열이면 아무 일도 안 한다).
  */
 export function resetHazards() {
+  // ★전조도 같이 끊는다 — 판이 끝나는 순간 "곧 터질 것"의 예고만 화면에 남으면
+  //   그것도 잔존이다(본 효과가 영영 안 오므로 더 이상하다).
+  endTelegraph();
   for (const inst of [...state.hazards]) endHazard(inst, 'reset');
   state.hazards.length = 0; // endHazard가 이미 빼지만, 혹시 모를 잔여까지 확실히
   fireTimer = config.hazard.graceSec + rand(config.hazard.intervalMinSec, config.hazard.intervalMaxSec);
@@ -206,7 +215,26 @@ function pickEligible(stage) {
     console.debug(`[hazard] 이 구간(stage ${stage})에 해금된 종류가 ${eligible.length}개뿐이라 연속 허용 — ${lastFiredId} 재발동`);
   }
   const pool = relaxed ? eligible : fresh;
-  return pool[Math.floor(Math.random() * pool.length)];
+  return pickWeighted(pool);
+}
+
+/**
+ * config.hazard.weights를 가중치로 하나 고른다(enemies의 weight 추첨과 같은 방식).
+ * ★표에 없는 id는 1로 친다 — 새 방해를 등록하고 표에 올리는 걸 잊어도 "아예 안
+ *   나오는" 조용한 고장이 되지 않게. 0으로 두면 그 사고가 그대로 난다.
+ */
+function pickWeighted(pool) {
+  const table = config.hazard.weights ?? {};
+  const weightOf = (d) => Math.max(0, table[d.id] ?? 1);
+  const total = pool.reduce((sum, d) => sum + weightOf(d), 0);
+  if (total <= 0) return pool[Math.floor(Math.random() * pool.length)] ?? null;
+
+  let roll = Math.random() * total;
+  for (const d of pool) {
+    roll -= weightOf(d);
+    if (roll <= 0) return d;
+  }
+  return pool[pool.length - 1];
 }
 
 /**
@@ -233,6 +261,18 @@ export function updateHazards(dt, rules) {
     }
   }
 
+  // 1-b) 전조 진행 — 다 되면 그 자리에서 본 효과로 넘어간다.
+  if (pending) {
+    pending.age += dt;
+    pending.def.telegraph?.update?.(pending, dt);
+    if (pending.age >= config.hazard.telegraphSec) {
+      const id = pending.id;
+      endTelegraph();
+      triggerHazard(id);
+    }
+    return; // 전조 중엔 새 스케줄을 돌리지 않는다
+  }
+
   // 2) 스케줄 — 꺼져 있으면 발동만 멈춘다(이미 뜬 건 위에서 계속 갱신·종료된다).
   if (!config.hazard.enabled) return;
   // 뭔가 떠 있는 동안은 타이머를 안 깎는다 — "끝난 뒤부터 쿨타임"이 되게.
@@ -247,7 +287,39 @@ export function updateHazards(dt, rules) {
     fireTimer = config.hazard.intervalMinSec;
     return;
   }
-  triggerHazard(pick.id);
+  // ★바로 터뜨리지 않는다 — 먼저 전조를 띄우고, 그게 끝나면 위 1-b가 본 효과를 부른다.
+  //   전조를 안 만든 방해도 그대로 돌아간다(startTelegraph가 telegraphSec만큼
+  //   기다렸다 넘길 뿐이라, 정의가 없으면 "아무것도 안 보이는 유예"가 된다).
+  startTelegraph(pick);
+}
+
+// ── 전조 ──────────────────────────────────────────────────────────────────────
+// 본 효과 직전에 config.hazard.telegraphSec만큼 재생되는 "축소판".
+// ★ 왜 프레임워크에 두나 — 종류마다 각자 setTimeout으로 흉내 내면 (1) 판이 끝나도
+//   안 멈추고(이 프로젝트가 방금 고친 hazard 잔존과 같은 부류), (2) 시계가 rAF와
+//   갈라지고, (3) "전조 중엔 다음 스케줄을 멈춘다" 같은 규칙을 매번 다시 짜야 한다.
+//   여기 한 곳에서 수명·정리·클릭 차단을 전부 보장한다.
+let pending = null; // { id, def, age, el, data }
+
+function startTelegraph(def) {
+  const tele = { id: def.id, def, age: 0, el: null, data: {} };
+  def.telegraph?.mount?.(tele);
+  if (tele.el && layerEl) {
+    // ★클릭 판정에 절대 영향을 주지 않는다 — 각 방해의 CSS에만 맡기지 않고
+    //   프레임워크가 못박는다(이 파일 상단 pointer-events 주석의 그 함정).
+    tele.el.style.pointerEvents = 'none';
+    tele.el.classList.add('hz-tele');
+    layerEl.appendChild(tele.el);
+  }
+  pending = tele;
+}
+
+/** 전조를 끝낸다(정상 종료·판 리셋 공용). 되돌리기는 각 정의의 unmount가 맡는다. */
+function endTelegraph() {
+  if (!pending) return;
+  pending.def.telegraph?.unmount?.(pending);
+  pending.el?.remove();
+  pending = null;
 }
 
 /**

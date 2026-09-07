@@ -19,6 +19,7 @@
 //  벌칙 같은 되돌릴 수 없는 효과는 그 성질에 기대지 않고 여기서 한 번 더 못박는다.)
 
 import { config } from '../../config.js';
+import { fileIcon } from '../fileIcons.js';
 import { registerHazard, dismissHazard } from '../../systems/hazard.js';
 import { damageUpload } from '../../systems/upload.js';
 import { playSfx, SFX } from '../../systems/sound.js';
@@ -109,5 +110,20 @@ registerHazard({
     damageUpload(c.penaltyPct, config.canvas.width / 2, config.canvas.height / 2, {
       cause: c.penaltyCause,
     });
+  },
+
+  // ★전조 — 실물 XP 자동업데이트가 그랬듯 트레이에 방패가 먼저 뜬다.
+  //   "곧 재시작 알림이 온다"만 알려주고 막을 수단은 주지 않는다(전조의 원칙).
+  //   아이콘은 0번 커밋에서 만든 파일 아이콘 카탈로그의 shield를 그대로 쓴다 —
+  //   UI 크롬용 icons.js의 단색 방패가 아니라 다색 아이소메트릭 쪽이라야
+  //   "실물 XP 트레이"로 읽힌다.
+  telegraph: {
+    mount(t) {
+      const el = document.createElement('div');
+      el.className = 'hz-tele-shield';
+      el.innerHTML = fileIcon('shield', 22);
+      t.el = el;
+      playSfx(SFX.UI_OPEN, { ui: true });
+    },
   },
 });

@@ -86,4 +86,16 @@ registerHazard({
     applyRotation(false);
     playSfx(SFX.UI_CLOSE);
   },
+
+  // ★전조 — 화면이 살짝 기울었다 돌아온다.
+  //   ★진짜 화면을 안 돌린다(회전각은 canvasGeometry가 아는 값이라, 전조가 몰래
+  //     돌리면 판정이 그만큼 밀린다). 테두리 한 겹만 기울여 "곧 돌아간다"를 알린다.
+  telegraph: {
+    mount(t) {
+      const el = document.createElement('div');
+      el.className = 'hz-tele-tilt';
+      el.innerHTML = '<i></i>';
+      t.el = el;
+    },
+  },
 });

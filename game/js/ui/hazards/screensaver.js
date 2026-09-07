@@ -100,4 +100,14 @@ registerHazard({
     }
     ctx.globalAlpha = 1;
   },
+
+  // ★전조 — 본 효과의 축소판 그대로: 화면이 아주 짧게 한 번 어두워졌다 돌아온다.
+  //   본 효과가 "검은 막 + 별"이라 그중 검은 막만 아주 잠깐 보여주는 셈이다.
+  telegraph: {
+    mount(t) {
+      const el = document.createElement('div');
+      el.className = 'hz-tele-dim';
+      t.el = el;
+    },
+  },
 });

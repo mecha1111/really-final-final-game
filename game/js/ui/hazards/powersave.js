@@ -73,4 +73,18 @@ registerHazard({
       inst.data.dimEl?.style.setProperty('--hz-dim', next);
     }
   },
+
+  // ★전조 — CRT 붕괴. 화면 상하가 살짝 수축했다 펴지며 한 번 깜빡인다.
+  //   실물 CRT 전원이 나갈 때 정확히 이렇게 보이고, 이 방해가 "화면이 꺼진다"는
+  //   것이므로 그 효과의 축소판으로 딱 맞는다.
+  //   ★진짜 화면(#stage)을 scaleY 하지 않는다 — 좌표계를 건드리면 전조 중 클릭이
+  //     밀린다. 위아래에서 조여드는 검은 띠 두 장으로 그린다(style.css).
+  telegraph: {
+    mount(t) {
+      const el = document.createElement('div');
+      el.className = 'hz-tele-crt';
+      el.innerHTML = '<i class="t"></i><i class="b"></i><b></b>';
+      t.el = el;
+    },
+  },
 });

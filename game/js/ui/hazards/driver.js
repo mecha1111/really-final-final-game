@@ -83,4 +83,35 @@ registerHazard({
     state.hideSystemCursor = false;
     playSfx(SFX.OVERLOAD_END); // "드라이버가 복구되었습니다"에 대응하는 복구음
   },
+
+  // ★전조 — 커서가 한 번 튀고 화면이 짧게 지직한다. 본 효과가 "보이는 커서만
+  //   늦게 따라온다"이므로, 그 지연을 아주 짧게 한 번만 맛보여 주는 축소판이다.
+  //
+  // ★커서 튐은 본 효과와 같은 장치(state.fakeCursors + 궤적 재생)를 쓴다 —
+  //   전조용 커서 로직을 따로 만들면 둘이 조용히 갈라진다. 다만 ★진짜 커서를
+  //   숨기지는 않는다(state.hideSystemCursor를 안 건드린다): 전조 동안 조준을
+  //   빼앗으면 "짧아서 못 막는다"가 아니라 "전조 때문에 손해를 본다"가 된다.
+  telegraph: {
+    mount(t) {
+      const el = document.createElement('div');
+      el.className = 'hz-tele-glitch';
+      el.innerHTML = '<i></i>';
+      t.el = el;
+
+      const p = state.pointer;
+      t.data.fakeCursor = {
+        offsetX: 0, offsetY: 0,
+        delay: config.hazard.driver.delaySec,
+        jitterSeed: 0, jitterPhase: 0,
+        life: config.hazard.telegraphSec,
+        x: p.x, y: p.y,
+      };
+      state.fakeCursors.push(t.data.fakeCursor);
+    },
+    unmount(t) {
+      // 수명(life)이 다 닳아 스스로 빠졌을 수도 있으므로 참조로 한 번 더 지운다 —
+      // 남으면 본 효과가 켜질 때 커서가 두 개로 보인다.
+      state.fakeCursors = state.fakeCursors.filter((c) => c !== t.data.fakeCursor);
+    },
+  },
 });

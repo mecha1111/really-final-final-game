@@ -2586,3 +2586,128 @@ body {
   position: absolute; inset: 0; pointer-events: none;
   background: repeating-linear-gradient(rgba(0, 0, 0, 0) 0 4px, rgba(0, 0, 0, 0.22) 4px 6px);
 }
+
+/* ===========================================================================
+   환경 방해 전조(telegraph) — 본 효과 직전 config.hazard.telegraphSec 동안만
+   ★공통 규칙
+     · 전부 pointer-events:none이다. systems/hazard.js가 인라인으로도 한 번 더
+       박지만(프레임워크 보장), CSS에도 같이 적어 의도를 남긴다.
+     · ★알파는 5단계로 양자화한다 — 매끄러운 연속 페이드 금지(이 프로젝트
+       전역 규칙, config.fx.alphaSteps). keyframes를 계단으로 끊어서 만든다.
+     · ★filter / backdrop-filter 금지. 전부 도형·그라데이션·투명도만.
+     · 색은 --xp-* 토큰만 쓴다.
+   =========================================================================== */
+/* ★공통 클래스는 "클릭을 막는다"만 보장한다. 기하(inset/위치)는 각자 정의한다 —
+   여기에 inset:0을 걸었더니 자기 자리를 잡는 전조(트레이 방패의 right/bottom)를
+   눌러 좌상단으로 끌고 갔다(실측으로 잡음). */
+#desktop .hz-tele { pointer-events: none; }
+
+/* ── 재부팅: 트레이에 XP 방패가 뿅 (실물 XP 자동업데이트 알림) ─────────────── */
+#desktop .hz-tele-shield {
+  position: absolute; right: 16px; bottom: calc(var(--taskbar-h, 52px) + 8px);
+  width: 30px; height: 30px; display: grid; place-items: center;
+  background: var(--xp-tray); border: 1px solid var(--xp-win-border);
+  animation: hz-tele-pop 1s steps(1) 1 both;
+}
+#desktop .hz-tele-shield svg { width: 22px; height: 22px; }
+@keyframes hz-tele-pop {
+  0% { opacity: 0; transform: scale(0.6); }
+  12% { opacity: 1; transform: scale(1.12); }
+  24% { opacity: 1; transform: scale(1); }
+  76% { opacity: 1; transform: scale(1); }
+  88% { opacity: 0.4; transform: scale(1); }
+  100% { opacity: 0; transform: scale(1); }
+}
+
+/* ── 스크린세이버: 화면이 아주 짧게 한 번 어두워졌다 돌아온다 ──────────────── */
+#desktop .hz-tele-dim { position: absolute; inset: 0; background: #000; animation: hz-tele-blink 1s steps(1) 1 both; }
+@keyframes hz-tele-blink {
+  0%, 22% { opacity: 0; }
+  26% { opacity: 0.4; }
+  32% { opacity: 0.6; }
+  38% { opacity: 0.4; }
+  44% { opacity: 0.2; }
+  50%, 100% { opacity: 0; }
+}
+
+/* ── 절전: ★CRT 붕괴 전조 — 화면 상하가 수축했다 펴지며 깜빡 ────────────────
+   ★진짜 #stage를 scaleY 하지 않는다. 좌표계를 건드리면 전조 중 클릭이 밀린다
+     (요구사항: 전조는 클릭 판정에 영향 없을 것). 위아래에서 조여드는 검은 띠
+     두 장으로 "수축"을 그린다 — 실물 CRT 전원이 꺼질 때 보이는 그 모양이다. */
+#desktop .hz-tele-crt { position: absolute; inset: 0; }
+#desktop .hz-tele-crt i {
+  position: absolute; left: 0; right: 0; height: 0; background: #000;
+  animation: hz-tele-squeeze 1s steps(1) 1 both;
+}
+#desktop .hz-tele-crt i.t { top: 0; }
+#desktop .hz-tele-crt i.b { bottom: 0; }
+@keyframes hz-tele-squeeze {
+  0%, 18% { height: 0; }
+  30% { height: 14%; }
+  42% { height: 26%; }
+  54% { height: 14%; }
+  66% { height: 4%; }
+  74%, 100% { height: 0; }
+}
+/* 수축이 풀리는 순간의 한 번 깜빡 — 형광체가 튀는 그 프레임 */
+#desktop .hz-tele-crt b {
+  position: absolute; left: 0; right: 0; top: 50%; height: 2px;
+  background: var(--xp-tooltip-bg); opacity: 0;
+  animation: hz-tele-flash 1s steps(1) 1 both;
+}
+@keyframes hz-tele-flash {
+  0%, 68% { opacity: 0; }
+  72% { opacity: 0.8; }
+  78% { opacity: 0.4; }
+  84%, 100% { opacity: 0; }
+}
+
+/* ── 드라이버: 화면이 짧게 지직 (수평 밴드가 한 번 훑는다) ─────────────────── */
+#desktop .hz-tele-glitch { position: absolute; inset: 0; }
+#desktop .hz-tele-glitch i {
+  position: absolute; left: 0; right: 0; height: 3px;
+  background: rgba(255, 255, 255, 0.6);
+  animation: hz-tele-band 1s steps(1) 1 both;
+}
+@keyframes hz-tele-band {
+  0%, 14% { opacity: 0; top: 20%; }
+  18% { opacity: 0.8; top: 30%; }
+  26% { opacity: 0.6; top: 52%; }
+  34% { opacity: 0.8; top: 68%; }
+  42% { opacity: 0.4; top: 84%; }
+  50%, 100% { opacity: 0; top: 84%; }
+}
+
+/* ── 화면 깨짐: 세로선 하나가 잠깐 번쩍했다 사라진다 ───────────────────────── */
+#desktop .hz-tele-col { position: absolute; inset: 0; }
+#desktop .hz-tele-col i {
+  position: absolute; top: 0; bottom: 0; width: 6px;
+  background: var(--xp-tooltip-bg);
+  animation: hz-tele-colblink 1s steps(1) 1 both;
+}
+@keyframes hz-tele-colblink {
+  0%, 10% { opacity: 0; }
+  16% { opacity: 0.8; }
+  24% { opacity: 0; }
+  32% { opacity: 0.6; }
+  40% { opacity: 0; }
+  48% { opacity: 0.4; }
+  56%, 100% { opacity: 0; }
+}
+
+/* ── 상하반전: 화면이 살짝 기울었다 돌아온다 ───────────────────────────────
+   ★역시 진짜 화면을 안 돌린다 — 테두리 한 겹만 기울여서 "곧 돌아간다"를 알린다. */
+#desktop .hz-tele-tilt { position: absolute; inset: 0; }
+#desktop .hz-tele-tilt i {
+  position: absolute; inset: 6%;
+  border: 3px solid var(--xp-win-ring);
+  animation: hz-tele-tiltk 1s steps(1) 1 both;
+}
+@keyframes hz-tele-tiltk {
+  0%, 16% { opacity: 0; transform: rotate(0deg); }
+  28% { opacity: 0.8; transform: rotate(-2deg); }
+  44% { opacity: 0.8; transform: rotate(2.5deg); }
+  60% { opacity: 0.6; transform: rotate(-1.5deg); }
+  76% { opacity: 0.4; transform: rotate(0deg); }
+  88%, 100% { opacity: 0; transform: rotate(0deg); }
+}

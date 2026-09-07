@@ -165,4 +165,18 @@ registerHazard({
     window.removeEventListener('pointerup', inst.data.onUp);
     playSfx(SFX.OVERLOAD_END);
   },
+
+  // ★전조 — 세로선 하나가 잠깐 번쩍했다 사라진다(참조 문서의 crackTelegraph()).
+  //   본 효과가 "세로 열 고장"이라 그중 한 줄만 미리 보여주는 축소판이다.
+  //   x는 매번 다르게 — 같은 자리면 "저기 온다"를 외워버려 전조가 아니라 예고가 된다.
+  telegraph: {
+    mount(t) {
+      const el = document.createElement('div');
+      el.className = 'hz-tele-col';
+      const line = document.createElement('i');
+      line.style.left = `${8 + Math.random() * 84}%`;
+      el.appendChild(line);
+      t.el = el;
+    },
+  },
 });
