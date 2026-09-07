@@ -201,6 +201,11 @@
   --xp-balloon-bg: #ffffcc; /* Office 길잡이 말풍선 바탕 */
   --xp-balloon-line: #000; /* 그 각진 1px 테두리 + 꼬리 바깥겹 */
   --xp-balloon-bullet: #0a3aa0; /* 파란 원 불릿 */
+  /* ★말풍선 본문의 핵심 단어 형광(<em>). 눈이 먼저 붙게 하는 게 목적이라
+     밑줄 대신 형광펜처럼 깔고, 아래 한 줄 그림자로 종이에 눌린 느낌을 준다.
+     문서 값(docs/xp-tutorial.html의 .assist .tx em) 그대로. */
+  --xp-balloon-mark-bg: #ffe680;
+  --xp-balloon-mark-line: #c9a800;
   /* XP 풍선 도움말(툴팁) 글자 — 임의색을 안 쓰기 위한 토큰. 본문/보조 두 단계뿐이다. */
   --xp-tooltip-text: #111;
   --xp-tooltip-sub: #333;
@@ -2766,44 +2771,74 @@ body {
   width: 27px; height: 21px; border-radius: 4px; background: linear-gradient(#9be9ff, #1c74e0);
 }
 
-/* ===== 강아지 도우미 말풍선 (참조 문서 §6 .xp-assist) =====
-   ★실물 구조 그대로다(문서가 MS 문서로 확인해 정정한 것):
+/* ===== 강아지 도우미 말풍선 (참조 문서 docs/xp-tutorial.html) =====
+   ★실물 구조 그대로다(MS 문서로 확인해 정정한 것):
      · 말풍선이 캐릭터 "위"에 뜬다
-     · 버튼 2~3개가 말풍선 "안" 아래쪽(.bset)에 들어간다 — [뒤로][다음][닫기]
-     · 굵은 Heading + ★파란 원 불릿 목록
+     · 버튼 2~3개가 말풍선 "안" 아래쪽(.bset)에 들어간다 — [뒤로][다음][건너뛰기]
+     · 굵은 Heading + ★그림 + 본문
      · 팁이 있으면 캐릭터 위에 노란 전구가 깜빡인다
      · 배경 --xp-balloon-bg + 검은 각진 테두리 + 삼각형 2겹 꼬리
    ★꼬리는 투명 삼각형 2겹이다 — filter:drop-shadow()로 테두리를 흉내내지 않는다
-     (이 프로젝트의 필터 금지 규칙). ★2026-09-08: .rover-bubble과 .hz-balloon도
-     같은 2겹 방식으로 맞췄다 — 이제 이 어휘를 쓰는 말풍선이 셋 다 같다.
-   위치는 아이콘 격자(x 20~572)를 피해 그 오른쪽에 둔다. 말풍선+캐릭터를 합친
-   높이가 약 580px라 top:300에서 시작해도 작업표시줄(y 1028)에 안 닿는다. */
+     (이 프로젝트의 필터 금지 규칙). .rover-bubble·.hz-balloon도 같은 2겹 방식이라
+     이 어휘를 쓰는 말풍선 셋이 전부 같다.
+
+   ★2026-09-08 개편 — 문서가 지적한 네 가지를 그대로 고쳤다:
+     1. 본문이 작아서 DGM 한글 자소가 뭉갰다(도감에서 "처치"가 "저지"로 읽힌
+        전례와 같은 하한 문제). 문서 기준 16px → 이 게임의 1920 좌표계로 옮겨
+        28px. 배율 1.75는 이 프로젝트가 이미 쓰던 것이다 — 부팅 화면 로딩바가
+        문서 190x18을 330x31로 옮긴 그 배율(.intro-boot .loadbar)이라, 새로
+        정한 게 아니라 있는 관례를 따랐다.
+     2. 파란 원 불릿 목록(<ul>/<li>) → ★그림(.fig) + 본문(.tx) 한 덩어리.
+        글만으로는 "진행바"가 뭔지 모른다. 그림이 없는 쪽에서는 :empty로
+        상자 자체가 사라지므로 빈 흰 칸이 남지 않는다.
+     3. 핵심 단어에 노란 형광(<em>) — 눈이 먼저 붙는다.
+     4. ★강아지가 오른쪽으로 갔다(margin-left:auto). 그래서 말풍선 꼬리도
+        오른쪽(right 기준)이고, 전구는 강아지의 왼쪽 위 모서리다. 예전엔 셋 다
+        왼쪽이었는데, 이 오프닝은 타이틀 화면 위에서 돌고 타이틀 메뉴가 화면
+        오른쪽에 있어서 시선이 오른쪽으로 흐른다 — 도우미가 그 흐름에 있어야 한다.
+
+   위치는 화면 한가운데다(문서와 같다) — 예전엔 인트로 바탕화면의 아이콘 격자를
+   피해 오른쪽에 뒀지만, 이제 이 말풍선이 뜨는 배경은 어두워진 타이틀 화면이라
+   피해야 할 격자가 없다. */
 #desktop .op-assist {
-  position: absolute; left: 640px; top: 300px; z-index: 45; width: 515px;
-  opacity: 0; transform: translateY(15px) scale(0.96); pointer-events: none;
-  transition: opacity 0.28s ease, transform 0.28s cubic-bezier(0.2, 0.85, 0.3, 1.15);
+  position: absolute; left: 50%; top: 45%; z-index: 45; width: 665px;
+  opacity: 0; transform: translate(-50%, -50%) scale(0.92); pointer-events: none;
+  /* ★뿅 — 살짝 튕기며 커진다(문서의 cubic-bezier 그대로). */
+  transition: opacity 0.26s ease, transform 0.3s cubic-bezier(0.18, 0.9, 0.28, 1.2);
 }
-#desktop .op-assist.on { opacity: 1; transform: translateY(0) scale(1); pointer-events: auto; }
+#desktop .op-assist.on { opacity: 1; transform: translate(-50%, -50%) scale(1); pointer-events: auto; }
 
 #desktop .op-assist .balloon {
   position: relative; background: var(--xp-balloon-bg);
   border: 2px solid var(--xp-balloon-line); /* ★각진 검은 테두리 */
   box-shadow: 4px 4px 0 rgba(0, 0, 0, 0.35);
-  padding: 21px 25px;
+  padding: 23px 26px 21px;
 }
-#desktop .op-assist .balloon .hd { font-size: 27px; font-weight: bold; color: #000; margin-bottom: 15px; }
-/* 불릿 목록 — ★파란 원. min-height로 쪽마다 높이가 안 흔들리게 한다(줄 수가
-   달라도 [다음] 버튼이 위아래로 튀지 않아야 연타가 안 빗나간다). */
-#desktop .op-assist .balloon ul { list-style: none; margin: 0; padding: 0; min-height: 169px; }
-#desktop .op-assist .balloon li {
-  position: relative; padding-left: 33px; margin-bottom: 13px;
-  font-size: 25px; color: #000; line-height: 1.72;
+#desktop .op-assist .balloon .hd { font-size: 30px; font-weight: bold; color: #000; margin-bottom: 16px; }
+
+/* ★그림 자리 — 흰 종이 위에 도형을 얹는 느낌(설명 대상을 그려준다).
+   min-height로 쪽마다 높이가 안 흔들리게 한다(줄 수가 달라도 [다음] 버튼이
+   위아래로 튀지 않아야 연타가 안 빗나간다 — 예전 <ul>에 걸어뒀던 것과 같은 이유). */
+#desktop .op-assist .fig {
+  background: #fff; border: 2px solid #b9b39c; padding: 16px; margin-bottom: 18px;
+  display: grid; place-items: center; min-height: 130px;
+}
+/* 그림이 없는 쪽에서는 상자 자체를 안 그린다 — 빈 흰 칸이 남으면 더 어색하다. */
+#desktop .op-assist .fig:empty { display: none; }
+#desktop .op-assist .fig svg { display: block; }
+
+/* ★본문 28px — 이 아래로 내리지 말 것(위 개편 1번 주석). */
+#desktop .op-assist .tx {
+  font-size: 28px; color: #000; line-height: 1.85;
   word-break: keep-all; /* ★어절 단위 줄바꿈 — 한글이 낱자로 안 잘린다 */
+  min-height: 102px;
 }
-#desktop .op-assist .balloon li::before {
-  content: ''; position: absolute; left: 4px; top: 13px;
-  width: 13px; height: 13px; border-radius: 50%; background: var(--xp-balloon-bullet);
+/* ★핵심 단어 형광 — <em>이지만 기울이지 않는다(픽셀 폰트는 기울이면 뭉갠다). */
+#desktop .op-assist .tx em {
+  font-style: normal; background: var(--xp-balloon-mark-bg);
+  padding: 0 5px; box-shadow: 0 2px 0 var(--xp-balloon-mark-line);
 }
+
 /* ★버튼은 말풍선 "안" 아래쪽 — 캐릭터 옆이 아니다. */
 #desktop .op-assist .balloon .bset {
   display: flex; gap: 11px; justify-content: flex-end; align-items: center;
@@ -2815,26 +2850,27 @@ body {
 #desktop .op-assist .balloon .bset .settings-btn { font-size: 21px; padding: 6px 19px; }
 
 /* 꼬리 — 투명 삼각형 2겹(바깥=테두리색, 안=바탕색). 안쪽을 테두리 두께(2px)만큼
-   위로 올려 겹치면 테두리 선이 꼬리까지 이어져 보인다. */
+   위로 올려 겹치면 테두리 선이 꼬리까지 이어져 보인다.
+   ★오른쪽 기준이다 — 강아지가 오른쪽에 있으므로 꼬리도 그쪽으로 떨어져야 한다.
+   right:112는 아래 .char(width 196, margin-right 39)의 가운데와 맞춘 값이다. */
 #desktop .op-assist .balloon::after {
-  content: ''; position: absolute; left: 88px; bottom: -21px;
+  content: ''; position: absolute; right: 112px; bottom: -21px;
   border: 21px solid transparent; border-top-color: var(--xp-balloon-line); border-bottom: 0;
 }
 #desktop .op-assist .balloon::before {
-  content: ''; position: absolute; left: 90px; bottom: -19px; z-index: 1;
+  content: ''; position: absolute; right: 114px; bottom: -19px; z-index: 1;
   border: 19px solid transparent; border-top-color: var(--xp-balloon-bg); border-bottom: 0;
 }
 
-/* 캐릭터 — 러버(검색 도우미)와 같은 그림. 꼬리(left:88)가 이 위에 떨어지도록
-   margin-left를 잡았다. */
-#desktop .op-assist .char { position: relative; margin: 21px 0 0 27px; width: 227px; height: 227px; }
+/* 캐릭터 — 러버(검색 도우미)와 같은 그림. ★margin-left:auto로 오른쪽에 붙인다. */
+#desktop .op-assist .char { position: relative; margin: 19px 39px 0 auto; width: 196px; height: 196px; }
 #desktop .op-assist .char img {
   width: 100%; height: 100%; object-fit: contain; image-rendering: pixelated; display: block;
 }
 #desktop .op-assist .char img.broken { display: none; }
-/* 노란 전구 — "팁 있음" 표시. .tip이 붙었을 때만 보이고 깜빡인다. */
+/* 노란 전구 — "팁 있음" 표시. ★강아지가 오른쪽으로 갔으므로 전구는 왼쪽 위다. */
 #desktop .op-assist .bulb {
-  position: absolute; right: -12px; top: -15px; font-size: 50px; color: #ffe14d; display: none;
+  position: absolute; left: -11px; top: -11px; font-size: 50px; color: #ffe14d; display: none;
 }
 #desktop .op-assist.tip .bulb { display: block; animation: opBulb 1.4s steps(1) infinite; }
 @keyframes opBulb { 50% { opacity: 0.35; } }

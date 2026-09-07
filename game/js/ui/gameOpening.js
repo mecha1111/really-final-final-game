@@ -21,18 +21,26 @@ import { config } from '../config.js';
 import { hasSeenIntro, markIntroSeen } from '../core/save.js';
 import { playSfx, SFX } from '../systems/sound.js';
 
-// ★튜토리얼 대본 — 조작법만이다. ★방해꾼 정보(bait는 안 죽는다, popup은 X만
-// 눌러야 한다 등)는 일부러 안 준다: 직접 부딪혀 알아내는 게 이 게임의 재미라,
-// 인게임 팁에서 그 둘을 걷어낸 것과 같은 판단이다(ui/rover.js 상단 주석 참고).
 // 렉 걸린 창의 제목 — 굳는 순간 여기에 config.opening.deadSuffix가 붙는다.
 // ★index.html의 초기값과 같아야 한다(첫 프레임에 잠깐 다른 제목이 보이면 안 된다).
 const HANG_TITLE = '진짜_최종_final_수정_진짜최종(5).exe';
 
+// ★튜토리얼 대본 — 조작법만이다. ★방해꾼 정보(bait는 안 죽는다, popup은 X만
+// 눌러야 한다 등)는 일부러 안 준다: 직접 부딪혀 알아내는 게 이 게임의 재미라,
+// 인게임 팁에서 그 둘을 걷어낸 것과 같은 판단이다(ui/rover.js 상단 주석 참고).
+//
+// ★쪽 하나 = { head, fig?, tx }.
+//   · head — 제목 한 덩어리
+//   · fig  — 그림(SVG 문자열)을 돌려주는 함수. 없으면 그림 상자 자체가 안 그려진다
+//            (style.css의 .op-assist .fig:empty).
+//   · tx   — 본문. ★핵심 단어는 <em>으로 감싼다(노란 형광). 기울임이 아니다.
+// ★대본은 전부 이 파일 안의 고정 문자열이라 사용자 입력이 섞일 자리가 없다
+//   (renderPage가 innerHTML로 넣는 근거).
 const PAGES = [
-  { head: '안녕하세요?', lines: ['저는 검색 도우미예요.', '이 게임을 처음 하시는 분께 잠깐 설명해 드릴게요.'] },
-  { head: '목표', lines: ['화면 아래 진행바가 업데이트 상태예요.', '100%까지 채우면 그 구간을 넘어갑니다.'] },
-  { head: '조작', lines: ['방해꾼이 화면을 돌아다녀요.', '마우스로 클릭하면 쫓아낼 수 있어요.'] },
-  { head: '제한시간', lines: ['시간 안에 못 채우면 실패해요.', '그럼 시작해 볼까요?'] },
+  { head: '안녕하세요?', tx: '저는 <em>검색 도우미</em>예요. 이 게임을 처음 하시는 분께 잠깐 설명해 드릴게요.' },
+  { head: '목표', tx: '화면 아래 <em>진행바</em>가 업데이트 상태예요. 100%까지 채우면 그 구간을 넘어갑니다.' },
+  { head: '조작', tx: '방해꾼이 화면을 돌아다녀요. 마우스로 <em>클릭</em>하면 쫓아낼 수 있어요.' },
+  { head: '제한시간', tx: '<em>시간</em> 안에 못 채우면 실패해요. 그럼 시작해 볼까요?' },
 ];
 
 let layer = null;
@@ -41,7 +49,8 @@ let hangTitleEl = null;
 let loadEl = null;
 let assistEl = null;
 let headEl = null;
-let listEl = null;
+let figEl = null;
+let textEl = null;
 let pageEl = null;
 let backBtn = null;
 let nextBtn = null;
@@ -82,8 +91,9 @@ export function isOpeningFrozen() {
 function renderPage() {
   const p = PAGES[pageIndex];
   headEl.textContent = p.head;
-  // 대본은 이 파일 안의 고정 문자열이라 사용자 입력이 섞일 자리가 없다.
-  listEl.innerHTML = p.lines.map((line) => `<li>${line}</li>`).join('');
+  // 그림이 없는 쪽은 빈 문자열 — CSS의 :empty가 상자를 통째로 숨긴다.
+  figEl.innerHTML = p.fig ? p.fig() : '';
+  textEl.innerHTML = p.tx;
   pageEl.textContent = `${pageIndex + 1} / ${PAGES.length}`;
   // ★1쪽에선 [뒤로]가 비활성 — 갈 데가 없다(#desktop .settings-btn:disabled가 그린다).
   backBtn.disabled = pageIndex === 0;
@@ -152,7 +162,8 @@ export function initGameOpening() {
   loadEl = document.getElementById('op-load');
   assistEl = document.getElementById('op-assist');
   headEl = document.getElementById('op-assist-head');
-  listEl = document.getElementById('op-assist-list');
+  figEl = document.getElementById('op-assist-fig');
+  textEl = document.getElementById('op-assist-text');
   pageEl = document.getElementById('op-assist-page');
   backBtn = document.getElementById('op-assist-back');
   nextBtn = document.getElementById('op-assist-next');

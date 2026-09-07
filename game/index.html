@@ -952,7 +952,15 @@
         <div class="op-assist" id="op-assist">
           <div class="balloon">
             <div class="hd" id="op-assist-head"></div>
-            <ul id="op-assist-list"></ul>
+            <!-- ★그림 자리 — 글만으로는 "진행바"가 뭔지 모른다. 설명하는 대상을
+                 그려서 같이 보여준다. 내용은 ui/gameOpening.js의 PAGES가 채우고,
+                 그림이 없는 쪽에서는 이 상자 자체가 안 보인다(.op-assist .fig:empty). -->
+            <div class="fig" id="op-assist-fig"></div>
+            <!-- 본문 — ★16px(문서 좌표) 기준을 이 게임의 1920 좌표계로 옮겨 28px다.
+                 DGM 한글이 작은 크기에서 자소가 뭉개지는 문제(도감에서 "처치"가
+                 "저지"로 읽힌 전례) 때문에 아래로 더 못 내린다. 핵심 단어는 <em>으로
+                 감싸 노란 형광이 깔린다. -->
+            <div class="tx" id="op-assist-text"></div>
             <div class="bset">
               <span class="pg" id="op-assist-page"></span>
               <button type="button" class="settings-btn" id="op-assist-back">뒤로</button>
