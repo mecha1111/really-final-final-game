@@ -70,29 +70,31 @@ async function loadBuffer(name) {
   }
 }
 
-/** 두 곡을 병렬로 미리 읽어둔다. 실패해도(파일 없음 등) 그 곡만 조용히 빠진다 —
- * systems/sound.js의 preloadAll()과 같은 방침. */
-async function preloadAll() {
-  const results = await Promise.all(
-    Object.entries(TRACKS).map(async ([key, file]) => ({ key, buf: await loadBuffer(file) })),
-  );
-  const missing = [];
-  for (const { key, buf } of results) {
-    if (buf) buffers[key] = buf;
-    else missing.push(key);
-  }
-  if (missing.length) {
-    console.warn(`[bgm] 못 읽어서 이 곡은 안 납니다: ${missing.join(', ')}`);
-  }
+/** 한 트랙만 읽어 buffers에 채운다. 실패해도(파일 없음 등) 그 곡만 조용히 빠진다 —
+ * systems/sound.js의 preloadAll()과 같은 방침. 이미 있으면 다시 안 받는다. */
+async function loadTrack(key) {
+  if (buffers[key]) return;
+  const buf = await loadBuffer(TRACKS[key]);
+  if (buf) buffers[key] = buf;
+  else console.warn(`[bgm] 못 읽어서 이 곡은 안 납니다: ${key}`);
 }
 
 /**
  * 최초 1회(main.js, initSound() 다음에 부른다). sound.js가 만들어둔 AudioContext를
  * 그대로 받아 쓰고, 배경음 전용 게인 체인만 새로 세운다.
  *
+ * ★ 2026-09-08: 부팅 시엔 title 곡만 받는다. main(플레이용, 1.24MB)은 타이틀에선
+ *   안 쓰는데도 예전엔 여기서 같이 fetch를 걸어 폰트·JS·balance.csv 같은 같은
+ *   출처 자원과 대역폭을 다퉜다(js/balance/loader.js의 preload 주석과 같은
+ *   종류의 경합 — 실측: 느린 회선에서 시작 시점 총 다운로드가 그만큼 늘어
+ *   타이틀 도달이 늦어졌다). main.js가 최초 applyLoadedData() 직후
+ *   loadMainTrack()을 따로 불러 받는다 — 그 시점이면 타이틀에 실제로 필요한
+ *   자원은 이미 다 요청이 나간 뒤라 더 안 다툰다.
+ *
  * ★ await하지 않는다 — 프리로드가 끝나기를 기다리느라 게임 시작이 늦어질 이유가
  *   없다(sound.js의 initSound()와 같은 이유). 아직 안 들어온 곡은 startTrack이
- *   그냥 건너뛴다.
+ *   그냥 건너뛴다(매 프레임 재시도하므로 나중에 도착하면 다음 프레임부터 자동
+ *   재생된다 — updateBgm 주석 참고).
  */
 export function initBgm() {
   ctx = getAudioContext();
@@ -102,7 +104,7 @@ export function initBgm() {
   bgmMasterGain.gain.value = bgmVolume();
   bgmMasterGain.connect(ctx.destination);
 
-  preloadAll();
+  loadTrack('title');
 
   if (config.debug.enabled) {
     window.__bgm = {
@@ -112,6 +114,17 @@ export function initBgm() {
       contextState: () => ctx.state,
     };
   }
+}
+
+/**
+ * main.js가 최초 applyLoadedData() 직후 한 번만 부른다(initBgm 주석 참고).
+ * ★ await 없이 fire-and-forget — 이 시점에도 여전히 게임 시작을 기다리게 할
+ *   이유가 없다. 이미 받아뒀으면(리로드 등으로 두 번 불려도) loadTrack이
+ *   조용히 스킵한다.
+ */
+export function loadMainTrack() {
+  if (!ctx) return;
+  loadTrack('main');
 }
 
 /** 새 트랙을 무음(0)에서 시작해 fadeInSec 동안 끌어올린다. 루프 재생. */

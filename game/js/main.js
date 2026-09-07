@@ -24,7 +24,7 @@ import { initHazards, triggerHazard, hazardIds } from './systems/hazard.js';
 // 방해들을 전부 등록표에 올린다. 새 방해가 늘어도 여기는 안 바뀐다.
 import './ui/hazards/index.js';
 import { initSound } from './systems/sound.js';
-import { initBgm, updateBgm } from './systems/bgm.js';
+import { initBgm, updateBgm, loadMainTrack } from './systems/bgm.js';
 import { render } from './ui/render.js';
 import { initReloadButton } from './ui/screens.js';
 import { initCanvasFit, fitCanvasToViewport } from './ui/canvasFit.js';
@@ -268,6 +268,15 @@ async function main() {
   //   여기 한 번만 건다 — 리로드 버튼(initReloadButton 아래)은 reloadGameData()로
   //   별도 경로를 타므로 이 백그라운드 동기화와 안 겹친다.
   startBackgroundSheetSync(() => applyLoadedData());
+
+  // ★ bgm_main(1.24MB, 플레이 화면 전용 곡)도 같은 이유로 여기로 미뤘다 —
+  //   타이틀엔 안 쓰는데 initBgm()에서 곧장 받으면 그 fetch가 폰트·JS·
+  //   balance.csv 같은 자원과 대역폭을 다툰다(js/systems/bgm.js의 initBgm
+  //   주석 참고). await 없음 — 이 시점에도 게임 시작을 안 기다리게 한다.
+  //   늦게 도착해도 무해하다: updateBgm이 매 프레임 재시도하므로 'playing'에
+  //   막 진입했는데 아직 못 받았으면 그냥 무음으로 시작했다가 도착하는
+  //   프레임부터 자동으로 페이드인한다(끊기거나 예외가 나지 않는다).
+  loadMainTrack();
 }
 
 main();
