@@ -102,6 +102,14 @@ body{font-family:var(--xp-font);background:#0d0d0d;color:#c8c8c8;overflow:auto}
 .demo.stack{display:block}
 .demo.light{background:var(--xp-win-face)}
 code{background:#242424;padding:1px 5px;color:#9fd0ff;font-size:12px}
+/* 의미별 색 대응표(섹션 7) 전용 — 다른 섹션의 .demo와 달리 표라서 따로 둔다. */
+.ctable{width:100%;border-collapse:collapse;font-size:12.5px}
+.ctable th{text-align:left;font-weight:400;font-size:11px;color:#8a8a8a;text-transform:uppercase;letter-spacing:.04em;padding:6px 10px;border-bottom:1px solid #303030}
+.ctable td{padding:8px 10px;border-bottom:1px solid #242424;vertical-align:middle}
+.ctable tr:last-child td{border-bottom:none}
+.ctable .sw{display:inline-block;width:13px;height:13px;border-radius:2px;margin-right:7px;vertical-align:-2px;border:1px solid rgba(255,255,255,.18)}
+.ctable .note{color:#8a8a8a;font-size:11.5px}
+.ctable .warn{color:#e0413a}
 .ctl{display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap}
 .ctl>button{font-family:inherit;font-size:12px;padding:6px 14px;background:#2b2b2b;color:#ddd;border:1px solid #444;cursor:pointer}
 .ctl>button:hover{background:#383838}
@@ -766,9 +774,78 @@ code{background:#242424;padding:1px 5px;color:#9fd0ff;font-size:12px}
 </section>
 
 
+<!-- ════════ 의미별 색 대응표 ════════ -->
+<section class="sec">
+  <h2>7 · 의미별 색 대응표 — 캔버스·HTML 공통 기준</h2>
+  <p class="desc">
+    2026-09-07 신설. <b>같은 의미의 색이 캔버스와 HTML에 따로 적혀 있다가 갈라진 적이 실제로
+    있었다</b>(A·B 이펙트 커밋이 캔버스 쪽만 이 문서 팔레트로 옮기고 HTML 쪽을 놓쳐, "완료!"
+    라벨과 캔버스 "+N" 플로트가 한 화면에서 다른 초록으로 떴다) — 그 재발을 막으려고 이
+    표를 기준으로 못박는다. 새로 색을 넣거나 기존 색을 손볼 땐 <b>반드시 여기부터</b>.
+  </p>
+  <div class="demo stack">
+    <table class="ctable">
+      <tr><th>의미</th><th>색</th><th>쓰는 곳</th></tr>
+      <tr>
+        <td>좋은 일(획득·완료)</td>
+        <td><span class="sw" style="background:#4ea832"></span><code>#4ea832</code></td>
+        <td>캔버스 플로트 "+N"(<code>--color-float-plus</code>) · HTML "완료!" 라벨</td>
+      </tr>
+      <tr>
+        <td>나쁜 일(피해·손실)</td>
+        <td><span class="sw" style="background:#d9382a"></span><code>#d9382a</code></td>
+        <td>캔버스 플로트 "-N%"(<code>--color-float-minus</code>) · HTML 피해 캡션 ·
+          방해꾼 수명바 danger(<code>--color-life-bar-danger</code>)</td>
+      </tr>
+      <tr>
+        <td rowspan="4">콤보 4단<br><span class="note">★색만 쓰지 말 것 — 아래 참고</span></td>
+        <td><span class="sw" style="background:#fdd835"></span><code>#fdd835</code></td>
+        <td>x2~4 (size 26px)</td>
+      </tr>
+      <tr>
+        <td><span class="sw" style="background:#ff8a3d"></span><code>#ff8a3d</code></td>
+        <td>x5~9 (size 32px)</td>
+      </tr>
+      <tr>
+        <td><span class="sw" style="background:#e64a19"></span><code>#e64a19</code></td>
+        <td>x10~19 (size 38px)</td>
+      </tr>
+      <tr>
+        <td><span class="sw" style="background:#c9330a"></span><code>#c9330a</code></td>
+        <td>x20+ (size 46px)</td>
+      </tr>
+      <tr>
+        <td>피격 비네트(순간)</td>
+        <td><span class="sw" style="background:#c9330a"></span><code>#c9330a</code></td>
+        <td>화면 가장자리 radial-gradient, 실효 최대 알파 0.56</td>
+      </tr>
+      <tr>
+        <td>긴박 경고(지속) <span class="warn">— 미정리</span></td>
+        <td><span class="sw" style="background:#dc1414"></span><code>rgba(220,20,20,.7)</code></td>
+        <td>실효 최대 알파 0.60(피격 비네트보다 세게 — 위계). ★이 문서 팔레트로
+          아직 안 옮겼다 — 손대려면 별도 판단 필요, 위계(0.60 &gt; 0.56)만 지킬 것</td>
+      </tr>
+      <tr>
+        <td>잉크색 <span class="warn">— 절대 바꾸지 말 것</span></td>
+        <td><span class="sw" style="background:#12161f"></span><code>#12161f</code></td>
+        <td>손그림 펜선(방해꾼 외곽선 톤). 처치 파편 기본색 · 클릭 리플 · 수명바 배경</td>
+      </tr>
+      <tr>
+        <td rowspan="2">진행바</td>
+        <td><span class="sw" style="background:#4bbb1a"></span><code>#a4f07a→#5fd02c</code></td>
+        <td>세그먼트(<code>--xp-bar-seg</code>) — 세로 그라데이션, 문서 값 그대로 채택</td>
+      </tr>
+      <tr>
+        <td><span class="sw" style="background:#d7d3c4;border-color:#9a9584"></span><code>#d7d3c4</code> / <code>#9a9584</code></td>
+        <td>트랙 배경 / 테두리(<code>--xp-bar-track-bg</code> / <code>-border</code>)</td>
+      </tr>
+    </table>
+  </div>
+</section>
+
 <!-- ════════ 규칙 ════════ -->
 <section class="sec">
-  <h2>7 · 하지 말 것</h2>
+  <h2>8 · 하지 말 것</h2>
   <p class="desc">
     <b>1.</b> 움직이는 내용 위 전체화면 <code>filter</code> 금지. 랜딩에서도 SVG 색분리를 걸었다가 렉으로 제거한 이력이 있다.
     CRT 효과는 <b>형제 오버레이 + pointer-events:none + 정적 그라데이션</b>으로만.<br>
@@ -778,7 +855,13 @@ code{background:#242424;padding:1px 5px;color:#9fd0ff;font-size:12px}
     <b>5.</b> DGM 한글은 11px 미만에서 자소가 뭉갠다. 도감에서 "처치"가 "저지"로 읽힌 전례가 있다. 읽을 문장은 15px.<br>
     <b>6.</b> 다수 개체 이동에 <code>left/top</code> 금지. <code>transform:translate()</code>로.<br>
     <b>7.</b> 폼 요소에 <code>font-family:inherit</code> 빠뜨리지 말 것. 브라우저 기본 폰트가 튀어나온다.<br>
-    <b>8.</b> 헤드리스 브라우저 fps는 GPU가 없어 CPU 래스터라 <b>의미 없는 숫자</b>다. 성능 판단은 실제 GPU에서만.
+    <b>8.</b> 헤드리스 브라우저 fps는 GPU가 없어 CPU 래스터라 <b>의미 없는 숫자</b>다. 성능 판단은 실제 GPU에서만.<br>
+    <b>9.</b> 같은 의미의 색을 캔버스와 HTML에 따로 적지 말 것. 한쪽만 바꾸면 한 화면에
+    두 벌이 뜬다 — <b>실제로 발생했다</b>(위 섹션 7 도입부 참고). 항상 섹션 7 표를 먼저 보고,
+    표에 없는 새 의미면 표부터 채운 뒤에 코드를 고친다.<br>
+    <b>10.</b> 배경이 매번 바뀌는 게임이라(하늘·잔디·창·매 판 다른 사진) <b>모든 배경에
+    안전한 색 조합은 없다</b>. 색으로 정보를 전달할 땐 크기 같은 배경 독립 채널을 반드시
+    함께 쓸 것 — 색만 바꾸고 끝내지 말 것(콤보 tier 4단이 실제 사례, 섹션 7 참고).
   </p>
 </section>
 
