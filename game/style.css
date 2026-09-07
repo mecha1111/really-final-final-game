@@ -135,6 +135,19 @@
   --xp-font: 'DGM', 'Galmuri11', monospace;
   /* 문서 값: "DGM","DungGeunMo",monospace — 폴백 이름만 다르고(Galmuri11이 이
      프로젝트가 실제로 쓰는 폴백), DGM이 우선인 건 같다. */
+
+  /* ── 버튼(대화상자) — .settings-btn 등이 쓴다. ★위 다른 토큰들과 달리 이
+     값은 "게임 현재 값 유지"가 아니라 문서 값을 그대로 채택했다 — 실물
+     Windows XP 대화상자 버튼을 그대로 옮긴 것이라 정정 그 자체가 목적이다
+     (실측 결과 게임에 초록 버튼은 없었지만, 대신 다른 문제를 찾았다: hover가
+     filter:brightness()를 썼고(이 프로젝트 필터 금지 원칙 위반), "기본"
+     버튼이 실물 XP엔 없는 노란 배경이었다 — 자세한 내용은 커밋 메시지 참고). */
+  --xp-btn-face: linear-gradient(180deg, #fff 0%, #f4f2eb 46%, #ecebe5 50%, #e1dfd2 100%);
+  --xp-btn-hover: linear-gradient(180deg, #fff 0%, #fff8e0 46%, #fff2c9 50%, #ffd98f 100%);
+  --xp-btn-down: linear-gradient(180deg, #cdcdb8 0%, #e3e3d4 8%, #e6e6d8 94%, #dcdcc8 100%);
+  --xp-btn-border: #003c74;
+  --xp-btn-ring: #a5c8ff;
+  --xp-btn-disabled: #9a9a90;
 }
 
 /* 픽셀 폰트. base64 인라인이 아니라 파일 참조 — 시안(mockup7.html)은 2MB짜리
@@ -1129,13 +1142,28 @@ body {
 #desktop .settings-footer {
   display: flex; gap: 12px; padding: 16px 22px; border-top: 2px solid #c9c5b0; justify-content: flex-end;
 }
+/* ★버튼 정정(docs/xp-design-system.html의 .xp-btn 규칙) — 실물 Windows XP
+   대화상자 버튼. 실측 결과 이 프로젝트에 초록 버튼 자체는 없었지만(초록은
+   .start, 작업표시줄 시작 버튼 하나뿐), 대신 진짜 XP엔 없는 문제 둘을
+   찾았다: (1) hover가 filter:brightness()를 썼다 — 이 프로젝트가 움직이는
+   내용 위 filter를 금지하는 바로 그 이유(매 프레임 재합성)와는 다른 문제지만
+   (이 버튼은 안 움직인다), 애초에 필터 없이도 되는 걸 필터로 했다는 점에서
+   같이 정리한다. (2) "기본(primary)" 버튼이 노란 배경이었다 — 실물 XP
+   대화상자의 기본 버튼은 노란 배경이 아니라 흰 배경 + 가는 파란 테두리(포커스
+   링)로만 표시된다(아래 .settings-btn-primary). 노란 3D 버튼은 .xp-btn3d
+   (타이틀 화면 "새 게임" 등 큰 버튼) 전용이라 여기와는 다른 계열이다.
+   ★눌림은 그라데이션을 다른 그라데이션으로 통째로 바꾼다 — translate로 위치를
+   옮기거나 filter로 밝기만 바꾸지 않는다(색·위치를 안 옮기는 게 실물 방식). */
 #desktop .settings-btn {
   font-family: var(--xp-font); font-size: 18px; padding: 9px 20px;
-  background: linear-gradient(180deg, #fff, #cfcbb2); border: 2px solid #111; cursor: pointer;
+  background: var(--xp-btn-face); border: 1px solid var(--xp-btn-border); border-radius: 3px; cursor: pointer;
 }
-#desktop .settings-btn:hover { filter: brightness(1.05); }
-#desktop .settings-btn:active { transform: translate(1px, 1px); }
-#desktop .settings-btn-primary { background: linear-gradient(180deg, #ffd966, #ffcf3f); }
+#desktop .settings-btn:hover:not(:disabled) { background: var(--xp-btn-hover); }
+#desktop .settings-btn:active:not(:disabled) { background: var(--xp-btn-down); }
+#desktop .settings-btn:disabled { color: var(--xp-btn-disabled); cursor: default; }
+/* "기본" 버튼 — 배경은 나머지와 완전히 같은 흰 그라데이션이고, 가는 파란
+   링(inset box-shadow)만 얹어 "이게 기본 선택"임을 표시한다(실물 XP 방식). */
+#desktop .settings-btn-primary { box-shadow: inset 0 0 0 1px var(--xp-btn-ring); }
 
 /* ===== 그림 갤러리(.layer-gallery) =====
    .layer-settings와 완전히 같은 뼈대(오버레이 flex 가운데 정렬, .win을 이
@@ -1263,6 +1291,12 @@ body {
    JS에 있어 더 명확하고 확실하다). */
 #desktop .segset { display: flex; gap: 0; border: 2px solid #111; }
 #desktop .segset-btn {
+  /* ★font-family:inherit — 이 클래스는 <label>(CRT 강도, 자연히 상속됨)과
+     실제 <button>(갤러리 [그림]/[도감] 탭) 둘 다에 쓰인다. <button>은
+     브라우저 기본 UA 스타일이 상속을 끊어서, 명시적으로 안 주면 갤러리 탭
+     글자만 Arial로 튀어나온다(실측으로 확인 — docs/xp-design-system.html
+     "하지 말 것" 7번이 경고하는 바로 그 증상). */
+  font-family: var(--xp-font);
   font-size: 18px; padding: 6px 18px; cursor: pointer;
   background: #fff; color: #333;
   border-right: 2px solid #111;
