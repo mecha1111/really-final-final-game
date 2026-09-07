@@ -3,7 +3,12 @@
 // 왜 config.js가 아니라 여기인가 — config.js는 balance/rules.js를 재수출하는데,
 // rules.js가 이 상수를 쓰려면 config.js를 import해야 해서 순환참조가 된다.
 // 그래서 둘 다 참조할 수 있는 잎(leaf) 모듈로 뺐다.
-// 바깥에서는 여전히 `config.progression`으로 접근한다(config.js가 이걸 그대로 물고 있다).
+// ★ 2026-09-08: "바깥에서는 config.progression으로 접근한다"던 예전 설명은 틀렸다 —
+//   config.js가 한동안 PROGRESSION을 재노출(`progression: PROGRESSION`)하고
+//   있었지만 실제로 그 경로(config.progression)를 읽는 코드는 어디에도 없었다.
+//   진짜 소비처(balance/rules.js)는 처음부터 이 파일에서 PROGRESSION·INFINITE·
+//   FINITE_COUNT를 직접 import해 쓰고 있었다 — 그래서 죽은 재노출을 걷어냈다.
+//   바깥에서 이 상수들이 필요하면 config.js를 거치지 말고 여기서 바로 import할 것.
 
 /**
  * ★ 구간 인덱스는 첫 구간이 n = 0 이다. 코드·주석·로그 전부 이 규칙으로 통일.

@@ -1,7 +1,6 @@
 // 이 파일 역할: 엔진 상수(캔버스·HUD·연출 수치)를 담고, balance/ 의 시트 데이터 API를 한 곳에서 다시 내보낸다.
 // 다른 파일은 숫자를 직접 들고 있지 않고 전부 여기서 import한다.
 
-import { PROGRESSION } from './balance/progression.js';
 
 // 엔진 상수. CSV/시트와 무관하게 항상 고정인 값들이다.
 // 여기 숫자를 바꾸면 시트 연결 여부와 상관없이 동작이 바뀐다.
@@ -70,11 +69,6 @@ export const config = {
     hotspotX: 7,
     hotspotY: 1,
   },
-
-  // 구간(스테이지) 자동 상승 공식의 상수. 실제 정의와 상세 주석은
-  // balance/progression.js에 있다(순환참조를 피하려고 잎 모듈로 뺐다).
-  // 바깥에서는 지금처럼 config.progression 으로 그대로 읽으면 된다.
-  progression: PROGRESSION,
 
   // ── 구간 구조(유한 5구간 + 무한모드) ──────────────────────────────────────
   // ★ 이름이 셋이나 비슷해서 헷갈리기 쉽다. 서로 완전히 다른 것이다:
