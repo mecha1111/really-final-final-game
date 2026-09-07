@@ -219,9 +219,19 @@
    경로들은 전부 './assets/...'가 맞다 — 그건 문서(index.html) 기준으로 풀리고
    index.html은 번들 후에도 dist/ 바로 밑에 그대로 있기 때문이다. 여기 CSS만
    예외라 헷갈리기 쉽다. */
+/* ★ 2026-09-08: woff → woff2로 교체(1.65MB → 0.89MB, -46%). fontTools로 왕복
+   검증했다 — 글리프 17,651개·cmap(문자 매핑) 17,074개·hmtx(글자폭)까지
+   원본과 완전히 동일, 무손실 재포맷일 뿐이다(브로틀리 압축 알고리즘만 다름).
+   서브셋(실제 쓰는 글자만 추려 더 줄이는 것)은 안 했다 — 이 폰트는 구글
+   시트에서 오는 동적 텍스트(방해꾼 name_kr, 시트 note 등)에도 쓰이는데, 어떤
+   글자가 나올지 빌드 시점엔 알 수 없어서 서브셋하면 시트에 새 글자가 추가될
+   때마다 그 글자만 쏙 빠져 네모(tofu)로 보일 위험이 있다. woff2 폴백은 안
+   둔다 — 이 프로젝트가 이미 겨냥한 게 최신 Chromium/Safari뿐이고
+   (systems/sound.js 주석 등), woff2는 그 두 브라우저 모두 오래전부터 기본
+   지원이라 폴백이 실전에서 쓰일 일이 없다. */
 @font-face {
   font-family: 'DGM';
-  src: url('../assets/enemies/DungGeunMo.woff') format('woff');
+  src: url('../assets/enemies/DungGeunMo.woff2') format('woff2');
   font-display: swap;
 }
 
