@@ -4,7 +4,6 @@
 
 import { config, getScaleFactor } from '../config.js';
 import { Enemy } from './Enemy.js';
-import { showTip } from '../ui/rover.js';
 
 export class Spawner {
   constructor() {
@@ -56,17 +55,12 @@ export class Spawner {
   spawnOne(spec, world) {
     const { rules, playArea, enemies, pointer } = world;
     const pos = findSpawnPos(spec, enemies, playArea, rules);
-    const enemy = new Enemy(spec, { x: pos.x, y: pos.y, rules, playArea, pointer });
-
-    // ★ 팁 2·3: bait/popup 첫 등장(요구사항 — "의도적으로 3개만", 나머지는 직접
-    //   당하면서 배워야 한다). 스포너가 실제로 뽑아 화면에 낸 순간에만 본다 —
-    //   디버그 소환(__game.spawn)은 여길 안 거치므로 테스트가 튜토리얼 진행을
-    //   조용히 소모하지 않는다. showTip() 자체가 "평생 1회"를 보장하므로 매번
-    //   조건 없이 불러도 실제로는 정말 처음 한 번만 뜬다.
-    if (spec.id === 'bait') showTip('bait_first', '쟤는 눌러도 안 죽어요. 무시하세요!');
-    else if (spec.id === 'popup') showTip('popup_first', '팝업은 X 버튼만 눌러야 해요!');
-
-    return enemy;
+    // ★ 2026-09-07: 여기 있던 bait/popup "첫 등장 팁"(showTip) 두 줄을 걷어냈다.
+    //   방해꾼이 날뛰는 와중에 화면 구석에서 뜨는 안내는 아무도 안 읽어서 튜토리얼로
+    //   기능하지 못했다. 조작 설명은 이제 게임 시작 전 인트로의 도우미 튜토리얼
+    //   (ui/intro.js)이 통째로 맡는다 — 그리고 bait/popup은 ★일부러 안 알려준다.
+    //   직접 눌러보고 알아내는 게 이 게임의 재미다(인트로 대본에도 없다).
+    return new Enemy(spec, { x: pos.x, y: pos.y, rules, playArea, pointer });
   }
 }
 

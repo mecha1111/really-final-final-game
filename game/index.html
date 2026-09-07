@@ -553,7 +553,12 @@
            — 요구사항 그대로). XP 검색 도우미(Search Companion) 패러디: 좌측
            사이드바가 슬라이드로 들어와 말풍선 한 줄을 보여주고 저절로 나간다.
            hazard와 달리 랜덤 스케줄러가 없다 — ui/rover.js의 showTip(id, text)이
-           특정 게임 이벤트(첫 게임 시작·bait/popup 첫 등장)에서 직접 부른다.
+           큐에 직접 넣는다.
+           ★ 2026-09-07: 그 showTip을 부르던 인게임 자리 셋(첫 게임 시작·bait/
+           popup 첫 등장)을 전부 걷어냈다 — 플레이 중에는 아무도 안 읽었다.
+           조작 설명은 인트로의 도우미 튜토리얼(.layer-intro, ui/intro.js)이
+           전담한다. 이 마크업은 남는다: __game.showTip 디버그 손잡이와 설정창의
+           [러버 힌트] 토글이 아직 이 패널을 가리킨다.
            ★ 컨테이너는 pointer-events:none, 패널(.rover-panel) 자신만 auto —
            다른 오버레이(.layer-hazard 등)와 같은 관례라 방해꾼 클릭이 안 샌다. -->
       <div class="layer-rover" id="layer-rover">

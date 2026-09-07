@@ -4,7 +4,7 @@ import { config, gameData, createRules, getUiScaleFactor } from '../config.js';
 import { state, emptyStats, setPhase } from './state.js';
 import { recordStageCleared, recordGameOver, recordRunCompleted, recordEnemyEncounter } from './save.js';
 import { openEnding } from '../ui/endingScreen.js';
-import { showTip, resetRoverQueue } from '../ui/rover.js';
+import { resetRoverQueue } from '../ui/rover.js';
 import { Spawner, buildPool } from '../enemies/spawner.js';
 import { splitEnemy, applyExpiryEffect, triggerSelfDestruct, updateFakeCursors } from '../enemies/effects.js';
 import { clearJuice } from '../systems/juice.js';
@@ -117,10 +117,13 @@ export function startGame(stageIndex = 0) {
   setPhase('playing');
   playSfx(SFX.START);
 
-  // ★ 팁 1: 첫 게임 시작. showTip() 자체가 seenTips로 "평생 1회"를 보장하므로
-  //   startGame()을 몇 번을 거치든(재도전·다음 구간·이어하기 전부 이 함수를 탄다)
-  //   실제로는 정말 처음 한 번만 뜬다 — 여기서 n===0 같은 조건을 따로 안 걸어도 된다.
-  showTip('first_game', '방해꾼을 클릭해서 쫓아내세요!');
+  // ★ 2026-09-07: 여기 있던 "첫 게임 시작" 팁(showTip('first_game', …))을 걷어냈다.
+  //   플레이 중 좌하단에서 뜨는 안내는 방해꾼이 날뛰는 와중이라 아무도 안 읽었다 —
+  //   튜토리얼로 기능하지 못했다는 뜻이다. 조작 설명은 이제 게임에 들어오기 전
+  //   인트로의 도우미 튜토리얼(ui/intro.js)이 전담한다.
+  //   위 resetRoverQueue()는 그대로 남는다 — ui/rover.js 모듈 자체는 살아 있고
+  //   (디버그 손잡이 __game.showTip으로 여전히 부를 수 있다), 판을 넘어 큐가
+  //   새는 걸 막는 이 리셋은 그 경로에서도 여전히 옳다.
 }
 
 /** 이 구간이 무한모드인가(유한 구간을 넘어선 인덱스인가). */
