@@ -24,7 +24,11 @@ const STORAGE_KEY = 'rff-save-v1';
 // v2(2026-09-06): 유한 5구간 + 무한모드 구조가 들어오면서 completed와
 // best.infiniteStage가 생겼다. 아래 migrate()가 v1 세이브를 그대로 물려받는다
 // (해금 그림·이어할 구간을 잃지 않는 게 이 마이그레이션의 존재 이유다).
-const SCHEMA_VERSION = 2;
+// v3(2026-09-07): 방해꾼 도감(ui/dexPanel.js) 신설로 unlockedEnemies/killCounts가
+// 생겼다. ★ 예전에 이 필드들을 세이브 스키마 없이 그냥 얹으려다 v1 전체를 날릴
+// 뻔한 적이 있어서, 반드시 migrate()를 거쳐 옛 필드(해금 그림·이어할 구간 등)를
+// 그대로 물려받는다 — 아래 v2→v3 분기 참고.
+const SCHEMA_VERSION = 3;
 
 /** 세이브의 초기값 = 스키마의 정의 그 자체. 손상·구버전·저장소 없음이 전부 여기로 온다. */
 function defaultSave() {
@@ -73,6 +77,17 @@ function defaultSave() {
     // [튜토리얼 다시 보기]가 이 배열을 비운다.
     seenTips: [],
 
+    // 방해꾼 도감(ui/dexPanel.js) 해금 목록(중복 없음, enemies 시트의 id).
+    // recordEnemyEncounter()가 killCounts를 올리다가 문턱값(config.dex.
+    // unlockThreshold, 기본 1)에 닿는 순간 여기 추가한다 — 한 번 해금되면
+    // (그림 갤러리와 같은 원칙으로) 다시 잠기지 않는다.
+    unlockedEnemies: [],
+
+    // 종류별 누적 횟수(id -> number) — 보통은 "처치 수"지만 bait는 "클릭당한
+    // 횟수", hourglass/fake_btn은 "발동 횟수", copier는 "자폭 횟수"다(위 config.
+    // dex 주석 참고). 도감 카드의 "처치 N회" 표시와 해금 판정이 같은 값을 본다.
+    killCounts: {},
+
     // ★ 자리만 잡아둔 필드 — 지금 아무도 읽지도 쓰지도 않는다. 공모전 뒤 상점이
     //   붙을 때 schemaVersion을 올리고 마이그레이션을 짜는 일 없이 그냥 채워 넣기만
     //   하면 되게 미리 넣어둔다(빈 값이라 있어도 아무 동작에 영향이 없다).
@@ -84,6 +99,16 @@ function defaultSave() {
 const num = (v, fallback) => (typeof v === 'number' && Number.isFinite(v) ? v : fallback);
 const bool = (v, fallback) => (typeof v === 'boolean' ? v : fallback);
 const vol = (v, fallback) => Math.max(0, Math.min(100, Math.round(num(v, fallback))));
+
+/** killCounts{}는 "id -> 음이 아닌 정수" 맵이어야 한다 — 손상된 값은 그 항목만 0으로 되돌린다. */
+function sanitizeKillCounts(raw) {
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return {};
+  const out = {};
+  for (const [id, v] of Object.entries(raw)) {
+    if (typeof id === 'string' && id) out[id] = Math.max(0, Math.floor(num(v, 0)));
+  }
+  return out;
+}
 
 /**
  * 옛 세대의 세이브를 현재 세대 모양으로 끌어올린다. 못 올리면 null(= 초기값 폴백).
@@ -104,6 +129,17 @@ function migrate(raw) {
       // 안전한 쪽(아직 완주 안 함)으로 둔다. 5구간을 다시 깨면 그때 true가 된다.
       completed: false,
       best: { ...(cur.best && typeof cur.best === 'object' ? cur.best : {}), infiniteStage: 0 },
+    };
+  }
+  // v2 → v3: 방해꾼 도감 신설. 옛 세이브엔 처치 이력이 없으니 안전한 쪽(전부
+  // 미해금)으로 둔다 — 이미 잡아본 방해꾼도 이 판부터 다시 세기 시작할 뿐,
+  // 해금 그림·이어할 구간 등 나머지 필드는 위에서 그대로 물려받은 채다.
+  if (cur.schemaVersion === 2) {
+    cur = {
+      ...cur,
+      schemaVersion: 3,
+      unlockedEnemies: [],
+      killCounts: {},
     };
   }
   return cur.schemaVersion === SCHEMA_VERSION ? cur : null;
@@ -156,6 +192,10 @@ function sanitize(raw) {
     seenTips: Array.isArray(raw.seenTips)
       ? [...new Set(raw.seenTips.filter((s) => typeof s === 'string'))]
       : d.seenTips,
+    unlockedEnemies: Array.isArray(raw.unlockedEnemies)
+      ? [...new Set(raw.unlockedEnemies.filter((s) => typeof s === 'string'))]
+      : d.unlockedEnemies,
+    killCounts: sanitizeKillCounts(raw.killCounts),
     coins: Math.max(0, Math.floor(num(raw.coins, d.coins))),
     upgrades:
       raw.upgrades && typeof raw.upgrades === 'object' && !Array.isArray(raw.upgrades) ? raw.upgrades : d.upgrades,

@@ -1109,6 +1109,26 @@ body {
 }
 #desktop .gallery-lock .xicon { width: 14px; height: 14px; }
 
+/* 방해꾼 도감 그리드 — 그림 그리드와 같은 뼈대(.gallery-grid의 스크롤·간격을
+   그대로 물려받는다)에 열만 3열로 넓힌다. 칸 안에 이름·설명·처치 수까지
+   들어가서 그림 칸(정사각형 썸네일만)보다 세로로 길다 — 정사각형 강제를
+   풀고 위→아래로 쌓는 flex-column을 쓴다. 잠금 칸만은 그림 갤러리의 잠금
+   칸과 같은 느낌을 유지하려고 정사각형+가운데 정렬을 그대로 둔다. */
+#desktop .gallery-dex-grid { grid-template-columns: repeat(3, 1fr); }
+#desktop .gallery-dex-grid .gallery-cell.unlocked { aspect-ratio: auto; display: flex; flex-direction: column; }
+#desktop .gallery-dex-grid .gallery-cell.locked { aspect-ratio: 1; flex-direction: column; gap: 4px; }
+#desktop .dex-thumb {
+  width: 100%; height: 96px; object-fit: contain; display: block;
+  background: #f4f1e4; image-rendering: pixelated;
+}
+#desktop .dex-name { font-size: 16px; font-weight: bold; color: #0a327a; padding: 6px 8px 0; }
+/* ★ 이 게임 픽셀 폰트(DungGeunMo)는 15px 밑으로 내려가면 자모 획이 뭉개져
+   비슷한 글자(예: ㅊ/ㅈ)가 헷갈린다(실측: "처치"가 "저지"로 읽혔다) — 그래서
+   .settings-hint(15px)보다 작게는 안 내린다. */
+#desktop .dex-desc { font-size: 15px; color: #444; line-height: 1.4; padding: 4px 8px; flex: 1; }
+#desktop .dex-count { font-size: 15px; color: #7a7550; padding: 0 8px 7px; text-align: right; }
+#desktop .dex-unknown-name { font-size: 15px; color: #a9a488; }
+
 /* 원본 크게 보기 — 이 창(.gallery-modal) 안에 얹은 절대배치 오버레이라
    그리드·헤더·푸터를 그대로 가린다(별도 창 아님). 배경 아무 데나 클릭해도
    닫힌다(구간 클리어 화면의 "배경 클릭=스킵/건너뛰기" 관례와 같은 결). */

@@ -22,6 +22,7 @@ import { getSave } from '../core/save.js';
 import { allPictureSrcs } from '../systems/filePicture.js';
 import { icon } from './icons.js';
 import { playSfx, SFX } from '../systems/sound.js';
+import { initDex, buildDexGrid } from './dexPanel.js';
 
 let layer = null;
 let gridEl = null;
@@ -136,6 +137,7 @@ function switchTab(tab) {
   closeViewer(); // [그림] 뷰어가 떠 있는 채로 탭을 넘기면 뒤에서 계속 열려 있게 된다
   for (const [name, btn] of Object.entries(tabButtons)) btn?.classList.toggle('active', name === tab);
   for (const [name, page] of Object.entries(pageEls)) page?.classList.toggle('show', name === tab);
+  if (tab === 'dex') buildDexGrid(); // 이 탭을 실제로 볼 때만 그린다(그림 그리드와 같은 지연 원칙)
 }
 
 /** 최초 1회(main.js). 버튼에 핸들러를 붙인다. */
@@ -148,6 +150,7 @@ export function initGallery() {
   totalEl = document.getElementById('gallery-total');
   viewerEl = document.getElementById('gallery-viewer');
   viewerImgEl = document.getElementById('gallery-viewer-img');
+  initDex();
 
   tabButtons = { pics: document.getElementById('gallery-tab-pics'), dex: document.getElementById('gallery-tab-dex') };
   pageEls = { pics: document.getElementById('gallery-page-pics'), dex: document.getElementById('gallery-page-dex') };

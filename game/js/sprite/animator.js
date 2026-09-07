@@ -148,6 +148,28 @@ export function getFrameKey(enemy, now) {
   return id;
 }
 
+/**
+ * 방해꾼 도감(ui/dexPanel.js)이 쓰는 "이 종류를 대표하는 정지 프레임 한 장".
+ * getFrameKey와 값 출처는 같지만(FRAME_SETS), 실행 중인 개체(hp/tier/revive
+ * 여부)가 없어도 항상 같은 키를 돌려준다 — 도감은 애니메이션이 아니라 정지
+ * 썸네일 한 장이면 충분하다(체력 3단계 중 1단계, 분열 3단계 중 대(大) 등
+ * "가장 기본적인 모습"을 고른다).
+ */
+export function dexFrameKey(id) {
+  if (id === 'basic') return FRAME_SETS.basic.alive(FRAME_SETS.basic.variants[0])[0];
+  if (id === 'zombie') return FRAME_SETS.zombie.normal;
+  if (id === 'ransom') return FRAME_SETS.ransom.stage[1][0];
+  if (id === 'clone') return FRAME_SETS.clone.tier[0];
+  if (id === 'bait') return `bait/bait_${FRAME_SETS.bait.kinds[0]}`;
+
+  const set = FRAME_SETS[id];
+  if (set?.sets) return Object.values(set.sets)[0][0];
+  if (set?.loop) return set.loop[0];
+  if (set?.single) return set.single;
+
+  return id; // 폴더 없는 종류(copier/hidden) — getFrameKey와 같은 폴백
+}
+
 /** 이 spec(enemies 시트 한 행)이 미리 읽어야 할 이미지 키 전부. 폴더 정의가 없으면 [id] 하나뿐이다. */
 export function enemyAssetKeys(spec) {
   const set = FRAME_SETS[spec.id];
