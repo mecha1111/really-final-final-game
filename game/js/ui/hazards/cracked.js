@@ -101,6 +101,8 @@ registerHazard({
     for (const b of inst.data.blocks) reflickerBlock(b);
     inst.data.flickerTimer = c.flickerIntervalSec;
     inst.data.dragging = false;
+    // 첫 프레임에 한 번은 반드시 그려야 한다(아래 update의 dirty 검사 참고).
+    inst.data.dirty = true;
 
     // ★ 위 파일 상단 주석 참고 — .hz-cracked 자체는 pointer-events:none이라
     //   이 요소로는 드래그를 못 받는다. window에 직접 걸어 "지금 눌려있나"만
@@ -125,7 +127,10 @@ registerHazard({
       const p = state.pointer;
       const before = blocks.length;
       inst.data.blocks = blocks.filter((b) => !containsPoint(b, p.x, p.y));
-      if (inst.data.blocks.length < before) playSfx(SFX.KILL_SOFT); // 문질러 지운 손맛
+      if (inst.data.blocks.length < before) {
+        playSfx(SFX.KILL_SOFT); // 문질러 지운 손맛
+        inst.data.dirty = true; // 블록이 하나 사라졌다 — 다시 그려야 한다
+      }
       if (inst.data.blocks.length === 0) {
         dismissHazard(inst, 'dismissed'); // 전부 지웠다 — 즉시 종료
         return;
@@ -138,7 +143,17 @@ registerHazard({
     if (inst.data.flickerTimer <= 0) {
       inst.data.flickerTimer = c.flickerIntervalSec;
       for (const b of inst.data.blocks) reflickerBlock(b);
+      inst.data.dirty = true; // 무늬가 바뀌었다 — 다시 그려야 한다
     }
+
+    // ★ 그림이 실제로 바뀐 프레임에만 다시 그린다. 무늬는 위처럼
+    //   flickerIntervalSec(0.15초)마다만 바뀌고 블록은 지울 때만 없어지는데,
+    //   예전엔 매 프레임 1920×1080 clearRect + 블록당 24개씩(총 70~120개)
+    //   fillRect를 다시 돌리고 있었다 — 10프레임 중 9프레임은 똑같은 그림을
+    //   다시 그리는 순수한 낭비였다(실측으로 잡았다). 눈에 보이는 결과는 완전히
+    //   같다: 바뀔 때는 그 프레임에 바로 다시 그린다.
+    if (!inst.data.dirty) return;
+    inst.data.dirty = false;
 
     const ctx = inst.data.ctx;
     ctx.clearRect(0, 0, config.canvas.width, config.canvas.height);
