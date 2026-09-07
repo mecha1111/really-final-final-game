@@ -2831,7 +2831,7 @@ body {
 #desktop .op-assist .tx {
   font-size: 28px; color: #000; line-height: 1.85;
   word-break: keep-all; /* ★어절 단위 줄바꿈 — 한글이 낱자로 안 잘린다 */
-  min-height: 102px;
+  min-height: 156px; /* ★3줄분 — 쪽마다 줄 수가 달라도 [다음] 버튼이 안 튄다 */
 }
 /* ★핵심 단어 형광 — <em>이지만 기울이지 않는다(픽셀 폰트는 기울이면 뭉갠다). */
 #desktop .op-assist .tx em {
