@@ -158,18 +158,30 @@ function applyGameData(data, source) {
 }
 
 /**
+ * 어디서 몇 줄을 받아왔는지만 한 줄로 남긴다.
+ * ★ 예전엔 gameData 객체를 통째로 찍었는데(방해꾼 12종 + 난이도 표 전부),
+ *   배포본 콘솔을 열면 이 덤프가 화면을 덮었다. 어느 소스로 떨어졌는지는
+ *   폴백 진단에 실제로 필요한 정보라 남기고, 내용물 덤프만 걷어냈다
+ *   (자세한 값은 디버그 패널이 이미 보여준다).
+ *   여기선 config.debug.enabled를 볼 수 없다 — balance/가 config를 import하면
+ *   순환참조가 된다(config.js 상단 주석). 그래서 "조용하게" 대신 "짧게"로 정리했다.
+ */
+function logLoaded(source) {
+  console.log(`[balance] 로드 완료 — ${source} (방해꾼 ${gameData.enemies.length}종, 난이도 ${gameData.difficulty.length}행)`);
+}
+
+/**
  * 밸런스 데이터를 로드한다: 구글 시트 → 로컬 balance.csv → 하드코딩 (3단 폴백).
  * 게임 시작 시 호출하고, 리로드 버튼을 누르면 다시 호출한다.
  */
 export async function loadGameData() {
   gameData.loading = true;
   gameData.error = null;
-  console.log('[balance] 밸런스 불러오는 중...');
 
   try {
     const data = await loadFromSheets();
     applyGameData(data, 'sheet');
-    console.log('[balance] 구글 시트에서 로드 완료:', gameData);
+    logLoaded('구글 시트');
     return gameData;
   } catch (sheetErr) {
     console.warn('[balance] 구글 시트 fetch 실패, game/balance.csv로 폴백:', sheetErr);
@@ -178,7 +190,7 @@ export async function loadGameData() {
   try {
     const data = await loadFromLocalCsv();
     applyGameData(data, 'local-csv');
-    console.log('[balance] game/balance.csv에서 로드 완료:', gameData);
+    logLoaded('game/balance.csv');
     return gameData;
   } catch (localErr) {
     console.warn('[balance] game/balance.csv 폴백도 실패, 하드코딩 기본값 사용:', localErr);
@@ -186,7 +198,7 @@ export async function loadGameData() {
 
   applyGameData(HARDCODED_DATA, 'hardcoded');
   gameData.error = '시트/로컬 CSV 모두 실패 — 하드코딩 기본값 사용 중';
-  console.log('[balance] 하드코딩 기본값 사용:', gameData);
+  logLoaded('하드코딩 기본값');
   return gameData;
 }
 

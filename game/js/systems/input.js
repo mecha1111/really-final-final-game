@@ -1,15 +1,14 @@
 // 이 파일 역할: 마우스/키 입력을 받아 게임 동작으로 옮긴다(방해꾼 클릭 판정, 난이도·재시작 버튼, 단축키).
 
-import { config, getUiScaleFactor, getUiReferenceCanvas } from '../config.js';
+import { config } from '../config.js';
 import { state } from '../core/state.js';
-import { startGame, advanceStage } from '../core/stageManager.js';
+import { advanceStage } from '../core/stageManager.js';
 import { damageUpload } from './upload.js';
 import { registerKill, registerMiss, comboTier } from './combo.js';
 import { recordEnemyEncounter } from '../core/save.js';
 import { spawnClickRipple } from './clickRipple.js';
 import { playSfx, SFX } from './sound.js';
 import { pointInRect } from '../ui/draw.js';
-import { getStartButton } from '../ui/screens.js';
 import { handleDebugKey, debugState } from '../debug.js';
 import { handleSettingsKey } from '../ui/settingsPanel.js';
 import { clientToWorld, worldToClient, getCanvasGeometry, isRotationSettling } from '../ui/canvasGeometry.js';
@@ -127,19 +126,6 @@ function onPointerDown(canvas, pt, evt) {
   // 여기가 실수로 거기 묶여 들어가는 걸 막는다.
   if (state.phase === 'title' || state.phase === 'failed' || state.phase === 'cleared' || state.phase === 'ending')
     return;
-
-  // [가드 1] 대기 화면(select)의 시작 버튼 — 사실상 도달하지 않는 단계지만
-  // (advanceStage()가 항상 곧장 startGame()으로 넘어간다) 코드는 남겨둔다.
-  // ui/render.js가 1920 기준(getUiReferenceCanvas)으로 그리고
-  // ctx.scale(getUiScaleFactor())로 실제 캔버스에 맞춰 줄이거나 키우므로, 클릭
-  // 판정도 같은 기준 공간으로 좌표를 옮겨야 그리기와 어긋나지 않는다.
-  if (state.phase === 'select') {
-    const uiScale = getUiScaleFactor();
-    const refPt = { x: pt.x / uiScale, y: pt.y / uiScale };
-    const refCanvas = getUiReferenceCanvas();
-    if (pointInRect(refPt, getStartButton(refCanvas))) startGame(state.stageIndex);
-    return;
-  }
 
   if (state.phase !== 'playing') return;
 
@@ -366,10 +352,5 @@ function onKeyDown(evt) {
   // 결과 화면: R = 다음 구간(클리어) / 처음부터(실패). 화면 버튼과 같은 동작.
   if (evt.code === 'KeyR' && (state.phase === 'cleared' || state.phase === 'failed')) {
     advanceStage();
-  }
-
-  // 대기 화면: Enter = 시작
-  if ((evt.code === 'Enter' || evt.code === 'NumpadEnter') && state.phase === 'select') {
-    startGame(state.stageIndex);
   }
 }

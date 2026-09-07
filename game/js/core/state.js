@@ -19,8 +19,9 @@ export function emptyStats() {
 }
 
 export const state = {
-  // 'loading' | 'title' | 'select' | 'playing' | 'cleared' | 'failed' | 'ending'
-  // ('select'는 이제 난이도 선택이 아니라 "시작/다음 구간" 대기 화면이다)
+  // 'loading' | 'title' | 'playing' | 'cleared' | 'failed' | 'ending'
+  // (예전엔 'select'(시작/다음 구간 대기 화면)가 하나 더 있었는데, advanceStage()가
+  //  곧장 startGame()으로 가게 바뀌면서 도달할 수 없게 돼 2026-09-07에 걷어냈다)
   // 'title'은 HTML 오버레이(.layer-title, ui/titleScreen.js)가 전담한다 — 캔버스는
   // 아무것도 안 그리고 클릭도 안 받는다(ui/render.js·systems/input.js의 title 가드).
   // main.js가 최초 로드 완료 시 여기로 착지시킨다(loading → title).

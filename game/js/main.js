@@ -57,7 +57,9 @@ function logFontLoadStatus() {
   document.fonts.ready
     .then(() => {
       const loaded = document.fonts.check("16px 'DGM'");
-      console.log(`[font] DGM 로드 ${loaded ? '성공' : '실패(폴백 폰트로 표시 중)'}`);
+      // ★ 성공은 조용히 넘어간다 — 배포본 콘솔에 매번 남길 이유가 없다.
+      //   실패했을 때만(폴백 폰트로 보이는 상태라 화면이 실제로 달라 보인다) 알린다.
+      if (!loaded) console.warn('[font] DGM 로드 실패 — 폴백 폰트로 표시 중');
     })
     .catch(() => {});
 }

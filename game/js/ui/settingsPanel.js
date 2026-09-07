@@ -33,7 +33,7 @@ import { openConfirm } from './confirmDialog.js';
 // ESC로 "열 수" 있는 phase. 이미 열려 있으면 phase와 무관하게 항상 닫을 수 있다
 // (아래 handleSettingsKey). failed(BSOD)는 뺐다 — 그 화면은 이미 자기 버튼
 // 3개로 흐름이 끝나 있어서 그 위에 또 모달을 얹으면 오히려 헷갈린다.
-const ESC_OPENABLE_PHASES = new Set(['title', 'select', 'playing', 'cleared']);
+const ESC_OPENABLE_PHASES = new Set(['title', 'playing', 'cleared']);
 
 const DEFAULTS = {
   sound: { soundMaster: 100, soundSfx: 100, soundBgm: 100 },
