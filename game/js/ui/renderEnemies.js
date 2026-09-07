@@ -421,7 +421,11 @@ export function drawCombo(ctx, state) {
 /** "+60MB" / "-10%" 처럼 위로 떠오르며 사라지는 글씨.
  * ★ DGM(픽셀폰트) + 외곽선(outlinedText) — 밝은 XP 배경이나 화질복구된 그림
  * 위에서도 잘 읽히게(요구사항: 폰트 통일 + 시인성). 색 의미(손실 빨강/획득
- * 초록)는 그대로 --color-float-plus/minus를 그대로 넘겨 유지한다. */
+ * 초록)는 그대로 --color-float-plus/minus를 그대로 넘겨 유지한다.
+ * 2026-09-07: 외곽선을 얇고 각지게(strokeWidth 3 + lineJoin:'miter') 바꿨다 —
+ * 기존 기본값(4 + round)은 손그림 낙서 방해꾼 톤과 안 어울리게 말랑해 보였다.
+ * 콤보 카운터(drawCombo)는 이 옵션을 안 넘기므로 outlinedText 기본값(round)을
+ * 그대로 쓴다 — 이번 변경은 플로트 글씨에만 닿는다. */
 export function drawFloats(ctx, floats) {
   for (const f of floats) {
     const t = f.age / config.fx.floatSec;
@@ -430,6 +434,9 @@ export function drawFloats(ctx, floats) {
     outlinedText(ctx, f.text, f.x, f.y - config.fx.floatRise * t, {
       size: 22,
       color: f.positive ? '--color-float-plus' : '--color-float-minus',
+      strokeWidth: 3,
+      lineJoin: 'miter',
+      miterLimit: 8, // round보다 각지게 보이려면 miterLimit을 넉넉히 줘야 실제로 뾰족한 모서리가 나온다(기본 2는 대부분 베벨로 깎인다)
     });
     ctx.restore();
   }

@@ -58,9 +58,11 @@
      순간 터지는 흰 번쩍임과 뭉쳐서 한 덩어리로 보인다(실측 스샷으로 확인). */
   --color-kill-particle: #12161f;
 
-  /* 뜬 글씨 (+60MB / -10%) */
-  --color-float-plus: #44ff88;
-  --color-float-minus: #ff4d4d;
+  /* 뜬 글씨 (+60MB / -10%). 2026-09-07: 예전 값(#44ff88/#ff4d4d)은 순수 웹
+     네온이라 이 게임의 XP 톤과 겉돌았다 — docs/xp-design-system.html의 실제
+     아이콘 색(check/error, 각각 #4ea832/#d9382a)으로 맞췄다. */
+  --color-float-plus: #4ea832;
+  --color-float-minus: #d9382a;
 
   /* 화면 덮개 (로딩 오버레이) */
   --color-overlay: rgba(5, 6, 10, 0.88);

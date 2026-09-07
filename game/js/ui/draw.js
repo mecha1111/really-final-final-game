@@ -56,19 +56,32 @@ export function text(
  *
  * @param {string} color 채움색. '--'로 시작하면 cssColor()로 CSS 변수를 읽고,
  *   아니면 그대로 CSS 색 문자열로 쓴다(예: config.combo.tiers의 리터럴 hex).
+ * @param {string} [lineJoin] 기본은 'round'(둥근 이음매, 콤보 카운터가 이 기본값을
+ *   그대로 쓴다). ui/renderEnemies.js의 drawFloats만 'miter'를 넘겨 각진 얇은
+ *   외곽선을 쓴다 — 손그림 낙서 톤엔 두꺼운 둥근 테두리가 "말랑"해 보였다.
  */
 export function outlinedText(
   ctx,
   str,
   x,
   y,
-  { size = 20, weight = '700', align = 'center', baseline = 'middle', color = '#fff', strokeColor = '#111', strokeWidth = 4 } = {},
+  {
+    size = 20,
+    weight = '700',
+    align = 'center',
+    baseline = 'middle',
+    color = '#fff',
+    strokeColor = '#111',
+    strokeWidth = 4,
+    lineJoin = 'round',
+    miterLimit = 2,
+  } = {},
 ) {
   ctx.font = `${weight} ${size}px ${PIXEL_FONT}`;
   ctx.textAlign = align;
   ctx.textBaseline = baseline;
-  ctx.lineJoin = 'round'; // 뾰족한 획 이음매가 안 튀게(둥근 인상 유지)
-  ctx.miterLimit = 2;
+  ctx.lineJoin = lineJoin;
+  ctx.miterLimit = miterLimit;
   ctx.lineWidth = strokeWidth;
   ctx.strokeStyle = strokeColor;
   ctx.strokeText(str, x, y);
