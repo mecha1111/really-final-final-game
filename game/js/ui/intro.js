@@ -178,7 +178,10 @@ function buildSteps() {
     // (ui/gameOpening.js). 설정의 [시작 시 튜토리얼 보기] 토글도 이제 여기가
     // 아니라 그쪽이 본다 — 이 부팅·바탕화면·클릭 연출은 튜토리얼이 아니라
     // 오프닝이라 애초에 그 토글의 대상이 아니었다(요구사항).
-    { at: c.tutorialSec, run: toTitle },
+    // ★ config 키 이름도 tutorialSec → toTitleSec으로 정정했다(2026-09-08) —
+    //   이름이 옛 위치(여기서 튜토리얼을 띄우던 시절)의 흔적으로 남아 있었다.
+    //   실제로 이 시각에 일어나는 일은 바로 아래 run: toTitle 그대로다.
+    { at: c.toTitleSec, run: toTitle },
   ];
 }
 
