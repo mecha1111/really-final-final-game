@@ -2407,14 +2407,52 @@ body {
      풍선(.hz-balloon)도 그 값을 그대로 물려받는다(별도로 auto를 여는 규칙이
      없다 — 위 C. 절전 모드와 같은 이유). */
 #desktop .hz-driver { position: absolute; inset: 0; pointer-events: none; }
-/* ★ 2026-09-09(승인분) — 실제 커서 위치를 옅게 알려주는 점선 원(ui/hazards/
-   driver.js의 update()가 매 프레임 left/top을 옮긴다). 답을 그대로 주지 않게
-   흐릿하게만 — 있는지 모르고 지나칠 수 있을 만큼만 존재감을 준다. */
-#desktop .hz-driver-real {
-  position: absolute; left: 0; top: 0; width: 18px; height: 18px;
-  margin: -9px 0 0 -9px; border-radius: 50%;
-  border: 1px dashed rgba(255, 255, 255, 0.4);
+
+/* ★ 2026-09-10 — 위 2026-09-09 점선 원을 "화살표+점선 테두리" 고스트 커서로
+   바꿨다(ui/hazards/driver.js 상단 주석 참고). update()가 매 프레임 left/top을
+   옮긴다. pointer-events는 별도로 안 정한다 — .hz-driver가 none이고 이 값은
+   상속되는 값이라(이 파일의 다른 hz-driver-* 자식들과 같은 관례), 자식이 굳이
+   또 none을 적을 필요가 없다. */
+#desktop .hz-driver-ghost { position: absolute; left: 0; top: 0; }
+/* 화살표 실루엣(ui/hazards/driver.js의 GHOST_ARROW_PATH — drawCursorGlyph()
+   폴백 벡터를 그대로 재사용한 좌표). 반투명 흰색 채움 + 점선 테두리 —
+   진하게 그리면 "화면과 판정이 분리돼 있다"는 이 방해의 핵심이 답으로
+   바로 나와버린다(위 2026-09-09 주석과 같은 이유로 옅게 유지). */
+#desktop .hz-driver-ghost-arrow { position: absolute; left: 0; top: 0; display: block; }
+#desktop .hz-driver-ghost-arrow path {
+  fill: rgba(255, 255, 255, 0.55);
+  stroke: rgba(255, 255, 255, 0.85);
+  stroke-width: 1.5;
+  stroke-dasharray: 3 2;
 }
+/* 「지연 Ns」 라벨 — 화살표 촉끝(0,0 = 고스트의 left/top)을 안 가리게 오른쪽
+   으로 띄운다. 문구 자체(숫자 포함)는 driver.js의 mount()가 config.hazard.
+   driver.delaySec으로 채운다(하드코딩 금지). */
+#desktop .hz-driver-ghost-label {
+  position: absolute; left: 22px; top: 2px; white-space: nowrap;
+  font-size: 12px; color: rgba(255, 255, 255, 0.85);
+  text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8); /* 배경이 밝을 때도 읽히게(필터 아님) */
+}
+/* 고스트(실제 위치) ↔ 지연 커서를 잇는 옅은 점선. ★SVG <line> 하나로 긋는다 —
+   CSS transform으로 회전시킨 div를 안 쓰는 이유는 ui/hazards/driver.js 상단
+   주석 참고(길이·각도 계산이 두 벌로 갈리는 걸 막으려는 것). driver.js의
+   update()가 매 프레임 x1/y1/x2/y2와(멈춰 있을 때) opacity만 고친다. */
+#desktop .hz-driver-link { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
+#desktop .hz-driver-link line { stroke: rgba(255, 255, 255, 0.35); stroke-width: 1.5; stroke-dasharray: 4 4; }
+/* 발동 순간 상단에 뜨는 1회성 XP 풍선. 좌하단 본 풍선(.hz-balloon)과 같은
+   생김새를 그대로 물려받고 자리·폭만 바꾼다(레이아웃을 새로 안 만드는 이
+   파일의 관례, 아래 .hz-tele-balloon과 같은 오버라이드 방식).
+   ★알파는 매끄러운 CSS 트랜지션이 아니라 driver.js의 update()가
+   config.fx.alphaSteps 계단으로 끊어 --hz-driver-toast-a로 흘려보낸다(필터
+   금지·전역 계단 알파 규칙 — powersave.js의 --hz-dim과 같은 방식). toastSec은
+   config.hazard.driver.toastSec(근거는 그 주석). */
+#desktop .hz-driver-toast {
+  left: 50%; top: 24px; bottom: auto; transform: translateX(-50%);
+  width: auto; max-width: 380px;
+  opacity: var(--hz-driver-toast-a, 0);
+}
+/* 트레이를 가리키는 꼬리라 상단 풍선엔 안 맞는다 — 여기만 지운다. */
+#desktop .hz-driver-toast::before, #desktop .hz-driver-toast::after { content: none; }
 
 /* ── E. 화면 깨짐 ──────────────────────────────────────────────────────────
    ★ 이 방해는 "시야만 가리고 클릭은 통과"가 핵심이라, 컨테이너·캔버스 전부
