@@ -536,6 +536,9 @@ body {
   /* 원래 46px(원본 2.4vw = 1920 기준 46.08px)이었는데, 버튼이 6개(이어하기/
      새 게임/무한 모드/갤러리/설정/나가기)가 되면서 맨 위 항목이 로고(노란
      메모지) 그림 위로 올라타는 걸 실측으로 확인해 26px로 좁혔다.
+     ★ 2026-09-10 [이어하기]가 빠져 최대 5개가 됐지만 이 값은 그대로 둔다 —
+       좁힌 간격이 5개에서도 문제가 없고(오히려 여유가 늘었다), 되돌리면 그때
+       실측으로 잡은 겹침이 버튼이 하나 더 늘어날 때 다시 살아난다.
      ★ #desktop은 1920x1080 고정 좌표계라 계산이 딱 떨어진다:
        버튼 높이 65px × 6 + 간격 × 5 = 메뉴 높이.
        gap 46 → 620px(로고와 겹침) / gap 26 → 520px(로고 아래에 안착).
@@ -1819,9 +1822,17 @@ body {
   0%, 100% { text-shadow: 0 0 6px rgba(255, 200, 40, 0.45); }
   50% { text-shadow: 0 0 16px rgba(255, 200, 40, 0.95); }
 }
-#desktop .xpbar { height: 20px; background: var(--xp-bar-track-bg); border: 1px solid var(--xp-bar-track-border); margin-top: 10px; padding: 2px; display: flex; gap: 2px; overflow: hidden; }
+/* ★진행바의 세로 규격은 여기 세 변수가 유일한 출처다(2026-09-10).
+   진짜 바와 손실 잔상(ghost)이 같은 값에서 파생되어야 두 바가 구조적으로 어긋날
+   수 없다 — 아래 .xpbar-stack 주석에 그 사고 기록이 있다. */
+#desktop {
+  --xpbar-h: 20px; /* 기본 바 높이 */
+  --xpbar-big-h: 34px; /* 큰 바(할당량·업로드) 높이 */
+  --xpbar-gap-top: 10px; /* 바 위 여백 */
+}
+#desktop .xpbar { height: var(--xpbar-h); background: var(--xp-bar-track-bg); border: 1px solid var(--xp-bar-track-border); margin-top: var(--xpbar-gap-top); padding: 2px; display: flex; gap: 2px; overflow: hidden; }
 #desktop .xpbar i { width: 13px; background: var(--xp-bar-seg); flex-shrink: 0; }
-#desktop .xpbar.big { height: 34px; padding: 3px; gap: 3px; border: 1px solid var(--xp-bar-track-border); }
+#desktop .xpbar.big { height: var(--xpbar-big-h); padding: 3px; gap: 3px; border: 1px solid var(--xp-bar-track-border); }
 #desktop .xpbar.big i { width: 19px; }
 
 /* 2026-08-23 VFX: 업로드 진행바(#up-bar) 맨 앞칸 반짝임 — "차오르는 선두가
@@ -1991,16 +2002,30 @@ body {
   100% { opacity: 0; transform: translate(-50%, -50%) scale(1); }
 }
 
-/* 업로드 바 + 손실 잔상 + 피해 수치를 겹쳐 쌓는 자리. */
-#desktop .xpbar-stack { position: relative; }
+/* 업로드 바 + 손실 잔상 + 피해 수치를 겹쳐 쌓는 자리.
+   ★ 2026-09-10: 바 위 여백(--xpbar-gap-top)을 ★스택이 갖는다. 그 전에는 두 바가
+     각자 .xpbar의 margin-top:10px을 물려받았는데, 그게 실측으로 잡은 어긋남의
+     원인이었다: ghost는 position:absolute + inset:0 + height 지정이라 top/bottom이
+     과다제약이 되어 bottom이 무시되고, 남은 margin-top이 top:0 위에 그대로
+     더해진다 — 그래서 ghost만 10px(#desktop 좌표) 아래로 밀려 있었다
+     (1280×720 실측: 진짜 바 y=563.33 / ghost y=570.00, 정확히 10 × 0.667).
+     지금은 여백을 스택으로 올리고 스택 안의 두 바는 margin을 0으로 못박아,
+     ghost의 자리(inset:0)와 진짜 바의 자리가 같은 상자에서 나온다 —
+     "두 바가 어긋날 수 있는 값"이 아예 남아있지 않다. */
+#desktop .xpbar-stack { position: relative; margin-top: var(--xpbar-gap-top); }
+#desktop .xpbar-stack .xpbar { margin-top: 0; }
 /* 잔상(ghost) — 진짜 바(#up-bar) 위에 겹친다(z-index 아래가 아니라 위!). 진짜
    바 자체가 흰 배경이 불투명해서(빈 칸 자리까지 하얗게 칠해져 있다), ghost를
    진짜 바 "밑"에 깔면 진짜 바의 흰 배경에 완전히 가려 안 보인다(실측으로 확인 —
    빨간 칸이 세그먼트 사이 2px 틈으로만 실낱같이 비쳤다). 그래서 ghost를 위에
    얹고, ghost 자신은 배경이 투명(칸이 없는 자리는 투명이라 밑의 진짜 바가
-   그대로 비친다)이라 서로 안 가린다. */
+   그대로 비친다)이라 서로 안 가린다.
+   ★height를 스스로 정하지 않는다(auto) — inset:0이 위아래를 스택에 묶으므로
+     높이는 곧 "진짜 바가 만든 스택의 높이"가 된다. .xpbar.big의 34px를 여기서
+     한 번 더 적어두면 그 숫자가 두 벌이 되어 언젠가 갈라진다. */
 #desktop .xpbar.ghost {
-  position: absolute; inset: 0; z-index: 1; background: transparent; border-color: transparent;
+  position: absolute; inset: 0; height: auto; z-index: 1;
+  background: transparent; border-color: transparent;
 }
 #desktop .xpbar.ghost i { background: #e0413a; animation: ghostFade 0.5s ease-out forwards; }
 /* 진짜 바가 이미 채운 자리를 밀어내기만 하는 투명 칸(ui/statusWindow.js) —
@@ -2909,7 +2934,7 @@ body {
 }
 
 /* ===========================================================================
-   ★게임 시작 오프닝(.layer-opening) — 타이틀에서 [새 게임]/[이어하기]/[무한 모드]를
+   ★게임 시작 오프닝(.layer-opening) — 타이틀에서 [새 게임]/[무한 모드]를
    누른 순간부터 실제 판이 시작되기까지. ui/gameOpening.js가 돌린다.
    정본 디자인은 docs/xp-tutorial.html.
    ★2026-09-08 흐름 변경: 강아지 말풍선이 인트로(.layer-intro) 끝에서 여기로

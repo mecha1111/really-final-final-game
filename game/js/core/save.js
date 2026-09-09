@@ -40,10 +40,12 @@ function defaultSave() {
   return {
     schemaVersion: SCHEMA_VERSION,
 
-    // 다음에 [이어하기]로 시작할 구간(0-based). best.stage(최고 도달 구간)와 일부러
-    // 다른 값이다 — 게임오버는 best만 갱신하고 이 값은 안 건드린다(실패했다고 이어할
-    // 자리가 뒤로 밀리면 "이어하기"가 아니라 벌칙이 된다).
-    stageIndex: 0,
+    // ★ 2026-09-10: 여기 있던 stageIndex([이어하기]로 시작할 구간)를 걷어냈다.
+    //   타이틀의 [이어하기] 버튼과 함께 기능 자체가 사라졌다(ui/titleScreen.js).
+    //   ★스키마 버전은 안 올린다 — 필드를 "추가"할 때는 옛 세이브에 값이 없어서
+    //     마이그레이션이 필요하지만, "제거"는 아래 sanitize()가 그 필드를 더 이상
+    //     읽지 않는 것만으로 끝난다(옛 세이브의 stageIndex 값은 다음 저장 때
+    //     조용히 빠진다). 최고기록·해금 그림·도감은 그대로 남는다.
 
     // 지금까지 완성한 그림의 src 목록(중복 없음). systems/file.js의 completeFile()이
     // state.completedPictures에 쌓아둔 {src, label} 중 src만 그대로 축적한다 — src가
@@ -237,7 +239,6 @@ function sanitize(raw) {
 
   return {
     schemaVersion: SCHEMA_VERSION,
-    stageIndex: Math.max(0, Math.floor(num(raw.stageIndex, d.stageIndex))),
     unlockedPictures: Array.isArray(raw.unlockedPictures)
       ? [...new Set(raw.unlockedPictures.filter((s) => typeof s === 'string'))]
       : d.unlockedPictures,
@@ -351,20 +352,6 @@ export function updateSave(mutate) {
   return flush();
 }
 
-/**
- * "이어할 만한 게 있나" — 타이틀의 [이어하기] 노출 조건.
- * 설정만 만지고 나간 경우(세이브 레코드는 있지만 진행은 0)에는 false여야 한다.
- * 그 상태의 [이어하기]는 [새 게임]과 완전히 같은 동작이라 있으면 오히려 헷갈린다.
- */
-export function hasProgress() {
-  const s = getSave();
-  return s.stageIndex > 0 || s.best.stage > 0 || s.unlockedPictures.length > 0;
-}
-
-/** [이어하기]가 시작할 구간(0-based). */
-export function savedStageIndex() {
-  return getSave().stageIndex;
-}
 
 /** 이번 판에 완성한 그림들을 해금 목록에 합친다(중복 없이).
  * @returns {number} 그중 "이번에 처음" 해금된 것의 수(이미 해금돼 있던 것 제외) —
@@ -414,7 +401,8 @@ export function hasCompletedRun() {
 
 /**
  * 구간 클리어 순간의 기록(core/stageManager.js의 checkWinLose에서 호출).
- * 이어할 구간을 방금 깬 구간의 다음으로 올린다.
+ * 최고 기록과 해금 그림만 남긴다 — ★2026-09-10 [이어하기]가 사라지면서
+ * "이어할 구간(save.stageIndex)을 다음으로 올리는" 일이 통째로 없어졌다.
  * @returns {{ savedToStorage: boolean, newUnlocks: number }} newUnlocks는 이번
  *   판에서 "처음으로" 해금된 그림 수 — 클리어 화면의 "새 그림 해금!" 한 줄이
  *   이 값을 그대로 쓴다(ui/clearScreen.js).
@@ -422,19 +410,6 @@ export function hasCompletedRun() {
 export function recordStageCleared() {
   let newUnlocks = 0;
   const savedToStorage = updateSave((save) => {
-    // ★ 이어할 구간(save.stageIndex)은 "유한 캠페인의 진행도"만 가리킨다.
-    //   - 유한 구간을 깼으면 다음 유한 구간으로 올리되, 마지막 구간을 넘지 않게
-    //     클램프한다. 안 그러면 완주 직후 이 값이 finiteCount(=무한모드 첫 구간)가
-    //     되어, 플레이어가 [무한 모드]를 고르지도 않았는데 [이어하기]가 조용히
-    //     무한모드로 데려가버린다(실측으로 잡은 문제다).
-    //   - 무한모드에서 깬 것은 이 값을 아예 안 건드린다. 무한 진행은 best.infiniteStage가
-    //     따로 기록한다 — 두 축을 한 숫자에 섞으면 캠페인 진행도를 잃는다.
-    if (state.stageIndex < config.stage.finiteCount) {
-      const next = Math.min(state.stageIndex + 1, config.stage.finiteCount - 1);
-      // Math.max로 덮는다 — 디버그 구간 점프(debug.js)로 낮은 구간을 다시 깨더라도
-      // 이미 열어둔 진행이 뒤로 밀리면 안 된다.
-      save.stageIndex = Math.max(save.stageIndex, next);
-    }
     mergeBest(save);
     newUnlocks = mergeUnlockedPictures(save);
   });
@@ -442,8 +417,7 @@ export function recordStageCleared() {
 }
 
 /**
- * 게임오버 순간의 기록(같은 자리). ★ stageIndex(이어할 구간)는 일부러 안 건드린다 —
- * 실패는 최고 기록과 해금만 남긴다.
+ * 게임오버 순간의 기록(같은 자리). 실패도 최고 기록과 해금은 남긴다.
  */
 export function recordGameOver() {
   return updateSave((save) => {

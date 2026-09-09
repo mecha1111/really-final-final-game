@@ -1,14 +1,17 @@
 // 이 파일 역할: 타이틀 화면(HTML 오버레이, .layer-title) 버튼들을 게임 전환에 연결한다.
-// [이어하기]는 세이브(core/save.js)에 진행이 있을 때만 보이고, [새 게임]은 지울 진행이
-// 있으면 공용 확인 대화상자(ui/confirmDialog.js)를 한 번 거친다.
+// [무한 모드]만 조건부(유한 5구간 완주)로 보이고, 나머지는 항상 떠 있다.
+//
+// ★ 2026-09-10: [이어하기]를 통째로 걷어냈다(버튼·핸들러·세이브의 진행 구간까지 —
+//   core/save.js). 딸려 있던 [새 게임]의 "저장된 진행이 사라집니다" 확인창도 같이
+//   없앴다 — 지울 진행이라는 개념 자체가 사라졌기 때문이다(최고기록·갤러리·도감은
+//   새 게임으로 안 지워지고, 진짜 초기화는 설정창의 [저장 데이터 초기화]가 맡는다).
 // 배경·로고 애니(floaty, hover 확대)는 순수 CSS(style.css)라 여기선 클릭 훅만 담당한다.
 
 import { startGame } from '../core/stageManager.js';
 import { config } from '../config.js';
-import { hasProgress, savedStageIndex, hasCompletedRun } from '../core/save.js';
+import { hasCompletedRun } from '../core/save.js';
 import { playSfx, SFX } from '../systems/sound.js';
 import { openSettings } from './settingsPanel.js';
-import { openConfirm } from './confirmDialog.js';
 import { openGallery } from './galleryPanel.js';
 import { startGameOpening } from './gameOpening.js';
 import { state } from '../core/state.js';
@@ -64,11 +67,10 @@ function closeQuitModal() {
   quitLayerEl.classList.remove('open');
 }
 
-let continueBtnEl = null;
 let infiniteBtnEl = null;
 
 // 지난 프레임에 title이었는지 — "이번에 새로 타이틀로 들어왔다"를 판별해 그때만
-// [이어하기] 노출을 갱신한다(ui/bsodScreen.js의 wasFailed, ui/clearScreen.js의
+// [무한 모드] 노출을 갱신한다(ui/bsodScreen.js의 wasFailed, ui/clearScreen.js의
 // wasCleared와 같은 idiom). 매 프레임 세이브를 들여다볼 이유가 없다.
 let wasTitle = false;
 
@@ -79,8 +81,9 @@ let wasTitle = false;
  *   (갤러리 뷰어/클리어 화면의 새 줄처럼 display가 박힌 곳은 클래스로 토글해야
  *   한다 — 같은 함정을 두 번 겪었다, style.css 주석 참고). */
 function syncConditionalButtons() {
-  if (continueBtnEl) continueBtnEl.hidden = !hasProgress();
   // [무한 모드]는 유한 구간을 전부 깬 뒤에만 — 그 전엔 존재 자체를 안 알린다.
+  // (2026-09-10 [이어하기]가 사라져 조건부 버튼은 지금 이것 하나뿐이다. 그래도
+  //  함수는 남긴다 — 조건부 버튼이 또 생길 때 이 자리에 한 줄 더 붙이면 된다.)
   if (infiniteBtnEl) infiniteBtnEl.hidden = !hasCompletedRun();
 }
 
@@ -91,8 +94,8 @@ function syncConditionalButtons() {
  * 오프닝이 보여줄 게 없으면(두 번째 실행 등) 그 자리에서 곧바로 콜백을 부르므로
  * 여기서 조건을 또 따질 게 없다.
  *
- * ★"어느 구간으로 시작하는가"는 버튼마다 다르다(새 게임 0 / 이어하기 저장구간 /
- *   무한 모드 finiteCount) — 그 판단은 각 버튼이 하고, 이 함수는 그걸 콜백으로
+ * ★"어느 구간으로 시작하는가"는 버튼마다 다르다(새 게임 0 / 무한 모드
+ *   finiteCount) — 그 판단은 각 버튼이 하고, 이 함수는 그걸 콜백으로
  *   실어 보내기만 한다.
  */
 function beginRun(stageIndex) {
@@ -103,7 +106,7 @@ function beginRun(stageIndex) {
   startGameOpening((opts) => startGame(stageIndex, opts));
 }
 
-/** 첫 구간(n=0)으로 새 판을 시작한다. [새 게임]과 그 덮어쓰기 확인이 함께 쓴다. */
+/** 첫 구간(n=0)으로 새 판을 시작한다. [새 게임]이 부르는 유일한 진입점이다. */
 function startNewGame() {
   // 대기화면(select)을 건너뛰고 첫 구간(n=0)으로 바로 들어간다.
   // 타이틀에서 "새 게임"을 이미 눌렀는데 또 "엔터/클릭" 대기 화면이 나오면
@@ -112,53 +115,33 @@ function startNewGame() {
   //   그대로 select를 거친다(core/stageManager.js의 advanceStage). 거기선 "구간이
   //   올라 빡세졌다"를 숫자로 보여주는 역할이 있어서 한 박자 쉬는 게 맞다.
   //
-  // ★ 여기서 세이브를 미리 지우지 않는다 — 새 판을 끝까지 가서 clear/게임오버가
-  //   나면 core/save.js가 그때 stageIndex를 새로 쓴다(클리어는 Math.max라 낮은
-  //   구간을 다시 깨도 뒤로 밀리지 않는다). 지금 지워버리면 "새 게임을 눌러만
-  //   보고 나간" 경우에 해금까지 통째로 날아간다. 초기화를 진짜로 원하면
-  //   설정창의 [저장 데이터 초기화]가 따로 있다.
+  // ★ 여기서 세이브를 지우지 않는다 — [새 게임]은 "이 판을 처음부터"일 뿐,
+  //   최고기록·해금 그림·도감을 건드리는 버튼이 아니다(2026-09-10 [이어하기]가
+  //   사라진 뒤로는 애초에 지울 "진행 구간"이라는 것도 없다). 초기화를 진짜로
+  //   원하면 설정창의 [저장 데이터 초기화]가 따로 있다.
   beginRun(0);
 }
 
 /** 최초 1회. 타이틀 화면 버튼에 핸들러를 붙인다. */
 export function initTitleScreen() {
-  continueBtnEl = document.getElementById('title-btn-continue');
   infiniteBtnEl = document.getElementById('title-btn-infinite');
   syncConditionalButtons(); // 첫 프레임 전에 한 번 맞춰둔다(로딩 중엔 어차피 안 보인다)
-
-  continueBtnEl?.addEventListener('click', () => {
-    playSfx(SFX.UI_CLICK, { ui: true });
-    // ★ 저장된 구간의 "처음부터" 시작한다 — 중간 저장이 아니다(core/save.js).
-    //   startGame()의 기존 리셋이 그대로 다 돌아간다.
-    //   phase 레이스는 core/state.js의 정착 가드(settlePhase)가 이미 막고 있어서
-    //   여기서 추가로 방어할 게 없다 — 이미지 프리로드가 늦게 끝나 뒤늦게 도착하는
-    //   'title' 대입은 playing을 못 덮는다.
-    beginRun(savedStageIndex());
-  });
 
   infiniteBtnEl?.addEventListener('click', () => {
     playSfx(SFX.UI_CLICK, { ui: true });
     // 무한모드의 첫 구간 = 유한 구간 바로 다음(config.stage.finiteCount).
     // 여기서부터는 상한이 없어 공식이 계속 오른다(core/stageManager.js의
     // nextStageIndex가 무한 구간만 클램프를 안 건다).
-    // ★ 세이브를 안 건드린다 — 무한모드 진행은 이어할 구간(유한 캠페인 진행도)과
-    //   별개로 best.infiniteStage에만 남는다(core/save.js).
+    // ★ 세이브에는 best.infiniteStage(최고 도달 층)만 남는다(core/save.js).
     beginRun(config.stage.finiteCount);
   });
 
   document.getElementById('title-btn-start')?.addEventListener('click', () => {
     playSfx(SFX.UI_CLICK, { ui: true });
-    // 지울 진행이 없으면 그냥 시작한다 — 아무것도 안 지우는 확인창은 소음이다.
-    if (!hasProgress()) {
-      startNewGame();
-      return;
-    }
-    openConfirm({
-      title: '새로 시작할까요?',
-      sub: `저장된 진행(${savedStageIndex() + 1}구간부터 이어하기)이 사라집니다. 완성한 그림은 그대로 남습니다.`,
-      okLabel: '새로 시작',
-      onConfirm: startNewGame,
-    });
+    // ★ 2026-09-10: 확인 대화상자를 없앴다. [이어하기]가 사라져 "저장된 진행이
+    //   사라집니다"라고 경고할 대상 자체가 없어졌고, 아무것도 안 지우는 확인창은
+    //   소음이다(예전 코드도 지울 진행이 없으면 확인창을 건너뛰고 있었다).
+    startNewGame();
   });
 
   document.getElementById('title-btn-gallery')?.addEventListener('click', () => {
@@ -198,7 +181,7 @@ export function initTitleScreen() {
   });
 }
 
-/** 매 프레임 호출(main.js). 타이틀로 "새로 들어온" 프레임에만 [이어하기]를 갱신한다. */
+/** 매 프레임 호출(main.js). 타이틀로 "새로 들어온" 프레임에만 조건부 버튼([무한 모드])을 갱신한다. */
 export function updateTitleScreen() {
   // exe 작별 유예 — phase 가드보다 먼저 본다. 이 모달은 타이틀에서만 열리지만,
   // 혹시라도 그 사이 화면이 바뀌어도 예고한 종료는 그대로 지켜야 한다("놀린

@@ -251,16 +251,17 @@
           <div id="title-logo-wrap">
             <div id="title-logo" title="진짜_최종_final_수정_진짜최종(5).exe"></div>
           </div>
-          <!-- [이어하기]는 세이브에 진행이 있을 때만 보인다(ui/titleScreen.js가
-               title로 들어올 때마다 hidden을 토글). #title-menu는 하단에 붙은
-               flex-column이라 항목이 하나 늘고 줄어도 위로 자라기만 하고
-               나머지 버튼 자리는 안 흔들린다. -->
+          <!-- ★ 2026-09-10: [이어하기] 버튼을 걷어냈다(세이브의 진행 구간 저장·복원
+               경로까지 통째로 — core/save.js). 이 게임은 한 판이 3분짜리라
+               중간에 이어붙일 진행이 사실상 없고, "저장된 구간부터 다시"가
+               새 게임과 거의 구분되지 않았다. 최고기록·갤러리·도감은 그대로다.
+               #title-menu는 하단에 붙은 flex-column이라 항목이 줄어도 위로
+               자라기만 하고 나머지 버튼 자리는 안 흔들린다. -->
           <div id="title-menu">
-            <div class="btn" id="title-btn-continue" hidden>이어하기</div>
             <div class="btn" id="title-btn-start">새 게임</div>
             <!-- [무한 모드]는 유한 5구간을 전부 깬 뒤에만 보인다(세이브의
-                 completed). [이어하기]와 같은 방식으로 ui/titleScreen.js가
-                 title로 들어올 때마다 hidden을 토글한다. -->
+                 completed). ui/titleScreen.js가 title로 들어올 때마다 hidden을
+                 토글한다(지금은 조건부 버튼이 이것 하나뿐이다). -->
             <div class="btn" id="title-btn-infinite" hidden>무한 모드</div>
             <div class="btn" id="title-btn-gallery">갤러리</div>
             <div class="btn" id="title-btn-settings">설정</div>
@@ -934,7 +935,7 @@
         </div>
       </div>
 
-      <!-- ★게임 시작 오프닝(레이어15). 타이틀에서 [새 게임]/[이어하기]/[무한 모드]를
+      <!-- ★게임 시작 오프닝(레이어15). 타이틀에서 [새 게임]/[무한 모드]를
            누른 그 순간부터 실제 판이 시작되기 전까지 — ui/gameOpening.js가 돌린다.
            ★2026-09-08 흐름 변경: 강아지 튜토리얼이 여기로 옮겨왔다. 전에는
            인트로(부팅→바탕화면→클릭) 끝에 붙어 있어서 "설명을 듣고 → 타이틀을

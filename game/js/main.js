@@ -113,8 +113,9 @@ async function applyLoadedData() {
   //   (아래 settlePhase 주석이 경고하는 것과 같은 부류의 레이스다).
   // ★ settlePhase는 "아직 판이 시작 안 됐을 때만" 적용된다(core/state.js의 정착
   //   가드) — 이 함수는 fetch와 이미지 프리로드를 await한 뒤에야 여기 도달하므로,
-  //   그 사이에 판이 시작됐다면(지금은 그런 경로가 없지만 세이브 [이어하기]가
-  //   붙으면 생긴다) 뒤늦은 이 대입이 'playing'을 덮어써선 안 된다.
+  //   그 사이에 판이 시작됐다면(지금은 그런 경로가 없지만, 로드 직후 곧장
+  //   startGame()을 부르는 진입점이 생기면 그렇게 된다) 뒤늦은 이 대입이
+  //   'playing'을 덮어써선 안 된다.
   //   리로드 버튼처럼 "일부러 타이틀로 돌아가는" 경로는 자기 자리에서 setPhase를
   //   따로 부른다(아래 initReloadButton) — 그래야 의도한 복귀는 그대로 살아있다.
   const firstRun = !hasSeenIntro();
@@ -194,7 +195,7 @@ async function main() {
   initSound(); // 효과음 — AudioContext를 세우고 mp3 프리로드를 시작한다(await 안 함)
   initBgm(); // 배경음악 — sound.js가 만든 AudioContext를 재사용(반드시 initSound() 다음)
   initDesktop(); // HTML 바탕화면(창 드래그·개그 팝업·시계)
-  initTitleScreen(); // 타이틀 화면 버튼(이어하기/새 게임/설정/나가기)
+  initTitleScreen(); // 타이틀 화면 버튼(새 게임/무한 모드/갤러리/설정/나가기)
   initBsodScreen(); // 실패 화면(BSOD) 버튼(재도전/로비/나가기)
   initClearScreen(); // 구간 클리어 화면(폴더 정리 연출) 버튼/스킵
   initEndingScreen(); // 완주 엔딩(완주 메시지→슬라이드쇼→크레딧) 버튼/스킵
@@ -279,7 +280,7 @@ async function main() {
       updateBgm(state.phase, now); // 화면(phase)에 맞는 곡으로 자동 크로스페이드
       updateStatusWindows(state);
       updateUploadPicture(state);
-      updateTitleScreen(); // 타이틀에 새로 들어온 프레임에만 [이어하기] 노출을 갱신
+      updateTitleScreen(); // 타이틀에 새로 들어온 프레임에만 [무한 모드] 노출을 갱신
       updateBsodScreen();
       updateClearScreen(now);
       updateEndingScreen(now);
