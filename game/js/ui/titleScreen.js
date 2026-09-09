@@ -96,7 +96,11 @@ function syncConditionalButtons() {
  *   실어 보내기만 한다.
  */
 function beginRun(stageIndex) {
-  startGameOpening(() => startGame(stageIndex));
+  // ★opts를 그대로 흘려보낸다 — 오프닝이 "이 판에 튜토리얼이 붙는다"를 판단하고
+  //   ({tutorial:true}) 그걸 startGame에 전해야 게이트가 판이 차려지기 전에 켜진다.
+  //   여기서 판단하지 않는 이유는 예전과 같다: "어느 구간으로 시작하는가"만 이
+  //   화면이 알고, "무엇을 보여줄 것인가"는 오프닝이 안다(ui/gameOpening.js 주석).
+  startGameOpening((opts) => startGame(stageIndex, opts));
 }
 
 /** 첫 구간(n=0)으로 새 판을 시작한다. [새 게임]과 그 덮어쓰기 확인이 함께 쓴다. */

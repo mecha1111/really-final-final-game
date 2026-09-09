@@ -160,8 +160,22 @@ export function updateUpload(dt, rules) {
   if (state.blocked) state.stats.blockedSec += dt;
   if (!state.file) return;
 
-  if (!state.blocked) {
-    state.file.progress = clamp(state.file.progress + (100 / state.file.timeSec) * dt, 0, 100);
+  // ★튜토리얼 중에는 진행바를 언제 올릴지 튜토리얼이 정한다(state.tutorial.uploadAuto).
+  //   1~3단계는 켜둔 채로 실제로 차오르는 걸 보여주고, 상한(config.tutorial.uploadCapPct)에
+  //   닿거나 "놔두면 깎인다" 단계에 들어가면 끈다 — 끄는 이유가 둘이다:
+  //     · 100%에 닿으면 파일이 완성되며 다음 파일로 넘어가 버린다(설명 도중 화면이 바뀐다)
+  //     · 깎이는 걸 보여주는 단계에서 동시에 차오르면 "되돌아간다"가 안 보인다
+  //   실전에서는 state.tutorial.active가 false라 이 조건이 통째로 사라진다.
+  //   ★상한(천장)은 대본이 아니라 여기서 지킨다 — 대본이 어느 단계에 머물러 있든,
+  //     또 사용자가 설명을 얼마나 오래 읽든 100%에 닿는 일 자체가 없어야 한다.
+  //     대본의 uploadAuto는 "지금 일부러 멈춘다"(4단계)를 표현할 뿐이다.
+  //   ★천장은 조건이 아니라 clamp로 건다 — "넘었으면 그만"으로 쓰면 마지막 한
+  //     프레임이 천장을 살짝 넘긴 채로 굳는다(실측 55.05). 값이 정확히 천장에
+  //     서야 4단계의 감소분을 눈으로 셀 수 있다.
+  const ceilPct = state.tutorial.active ? config.tutorial.uploadCapPct : 100;
+  const autoOk = !state.tutorial.active || state.tutorial.uploadAuto;
+  if (!state.blocked && autoOk) {
+    state.file.progress = clamp(state.file.progress + (100 / state.file.timeSec) * dt, 0, ceilPct);
   }
   // ★ 잔상을 여기서 따로 안 끈다 — fileBarGhostMs는 위에서 이미 dt만큼 깎이므로
   //   barGhostMs(550ms)가 지나면 자연히 사라진다. 진행이 다시 올라 잔상 비율을

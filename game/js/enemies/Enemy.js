@@ -89,6 +89,10 @@ export class Enemy {
     // 같은 종류라도 그림이 갈리면(popup a/b) 키도 갈리고, clone처럼 tier마다 그림
     // 크기가 다른 놈은 tier가 키에 들어간다. 표에 없으면 null → 시트의 hit_w/hit_h를 쓴다.
     this.artHitboxKey = spec.id === 'clone' ? `clone:${tier}` : this.abVariant ? `${spec.id}:${this.abVariant}` : spec.id;
+    // ★튜토리얼 시연용 동결 — true인 동안 주기공격과 수명만료가 멈춘다(update 참고).
+    //   ui/tutorial.js가 소환할 때 켜고, 실전이 시작될 때 전부 푼다. 실전에서
+    //   만들어지는 방해꾼은 이 값이 계속 false라 아무 영향이 없다.
+    this.tutorialFrozen = false;
     // 죽고 나서도 잠깐 "죽은 프레임"을 보여주며 화면에 남아있는 시간(초).
     // kill()이 basic 클릭사망일 때만 채운다 — 그 외엔 0이라 기존처럼 즉시 치워진다.
     this.corpseTimer = 0;
@@ -250,17 +254,25 @@ export class Enemy {
     this.reviveFadeTimer = Math.max(0, this.reviveFadeTimer - dt); // zombie 부활 직후 반투명→불투명
     this.pendingAttack = 0;
 
-    if (this.atk) {
-      this.atk.timer -= dt;
-      if (this.atk.timer <= 0) {
-        this.pendingAttack = this.atk.damage;
-        this.atk.timer += this.atk.interval;
+    // ★튜토리얼 시연용으로 동결된 놈은 때리지도, 수명으로 사라지지도 않는다.
+    //   움직임(moveEnemy)은 그대로 둔다 — 가만히 서 있으면 실전의 그 놈이 아니게
+    //   되고, 스포트라이트가 따라다니며 지목하는 그림도 안 나온다.
+    //   ★공격과 수명을 함께 묶은 이유: 설명을 읽는 동안 얻어맞으면 "놔두면 깎인다"를
+    //   가르치기도 전에 진행바가 깎이고, 수명이 흐르면 설명하던 대상이 사라진다.
+    //   4단계는 이 플래그를 그 한 마리만 풀어서 ★실전과 똑같은 경로로 얻어맞게 한다.
+    if (!this.tutorialFrozen) {
+      if (this.atk) {
+        this.atk.timer -= dt;
+        if (this.atk.timer <= 0) {
+          this.pendingAttack = this.atk.damage;
+          this.atk.timer += this.atk.interval;
+        }
       }
-    }
 
-    if (this.age >= this.lifetime) {
-      this.kill('expired');
-      return;
+      if (this.age >= this.lifetime) {
+        this.kill('expired');
+        return;
+      }
     }
 
     moveEnemy(this, dt, world);

@@ -52,10 +52,27 @@ export function getPlayArea() {
 /**
  * 구간 n으로 새 판을 시작한다. ★ 첫 구간이 n = 0.
  * 난이도 선택은 없어졌고, n이 오를수록 createRules의 공식이 알아서 조인다.
+ *
+ * @param {number} stageIndex
+ * @param {{tutorial?: boolean}} [opts]
+ *   tutorial — ★인게임 튜토리얼을 얹은 채로 시작한다(ui/gameOpening.js가 첫 판에만 준다).
+ *     판을 정상적으로 다 차린 뒤 게이트만 켜는 것이라, 화면은 실전과 똑같고
+ *     "시간이 안 흐르고 스폰이 안 되는" 것만 다르다. 게이트를 읽는 곳은
+ *     core/state.js의 state.tutorial 주석에 모아뒀다.
+ *     ★ 다음 구간·재도전은 opts 없이 부르므로 저절로 꺼진다(아래 대입이 매번 덮는다).
  */
-export function startGame(stageIndex = 0) {
+export function startGame(stageIndex = 0, opts) {
   const n = Math.max(0, Math.floor(stageIndex));
   state.stageIndex = n;
+
+  // ★ 판을 차리기 "전"에 정한다 — 아래 grantFile()/setPhase('playing') 이후로는
+  //   이미 첫 프레임이 돌 수 있는 상태라, 그때 게이트가 꺼져 있으면 한 프레임
+  //   분량의 스폰·시간이 새어 들어간다.
+  state.tutorial.active = !!opts?.tutorial;
+  state.tutorial.uploadAuto = true;
+  // 시연 단계가 열어주기 전까지는 캔버스 클릭을 안 받는다 — 렉 연출이 도는 동안
+  // 아래 판이 이미 살아있기 때문이다(예전엔 판 자체가 없어서 이 문제가 없었다).
+  state.tutorial.blockClicks = state.tutorial.active;
 
   const rules = createRules(n);
   state.rules = rules;
@@ -114,7 +131,10 @@ export function startGame(stageIndex = 0) {
   spawner.reset(rules);
   grantFile();
   setPhase('playing');
-  playSfx(SFX.START);
+  // ★ 튜토리얼이 얹힌 판에서는 여기서 안 낸다 — 이 소리는 "이제 시작한다"는 신호인데,
+  //   튜토리얼이 붙으면 실제 시작은 [업데이트 재개]를 누른 뒤다. 그 자리에서
+  //   ui/gameOpening.js가 대신 낸다(그래서 회차와 무관하게 판당 정확히 1회).
+  if (!state.tutorial.active) playSfx(SFX.START);
 
   // ★ 2026-09-07: 여기 있던 "첫 게임 시작" 팁(showTip('first_game', …))을 걷어냈다.
   //   플레이 중 좌하단에서 뜨는 안내는 방해꾼이 날뛰는 와중이라 아무도 안 읽었다 —
@@ -124,6 +144,41 @@ export function startGame(stageIndex = 0) {
   //   위 resetRoverQueue()는 그대로 남는다 — ui/rover.js 모듈 자체는 살아 있고
   //   (디버그 손잡이 __game.showTip으로 여전히 부를 수 있다), 판을 넘어 큐가
   //   새는 걸 막는 이 리셋은 그 경로에서도 여전히 옳다.
+}
+
+/**
+ * ★튜토리얼을 걷고 실전을 시작한다 — [업데이트 재개]와 [건너뛰기]가 둘 다 여기로 모인다
+ * (ui/gameOpening.js의 finish). 판은 이미 돌고 있으므로 "시작"이 아니라 "해제"다.
+ *
+ * ★나가는 길이 여럿이라 한 함수에 모은다 — 게이트가 세 개(state.tutorial)에
+ *   마리별 동결(enemy.tutorialFrozen)까지 있어서, 한 군데라도 빠뜨리면 실전이
+ *   시작됐는데 시간이 안 흐르거나 방해꾼이 영영 안 때리는 상태로 굳는다.
+ *   그런 종류의 사고를 이 프로젝트는 이미 겪었다(resetHazards가 startGame에만
+ *   걸려 있어서 판이 끝날 때 아무도 안 치우던 그 건 — initHazards 주석).
+ */
+export function releaseTutorial() {
+  if (!state.tutorial.active) return;
+
+  state.tutorial.active = false;
+  state.tutorial.uploadAuto = true;
+  state.tutorial.blockClicks = false;
+  // 시연용으로 동결해둔 놈들을 전부 푼다 — 이 프레임부터 수명이 흐르고 때리기
+  // 시작한다. 남겨두기로 한 놈(마지막 단계의 bait)도 여기서 같이 풀려, 실전에
+  // 들어간 뒤에는 평범한 bait와 완전히 같아진다.
+  for (const enemy of state.enemies) enemy.tutorialFrozen = false;
+
+  // ★제한시간을 꽉 채워 되돌린다. 튜토리얼 동안 시간은 애초에 안 흘렀으므로
+  //   (update()의 게이트) 보통은 이미 timeLimit 그대로고, 이 줄은 "튜토리얼에
+  //   시간을 한 톨도 안 쓴다"를 값으로 못박는 보증이다.
+  //   ★깎인 진행바는 일부러 안 되돌린다 — "놔두면 되돌아간다"를 실제로 당해서
+  //   배우는 게 그 단계의 전부인데, 조용히 복구해버리면 교훈이 무효가 된다.
+  //   대신 그 손해가 실전 성적에 남지 않도록 시간만 온전히 돌려준다.
+  state.timeLeft = state.rules ? state.rules.timeLimit : state.timeLeft;
+  lastTickSec = null; // 임박 똑딱 빗장도 새 시간 기준으로 되돌린다
+
+  // ★스포너는 안 건드린다 — 튜토리얼 동안 update를 통째로 건너뛰었으므로 타이머가
+  //   startGame()의 첫 간격 그대로 남아 있다. 여기서 reset하면 오히려 한 간격을
+  //   더 기다리게 된다.
 }
 
 /** 이 구간이 무한모드인가(유한 구간을 넘어선 인덱스인가). */
@@ -214,13 +269,20 @@ export function update(dt) {
 
   const { rules } = state;
   const playArea = getPlayArea();
+  // ★인게임 튜토리얼 게이트 — 왜 필요한지는 core/state.js의 state.tutorial 주석 참고.
+  //   여기 한 지역변수로 받아두고 아래 네 군데가 같은 값을 본다(프레임 중간에
+  //   갈리면 "시간은 멈췄는데 스폰은 됐다" 같은 어긋난 프레임이 나온다).
+  const tut = state.tutorial.active;
 
-  state.timeLeft -= dt;
+  // ★제한시간 — 튜토리얼 중엔 안 흐른다. 설명을 읽는 데 걸린 시간이 실전 시간을
+  //   깎아먹으면, 천천히 읽은 사람이 손해를 보는 튜토리얼이 된다.
+  if (!tut) state.timeLeft -= dt;
   state.inputFreezeSec = Math.max(0, state.inputFreezeSec - dt); // hourglass 조작 불능 카운트다운
   recordPointer(state.pointer, dt); // copier의 가짜 커서가 나중에 이 궤적을 따라간다
 
   // 제한시간 임박(마지막 5초) 똑딱 — 1초에 한 번만(초가 바뀔 때만) 낸다. 긴장감용이라
   // 짧게·작게(SFX_GAIN에서 낮춤). 5초를 넘는 구간엔 아무 것도 안 난다(안 시끄럽게).
+  // (튜토리얼 중엔 위에서 시간이 안 줄었으므로 여기도 저절로 조용하다)
   if (state.timeLeft > 0 && state.timeLeft <= 5) {
     const sec = Math.ceil(state.timeLeft);
     if (sec !== lastTickSec) {
@@ -232,7 +294,11 @@ export function update(dt) {
   // 등장 가능 목록을 매번 다시 만든다 — 디버그에서 일차를 바꾸면 바로 반영된다
   const pool = buildPool(gameData.enemies, rules.stage);
   const world = { rules, playArea, pointer: state.pointer, enemies: state.enemies, pool };
-  state.enemies.push(...spawner.update(dt, world));
+  // ★일반 스폰 정지 — 튜토리얼이 소환하는 시연용 말고는 한 마리도 안 나온다.
+  //   spawner의 타이머는 안 건드린다: 실전이 시작될 때 어차피 첫 간격을 새로
+  //   기다려야 하고(reset은 startGame에서 이미 했다), 여기서 timer만 안 깎으면
+  //   튜토리얼이 길어져도 해제 직후 우르르 쏟아지는 일이 없다.
+  if (!tut) state.enemies.push(...spawner.update(dt, world));
 
   for (const enemy of state.enemies) enemy.update(dt, world);
 
@@ -241,10 +307,15 @@ export function update(dt) {
   updateFakeCursors(dt, playArea);
   updateCombo(dt); // 콤보 연출 타이머만 — 콤보 값은 클릭으로만 바뀐다
   updateFloats(dt);
-  updateUrgency(rules); // 남은 시간·할당량으로 "지금 위험한가"를 다시 계산
+  // ★긴박 경고 — 튜토리얼 중엔 안 잰다. 시간이 안 흐르니 실제로 켜질 일도 거의
+  //   없지만, 이 함수는 상태 진입 순간에 소리를 내므로(TIME_TICK/COMBO_TIER)
+  //   "혹시"를 남겨두지 않는다. 튜토리얼 중 나는 소리는 전부 의도된 것이어야 한다.
+  if (!tut) updateUrgency(rules); // 남은 시간·할당량으로 "지금 위험한가"를 다시 계산
   // 환경 방해(화면·조작 방해). ★ 여기서 업로드 진행을 건드리는 일은 절대 없다 —
   // 진행 정지는 unplug 전담(config.hazard 주석의 절대 규칙).
-  updateHazards(dt, rules);
+  // ★튜토리얼 중엔 통째로 막는다 — 화면·조작을 망가뜨리는 장치가 설명 위에 겹치면
+  //   설명이 그냥 안 읽힌다. 해제법은 일부러 안 알려주기도 하고(직접 당해봐야 재미다).
+  if (!tut) updateHazards(dt, rules);
 
   checkWinLose(rules);
 }

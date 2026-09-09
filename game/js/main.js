@@ -41,6 +41,7 @@ import { initGallery } from './ui/galleryPanel.js';
 import { initRover, updateRover, showTip } from './ui/rover.js';
 import { initIntro, startIntro, updateIntro } from './ui/intro.js';
 import { initGameOpening, updateGameOpening, isOpeningFrozen } from './ui/gameOpening.js';
+import { initTutorialSpotlight } from './ui/tutorialSpotlight.js';
 import { initCursor, updateCursor } from './ui/cursor.js';
 import { updateStatusWindows } from './ui/statusWindow.js';
 import { initUploadPicture, updateUploadPicture } from './ui/uploadPicture.js';
@@ -212,6 +213,8 @@ async function main() {
   // 거쳐 간다. ★ initTitleScreen()보다 뒤여도 무관하다: 타이틀 버튼은 눌릴 때
   //   startGameOpening()을 부를 뿐이고, 그 시점엔 이미 여기 배선이 끝나 있다.
   initGameOpening();
+  // 인게임 튜토리얼의 스포트라이트 — DOM만 잡아둔다(무엇을 지목할지는 대본이 정한다).
+  initTutorialSpotlight();
   // 저장된 설정(사운드 셋·환경 방해)을 입힌다. ★ 반드시 initSound()/initBgm() 뒤여야
   // 한다 — 볼륨 노드가 그때 만들어지고, 여기서 그 노드에 값을 흘려보낸다.
   applySavedSettings();

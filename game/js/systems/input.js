@@ -153,6 +153,15 @@ function onPointerDown(canvas, pt, evt) {
   // 없다 — 그래서 중첩 연장이 구조적으로 불가능하다(스택 금지 요구사항).
   if (state.inputFreezeSec > 0) return;
 
+  // ★인게임 튜토리얼이 클릭을 아직 안 열어줬다 — 통째로 무시한다.
+  //   설명 단계(스포트라이트 + [다음])에서는 캔버스를 눌러봐야 할 일이 없고,
+  //   특히 "놔두면 깎인다" 단계는 ★방치를 강제해야 교훈이 성립한다(눌러서
+  //   없애버리면 진행바가 되돌아가는 걸 못 본다).
+  //   ★hourglass(위 inputFreezeSec)와 굳이 따로 둔 이유: 저건 함정에 걸린
+  //   벌칙이라 커서가 모래시계로 바뀌는 등 "당했다"는 연출이 붙는다. 이건
+  //   그냥 아직 안 열린 것이라 아무 연출도 없어야 한다.
+  if (state.tutorial.blockClicks) return;
+
   // 방해꾼은 바탕화면 전체를 쓴다. 맞혔으면 여기서 끝 — 캔버스가 클릭을 가져간 것이다.
   state.stats.clicks += 1;
   const verdict = hitTestEnemies(pt);

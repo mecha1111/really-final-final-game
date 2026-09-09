@@ -12,14 +12,32 @@
 //   상단 주석과 같은 규칙). main.js가 매 프레임 updateGameOpening(dt)를 부른다.
 //   그래서 탭을 잠깐 벗어나도 연출이 앞으로 튀지 않는다.
 //
-// ★ 이 동안 phase는 계속 'title'이다 — 판을 미리 시작해두고 그 위를 덮는 게
+// ★ 2026-09-09 흐름 재전환 — ★튜토리얼이 붙는 회차에서는 판을 ★먼저 시작한다.
+//
+//   여기 오래 붙어 있던 문장은 이랬다: "판을 미리 시작해두고 그 위를 덮는 게
 //   아니라, 판 자체를 아직 시작하지 않는다. 그래야 오프닝을 보는 동안 방해꾼이
-//   스폰되거나 제한시간이 흐르는 일이 구조적으로 없다. 실제 startGame()은 이
-//   모듈이 끝나면서 부르는 콜백(onDone)이 한다.
+//   스폰되거나 제한시간이 흐르는 일이 구조적으로 없다."
+//   그건 튜토리얼이 말풍선 5쪽이던 시절에 옳았다. 지금 튜토리얼은 진행바가
+//   실제로 차오르고 실제 방해꾼을 실제로 클릭해서 없애는 시연이라, 판이 돌고
+//   있지 않으면 보여줄 것 자체가 없다.
+//
+//   그래서 구조가 대신 지켜주던 것(스폰 안 됨·시간 안 흐름)을 게이트로 옮겼다 —
+//   state.tutorial(core/state.js)이고, 실제로 막는 곳은 core/stageManager.js·
+//   systems/upload.js·systems/input.js다. ★게이트를 켜는 건 startGame(n, {tutorial:true})
+//   한 곳뿐이고, 다음 구간·재도전은 opts 없이 부르므로 저절로 꺼진다.
+//
+//   ★튜토리얼을 안 보는 회차(2회차 이후)는 예전 그대로다 — 렉·로딩이 타이틀 위에서
+//   돌고, 그게 끝난 뒤에야 onDone(=startGame)이 판을 시작한다. 굳이 둘을 통일하지
+//   않은 이유: 그 회차엔 게이트를 켤 이유가 없는데 판만 먼저 시작하면, 렉 연출
+//   3초 동안 실제로 방해꾼이 쏟아지고 시간이 흐른다(순수한 손해다).
+//   판 시작음(SFX.START)도 그래서 회차마다 나는 자리가 다르다 — 아래 finish() 주석 참고.
 
 import { config } from '../config.js';
+import { state } from '../core/state.js';
 import { hasSeenIntro, markIntroSeen } from '../core/save.js';
 import { playSfx, SFX } from '../systems/sound.js';
+import { releaseTutorial } from '../core/stageManager.js';
+import { spotOff } from './tutorialSpotlight.js';
 
 // 렉 걸린 창의 제목 — 굳는 순간 여기에 config.opening.deadSuffix가 붙는다.
 // ★index.html의 초기값과 같아야 한다(첫 프레임에 잠깐 다른 제목이 보이면 안 된다).
@@ -248,7 +266,13 @@ let frozen = false;
 
 // 오프닝이 끝나면 부를 콜백(실제 startGame). 한 번 부르고 반드시 비운다 —
 // [건너뛰기]와 마지막 쪽 [시작]이 둘 다 여기로 모이므로 두 번 불릴 여지를 없앤다.
+// ★튜토리얼이 붙는 회차에서는 이 값이 처음부터 null이다 — 판을 시작하는 일을
+//   startGameOpening()이 맨 앞에서 이미 해버렸기 때문이다(위 파일 상단 주석).
 let onDone = null;
+
+// 이번 오프닝에 튜토리얼이 붙었나. finish()가 "판을 지금 시작해야 하나(2회차)"와
+// "게이트를 풀어야 하나(1회차)"를 가르는 데 쓴다 — 두 회차의 끝맺음이 다르다.
+let tutorialRun = false;
 
 // 오프닝이 시작한 뒤 흐른 시간(초)과 남은 단계들. config.opening의 값이 전부
 // "이 시각"과 비교하는 절대 초라, 때가 된 것만 앞에서부터 꺼내 실행하면 된다
@@ -306,10 +330,10 @@ function finish() {
   //   아니라 이 지점이 "첫 실행 안내를 끝까지 봤다"의 기준이다. 그래서 도중에
   //   새로고침하면 다음 [게임 시작]에 다시 나온다(인트로도 같은 규칙이었다).
   markIntroSeen();
-  playSfx(SFX.UI_CLOSE, { ui: true });
 
   // 강아지가 먼저 사라진다(말풍선은 CSS transition으로 스르륵 빠진다).
   assistEl.classList.remove('on', 'tip');
+  spotOff();
 
   elapsed = 0;
   steps = [
@@ -324,6 +348,22 @@ function finish() {
         loadEl.classList.remove('on', 'low');
         hangEl.classList.remove('on', 'dead');
         layer.classList.remove('on');
+
+        // ★두 회차가 "실전이 시작되는 순간"을 여기 한 프레임으로 맞춘다 —
+        //   오버레이가 걷히는 바로 이 프레임이다. 그래야 어느 회차든 "화면이
+        //   열리는 순간부터 시간이 흐른다"가 같다.
+        //   · 튜토리얼 회차: 판은 이미 돌고 있으므로 시작이 아니라 게이트 해제다.
+        //     ★걷어내는 연출(0.66초) 동안 미리 풀면 아직 어두운 화면 뒤에서 시간이
+        //     흐르고 방해꾼이 스폰된다 — 눌렀는데 안 보이는 손해가 된다.
+        //   · 2회차 이후: 여기서 비로소 startGame()이 불린다(예전 그대로).
+        if (tutorialRun) {
+          tutorialRun = false;
+          releaseTutorial();
+          // ★판 시작음. startGame()은 튜토리얼이 얹힌 판에서 이걸 건너뛴다
+          //   (core/stageManager.js) — "이제 시작한다"는 신호가 실제 시작보다
+          //   한참 앞서 나면 신호가 아니게 되기 때문이다. 두 회차 다 판당 정확히 1회.
+          playSfx(SFX.START);
+        }
         const done = onDone;
         onDone = null;
         done?.();
@@ -393,10 +433,23 @@ export function startGameOpening(done) {
   const wantTutorial = config.tutorial.enabled && !hasSeenIntro();
 
   const c = config.opening;
-  onDone = done;
+  tutorialRun = wantTutorial;
   active = true;
   frozen = false;
   elapsed = 0;
+
+  if (wantTutorial) {
+    // ★판을 먼저 시작한다 — 튜토리얼이 진행바·할당량·실제 방해꾼 위에서 돌아야 하므로,
+    //   설명할 대상이 이 시점에 이미 화면에 있어야 한다. 게이트({tutorial:true})가
+    //   함께 켜져서 제한시간·일반 스폰·환경 방해는 멈춘 채다.
+    // ★렉 연출이 이 위를 덮는다 — 즉 "인게임 화면에 들어와서 그 화면이 굳는" 그림이다.
+    //   예전처럼 타이틀 위에서 굳는 것보다 이쪽이 정직하다(굳는 대상이 실제로 그 게임이다).
+    onDone = null;
+    done?.({ tutorial: true });
+  } else {
+    // 2회차 이후 — 예전 그대로. 렉·로딩이 끝난 뒤에야 판이 시작된다.
+    onDone = done;
+  }
 
   // 시작 상태로 되돌린다 — 두 번째 [게임 시작]에도 같은 자리에서 다시 시작해야 한다.
   hangEl.classList.remove('dead');

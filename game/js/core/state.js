@@ -103,6 +103,24 @@ export const state = {
     soundBgm: 50,
   },
 
+  // === 인게임 튜토리얼(ui/tutorial.js) ===
+  // ★ 이 튜토리얼은 판 "앞"이 아니라 판 "위"에서 돈다 — 진행바·할당량·실제 방해꾼을
+  //   보여주며 시켜봐야 해서, startGame()을 먼저 부르고 그 위에서 설명한다.
+  //   그래서 예전에 구조가 대신 지켜주던 것들(스폰 안 됨·시간 안 흐름)을 이제 이
+  //   플래그들이 지킨다. 게이트를 읽는 곳은 전부 "이 값 하나만" 본다:
+  //     · core/stageManager.js — 제한시간 / 일반 스폰 / 환경 방해 / 긴박 경고
+  //     · systems/upload.js    — 진행바 자동 증가
+  //     · systems/input.js     — 설명 중 클릭 무시
+  //   개별 방해꾼의 수명·주기공격 동결은 여기가 아니라 enemy.tutorialFrozen이 맡는다
+  //   (마리마다 따로 풀어야 하기 때문 — 4단계는 그 한 마리만 공격을 되살린다).
+  // ★ startGame()이 매 판 아래 초기값으로 되돌린다. 켜는 건 startGame(n, {tutorial:true})
+  //   한 곳뿐이라, 다음 구간·재도전으로 넘어가면 저절로 꺼진다.
+  tutorial: {
+    active: false, // 튜토리얼이 도는 중인가 — 위 게이트 전부의 스위치
+    uploadAuto: true, // 진행바 자동 증가를 허용하나(상한에 닿거나 4단계에 들어가면 끈다)
+    blockClicks: true, // 캔버스 클릭을 통째로 무시하나(시연 단계에서만 연다)
+  },
+
   blocked: false, // A타입 때문에 업로드가 멈춰 있나
   blockedBy: [],
   attackWarning: false, // 예비동작 중인 방해꾼이 있나(곧 얻어맞는다)

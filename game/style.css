@@ -2806,9 +2806,45 @@ body {
   overflow: hidden;
   pointer-events: none;
 }
-/* 오프닝이 떠 있는 동안은 아래(타이틀·캔버스)로 클릭이 절대 안 샌다 —
-   레이어 자신이 auto라 물리적으로 다 받아버린다(.layer-intro와 같은 원리). */
-#desktop .layer-opening.on { display: block; pointer-events: auto; }
+/* ★레이어 자신은 클릭을 안 받는다(pointer-events:none 그대로).
+   ★2026-09-09 뒤집었다. 예전엔 .on에 auto를 걸어 "아래로 클릭이 절대 안 샌다"를
+   레이어 하나로 지켰다. 그때는 그게 옳았다 — 오프닝이 도는 동안 판 자체가 아직
+   시작되지 않아서(phase가 'title') 아래로 새어봐야 받을 게 없었고, 타이틀 버튼이
+   눌리는 것만 막으면 됐다.
+   지금은 튜토리얼이 판 ★위에서 돈다. 시연 단계에서 "이 방해꾼을 클릭해라"가
+   성립하려면 캔버스가 클릭을 받아야 하므로, 레이어가 한 톨이라도 먹으면 안 된다.
+   ★그럼 설명 단계에서 아래로 새는 건 누가 막나 — state.tutorial.blockClicks다
+   (systems/input.js). 레이어의 물리적 차단이 아니라 게임 쪽 게이트로 옮겼다:
+   단계마다 열고 닫아야 하는데 CSS로는 그 세밀함을 못 낸다.
+   클릭을 받아야 하는 것(말풍선·버튼)은 자기 규칙에서 auto를 연다(.op-assist.on). */
+#desktop .layer-opening.on { display: block; }
+
+/* ===== ★스포트라이트 (마크업 주석: index.html의 #op-spot) =====
+   구멍 하나짜리 레이어. 빈 .hole에 화면보다 큰 box-shadow 확산을 걸면 그 바깥
+   전부가 어두워지고 .hole만 그대로 비친다 — filter/backdrop-filter/mask 금지
+   규칙 때문에 "어둠을 깔고 지우는" 방식을 못 써서, 반대로 구멍 말고 전부를 칠한다.
+   ★radius 0 — 각진 사각이 XP 어휘다. 둥근 스포트라이트는 이 화면의 물건이 아니다.
+   ★레이어 전체 pointer-events:none — 시연 단계에서 캔버스 클릭이 살아있어야 한다.
+   ★위치·크기는 ui/tutorialSpotlight.js가 px로 넣는다(vh 금지 — #desktop은
+     뷰포트가 아니라 자기 1920x1080 좌표계를 산다). */
+#desktop .op-spot {
+  position: absolute; inset: 0; z-index: 40;
+  display: none; /* .on이 붙어야 보인다 */
+  overflow: hidden; /* 9999px 그림자가 #desktop 밖으로 새어 나가지 않게 */
+  pointer-events: none;
+}
+#desktop .op-spot.on { display: block; }
+#desktop .op-spot .hole {
+  position: absolute; left: 0; top: 0; width: 0; height: 0;
+  border: 1px solid #fff; border-radius: 0; /* ★각진 사각 + 바깥 흰 1px */
+  box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.72); /* ★이 한 줄이 구멍을 뚫는다 */
+  /* 다음 대상으로 스르륵 옮겨간다 — 순간이동하면 "옮겨갔다"가 아니라 "다른 게
+     떴다"로 읽혀서 시선이 따라오지 못한다. */
+  transition: left 0.26s ease, top 0.26s ease, width 0.26s ease, height 0.26s ease;
+}
+/* 안쪽 검은 점선 — XP 포커스 사각형의 두 번째 겹. box-shadow로는 점선을 못 그려서
+   요소를 하나 더 쓴다. */
+#desktop .op-spot .hole i { position: absolute; inset: 0; border: 1px dotted #000; }
 
 /* ===== 1단계 · 렉 걸린 창 (참조 문서 .hangwin) =====
    창 크롬(.win/.tbar/.wb)은 게임의 기존 것을 그대로 물려받고, 여기서는 자리와
