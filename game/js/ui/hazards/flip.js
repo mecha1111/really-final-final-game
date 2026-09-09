@@ -37,8 +37,9 @@
 //   canvasGeometry.isRotationSettling()을 보고 막는다. 중간각에서는 화면에 그려진
 //   각도와 계산이 한두 프레임 어긋날 수 있어서다(그 파일 주석에 근거).
 //
-// ★ 접근성: config.hazard.rotationEnabled가 false면 아예 후보에서 빠진다
-//   (canFire) — [환경 방해] 토글과 독립된 별도 스위치다(멀미 대비, 설정창).
+// ★ 2026-09-09: 예전엔 [화면 상하반전]이라는 별도 접근성 토글이 있어서 이 방해만
+//   따로 끌 수 있었다(canFire로 후보에서 뺐다). 그 토글을 걷어내면서 여기도 같이
+//   지웠다 — 지금은 [환경 방해] 토글이 다른 방해들과 함께 켜고 끈다.
 
 import { config } from '../../config.js';
 import { registerHazard } from '../../systems/hazard.js';
@@ -72,11 +73,6 @@ registerHazard({
   },
   // 해제 조작이 없다 — 방치하면 durationSec 뒤 프레임워크가 'timeout'으로 끝낸다.
   dismiss: 'timeout',
-
-  /** 접근성 토글이 꺼져 있으면 아예 안 나온다(systems/hazard.js의 eligibleHazardIds). */
-  canFire() {
-    return config.hazard.rotationEnabled !== false;
-  },
 
   mount(inst) {
     const el = document.createElement('div');

@@ -26,7 +26,7 @@ import { getSave, saveSettings, clearSave, resetSeenTips } from '../core/save.js
 import { playSfx, refreshSfxVolume, SFX } from '../systems/sound.js';
 import { refreshBgmVolume } from '../systems/bgm.js';
 import { applyCrtSteadyVars } from './crtTransition.js';
-import { clearActiveHazards, dismissHazardById } from '../systems/hazard.js';
+import { clearActiveHazards } from '../systems/hazard.js';
 import { resetRoverQueue } from './rover.js';
 import { openConfirm } from './confirmDialog.js';
 import { isOpeningActive } from './gameOpening.js';
@@ -41,7 +41,6 @@ const DEFAULTS = {
   crtEnabled: true,
   crtIntensity: 'mid',
   hazardEnabled: true,
-  rotationEnabled: true,
   tutorialEnabled: true,
 };
 
@@ -77,12 +76,8 @@ function syncCrtControls() {
 function syncHazardControl() {
   const box = document.getElementById('set-hazard-on');
   if (box) box.checked = config.hazard.enabled;
-  // 화면 회전은 [환경 방해]와 독립된 접근성 토글이라 따로 맞춘다 — 환경 방해를
-  // 꺼도 이 체크는 자기 값을 그대로 유지한다(다시 켰을 때 기억이 남아 있어야 한다).
-  const rot = document.getElementById('set-rotation-on');
-  if (rot) rot.checked = config.hazard.rotationEnabled;
-  // 튜토리얼(러버)도 같은 이유로 독립적으로 맞춘다 — [환경 방해]/[화면 회전]과
-  // 아예 다른 축(안내 vs 방해)이라 서로의 값에 영향을 안 받는다.
+  // 튜토리얼(러버)은 [환경 방해]와 독립적으로 맞춘다 — 아예 다른 축(안내 vs
+  // 방해)이라 서로의 값에 영향을 안 받는다.
   const tut = document.getElementById('set-tutorial-on');
   if (tut) tut.checked = config.tutorial.enabled;
 }
@@ -128,7 +123,6 @@ export function applySavedSettings() {
   refreshSfxVolume();
   refreshBgmVolume();
   config.hazard.enabled = saved.hazardEnabled;
-  config.hazard.rotationEnabled = saved.rotationEnabled;
   config.tutorial.enabled = saved.tutorialEnabled;
 }
 
@@ -208,7 +202,6 @@ export function initSettingsPanel() {
     config.crt.intensity = DEFAULTS.crtIntensity;
     applyCrtSteadyVars();
     config.hazard.enabled = DEFAULTS.hazardEnabled;
-    config.hazard.rotationEnabled = DEFAULTS.rotationEnabled;
     config.tutorial.enabled = DEFAULTS.tutorialEnabled;
     if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
     syncAllControls();
@@ -263,16 +256,7 @@ export function initSettingsPanel() {
     saveSettings();
   });
 
-  // 화면 회전만 따로 끄기(접근성 — 멀미). 위 [환경 방해]와 독립이라 다른 방해는
-  // 그대로 나온다. 끄면 지금 돌아가 있는 화면도 즉시 되돌린다 — "다음 판부터"만
-  // 듣는 건 끄는 이유(지금 당장 어지럽다)와 안 맞는다(위 환경 방해와 같은 원칙).
-  document.getElementById('set-rotation-on')?.addEventListener('change', (evt) => {
-    config.hazard.rotationEnabled = evt.target.checked;
-    if (!config.hazard.rotationEnabled) dismissHazardById('flip');
-    saveSettings();
-  });
-
-  // [시작 시 튜토리얼 보기] 끄기 — [환경 방해]/[화면 회전]과 독립. 끄면 다음
+  // [시작 시 튜토리얼 보기] 끄기 — [환경 방해]와 독립. 끄면 다음
   // [게임 시작]의 오프닝에서 강아지 튜토리얼 페이지만 건너뛴다(렉·로딩 연출은
   // 그대로 나온다 — config.tutorial 상단 주석 참고). resetRoverQueue()는
   // 러버 사이드바 몫이라 지금 인게임에서 실제로 뭘 치울 일은 없지만, 그 모듈이

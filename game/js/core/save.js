@@ -70,7 +70,12 @@ function defaultSave() {
 
     // 지금까지 메모리에만 있던 설정값(core/state.js의 state.settings + 환경 방해
     // 토글 config.hazard.enabled). 슬라이더 셋은 state.settings와 같은 이름을 쓴다.
-    // rotationEnabled는 [환경 방해]와 별개인 접근성 토글이다(화면 회전만 끄기).
+    // ★ rotationEnabled는 2026-09-09부로 ★미사용 필드다 — [화면 상하반전] 토글을
+    //   걷어내면서 읽는 쪽도 쓰는 쪽도 사라졌다(상하반전은 이제 [환경 방해]가
+    //   함께 켜고 끈다). 필드를 지우지 않고 남겨두는 이유: 지우면 옛 세이브를
+    //   위해 마이그레이션을 한 세대 더 쌓아야 하는데, 아무도 안 읽는 bool 하나
+    //   때문에 그럴 이유가 없다. 아래 saveSettings()는 이 값을 "있던 그대로"
+    //   되쓴다(새로 만들어 넣지도, 덮어쓰지도 않는다).
     // tutorialEnabled도 마찬가지로 독립 토글이다. ★2026-09-07: 인게임 러버 팁이
     // 걷어내지면서 의미가 강아지 튜토리얼 표시 여부로 옮겨갔고, ★2026-09-08:
     // 그 튜토리얼 자체가 인트로에서 [게임 시작] 뒤(ui/gameOpening.js)로 다시
@@ -447,7 +452,11 @@ export function saveSettings() {
       soundSfx: state.settings.soundSfx,
       soundBgm: state.settings.soundBgm,
       hazardEnabled: config.hazard.enabled,
-      rotationEnabled: config.hazard.rotationEnabled,
+      // ★ 미사용 필드(위 defaultSave 주석) — 지금 값을 그대로 되쓴다. config에서
+      //   읽으면 안 된다: 그 자리는 이미 없어서 undefined가 들어가고, 그러면
+      //   sanitize가 매번 기본값으로 되돌려 "옛 세이브의 값이 조용히 바뀌는"
+      //   쓸데없는 변화가 생긴다.
+      rotationEnabled: save.settings.rotationEnabled,
       tutorialEnabled: config.tutorial.enabled,
     };
   });
