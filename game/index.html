@@ -553,6 +553,11 @@
 
       <div class="layer-hazard" id="layer-hazard"></div>
 
+      <!-- 무한모드 1층 진입 안내(ui/infiniteBanner.js) — "새로운 방해가 추가됩니다"
+           1회 토스트. trapDialog와 같은 성격(게임 상태를 안 건드리는 순수 안내,
+           pointer-events:none)이라 같은 자리(hazard 바로 뒤)에 둔다. -->
+      <div class="layer-infobanner" id="layer-infobanner"></div>
+
       <!-- 피해를 입은 순간 화면 가장자리가 빨갛게 펄스(레이어8). systems/upload.js의
            triggerHitFeedback가 --vig-level만 흘려보낸다(ui/statusWindow.js가 매 프레임
            갱신). 과밀 지지직(레이어7)보다 위 — 둘이 겹쳐도 "지금 막 맞았다"가 묻히면

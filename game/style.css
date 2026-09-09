@@ -404,6 +404,13 @@ body {
      1.5초 동안 방해꾼 클릭이 먹히지 않는다. */
 #desktop .layer-trapdlg { position: absolute; inset: 0; z-index: 7; pointer-events: none; display: none; }
 #desktop .layer-trapdlg.open { display: block; }
+/* 무한모드 1층 진입 안내(ui/infiniteBanner.js). trapdlg와 완전히 같은 규칙
+   (pointer-events:none, display 토글) — 순수 안내문이라 클릭을 받으면 안 된다.
+   ★DOM에서 .layer-hazard보다 뒤(= 위)라 안내가 항상 읽힌다 — 이 배너는 판
+   시작 직후에만 뜨므로(hazard.graceSec=25초 뒤에야 첫 환경 방해가 뜬다) 실제로
+   겹칠 일은 없지만, 순서 자체는 "안내가 항상 이긴다"로 정해둔다. */
+#desktop .layer-infobanner { position: absolute; inset: 0; z-index: 7; pointer-events: none; display: none; }
+#desktop .layer-infobanner.open { display: block; }
 #desktop .layer-vignette { position: absolute; inset: 0; z-index: 8; pointer-events: none; }
 #desktop .layer-urgent { position: absolute; inset: 0; z-index: 8; pointer-events: none; opacity: 0; }
 #desktop .layer-crt-steady { position: absolute; inset: 0; z-index: 9; pointer-events: none; display: none; overflow: hidden; }
@@ -2478,6 +2485,17 @@ body {
 }
 /* 트레이를 가리키는 꼬리라 상단 풍선엔 안 맞는다 — 여기만 지운다. */
 #desktop .hz-driver-toast::before, #desktop .hz-driver-toast::after { content: none; }
+
+/* 무한모드 1층 진입 안내(ui/infiniteBanner.js) — .hz-driver-toast와 완전히 같은
+   자리(상단 중앙)·같은 오버라이드 방식이다. 다만 저건 hazard 프레임워크가
+   매 프레임 --hz-driver-toast-a로 계단 알파를 흘려주는 "떠 있는 동안"용이고,
+   이 배너는 trapDialog처럼 display 토글 하나로만 여닫는 순수 정적 UI라 그
+   변수 배선이 필요 없다. */
+#desktop .info-banner {
+  left: 50%; top: 24px; bottom: auto; transform: translateX(-50%);
+  width: auto; max-width: 420px;
+}
+#desktop .info-banner::before, #desktop .info-banner::after { content: none; }
 
 /* ── E. 화면 깨짐 ──────────────────────────────────────────────────────────
    ★ 이 방해는 "시야만 가리고 클릭은 통과"가 핵심이라, 컨테이너·캔버스 전부

@@ -20,6 +20,7 @@ import { updateFloats, clearFloats } from '../systems/floats.js';
 import { updateCombo, clearCombo } from '../systems/combo.js';
 import { recordPointer, resetTrail } from '../systems/pointerTrail.js';
 import { resetWindowPositions } from '../ui/desktop.js';
+import { showInfiniteBanner } from '../ui/infiniteBanner.js';
 import { bindRules } from '../debug.js';
 
 const spawner = new Spawner();
@@ -135,6 +136,10 @@ export function startGame(stageIndex = 0, opts) {
   //   튜토리얼이 붙으면 실제 시작은 [업데이트 재개]를 누른 뒤다. 그 자리에서
   //   ui/gameOpening.js가 대신 낸다(그래서 회차와 무관하게 판당 정확히 1회).
   if (!state.tutorial.active) playSfx(SFX.START);
+  // 무한 1층(정확히 그 진입 순간만) — "새로운 방해가 추가됩니다" 1회 안내
+  // (ui/infiniteBanner.js). n===finiteCount라 무한 2층 이상·유한 5구간에선
+  // 안 뜬다 — 1층에서 이미 18종이 전부 열리므로 그 다음부터는 더 알릴 신규가 없다.
+  if (n === config.stage.finiteCount) showInfiniteBanner();
 
   // ★ 2026-09-07: 여기 있던 "첫 게임 시작" 팁(showTip('first_game', …))을 걷어냈다.
   //   플레이 중 좌하단에서 뜨는 안내는 방해꾼이 날뛰는 와중이라 아무도 안 읽었다 —

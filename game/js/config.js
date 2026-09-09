@@ -173,6 +173,12 @@ export const config = {
     enemyWeightOverride: {
       copier: 2,
     },
+
+    // ★ 2026-09-10 신설 — 무한 1층 진입 안내(ui/infiniteBanner.js) 표시 시간(ms).
+    //   trapDialog.holdMs(1500)와 같은 성격이지만, 안내 문구가 더 길고("새로운
+    //   방해가 추가됩니다" + 부제) 방해꾼이 아직 하나도 안 뜬 이른 시점이라
+    //   좀 더 여유 있게 읽을 수 있게 뒀다.
+    infiniteBannerHoldMs: 2500,
   },
 
   // HUD는 캔버스에서 HTML 창(ui/statusWindow.js)으로 옮겨갔다.
