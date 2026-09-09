@@ -223,5 +223,11 @@ export function moveEnemy(enemy, dt, world) {
   enemy.x += enemy.vx * dt;
   enemy.y += enemy.vy * dt;
 
-  bounceInside(enemy, playArea);
+  // ★튜토리얼 시연용은 자기만의 좁은 영역 안에서 튕긴다(enemy.tutorialArea).
+  //   "클릭해서 없애라"고 시켜놓고 그 놈이 말풍선 뒤(z45, 캔버스보다 위)로
+  //   걸어 들어가면 누를 수가 없다 — 실제로 10초쯤 읽는 동안 화면의 1/3을
+  //   가로지를 만큼 움직인다. 멈춰 세우는 대신 갈 수 있는 데를 좁혔다:
+  //   실전의 그 놈과 똑같이 돌아다니되 항상 손이 닿는 곳에 있다.
+  //   실전에서는 이 값이 undefined라 예전과 완전히 같다.
+  bounceInside(enemy, enemy.tutorialArea ?? playArea);
 }

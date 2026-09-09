@@ -38,6 +38,7 @@ import { hasSeenIntro, markIntroSeen } from '../core/save.js';
 import { playSfx, SFX } from '../systems/sound.js';
 import { releaseTutorial } from '../core/stageManager.js';
 import { spotOff } from './tutorialSpotlight.js';
+import { initTutorial, startTutorial, stopTutorial, tutorialNext, isTutorialRunning, clearDemoEnemies } from './tutorial.js';
 
 // 렉 걸린 창의 제목 — 굳는 순간 여기에 config.opening.deadSuffix가 붙는다.
 // ★index.html의 초기값과 같아야 한다(첫 프레임에 잠깐 다른 제목이 보이면 안 된다).
@@ -304,13 +305,25 @@ function renderPage() {
   nextBtn.textContent = pageIndex === PAGES.length - 1 ? '시작' : '다음';
 }
 
-/** 말풍선을 띄운다. */
+/** 말풍선을 띄우고 ★대본(ui/tutorial.js)을 돌린다.
+ * ★이 파일은 "언제 띄우나"(렉 연출 타임라인)와 "어떻게 보이나"(.on/.tip 클래스)만
+ *   맡고, 내용과 진행은 전부 대본이 맡는다 — 예전엔 쪽 데이터까지 여기 있었지만,
+ *   시연이 들어오면서 소환·게이트 조작·스포트라이트가 붙어 성격이 완전히 달라졌다. */
 function showTutorial() {
-  pageIndex = 0;
-  renderPage();
+  // ★렉 연출을 여기서 걷는다 — 굳은 창과 로딩 오버레이(0.72 어둠)를 그대로 두면
+  //   튜토리얼이 가리키는 화면 자체가 안 보인다. 예전엔 이 어둠 위에서 말풍선
+  //   5쪽을 읽는 게 전부라 걷을 이유가 없었지만(오히려 배경을 죽여야 글이 읽혔다),
+  //   이제는 진행바·할당량·방해꾼을 실제로 봐야 한다.
+  //   ★어둠의 역할은 스포트라이트가 이어받는다 — 화면 전체가 어둡던 것이, 볼 곳
+  //   하나만 뚫린 어둠으로 바뀐다. .op-load.dim의 0.5초 transition이 그 사이를
+  //   부드럽게 잇는다(구멍이 "열리는" 것처럼 보인다).
+  hangEl.classList.remove('on', 'dead');
+  loadEl.classList.remove('on', 'dim', 'low');
+
   // .tip = 캐릭터 위 노란 전구 깜빡임(참조 문서의 .xp-assist.tip).
   assistEl.classList.add('on', 'tip');
   playSfx(SFX.UI_OPEN, { ui: true });
+  startTutorial(finish); // 대본이 끝나면([업데이트 재개]) 오프닝의 마무리로 돌아온다
 }
 
 /**
@@ -331,9 +344,12 @@ function finish() {
   //   새로고침하면 다음 [게임 시작]에 다시 나온다(인트로도 같은 규칙이었다).
   markIntroSeen();
 
+  // 대본을 걷는다(스포트라이트·말풍선 위치 클래스까지 여기서 원복된다).
+  stopTutorial();
+  spotOff();
+
   // 강아지가 먼저 사라진다(말풍선은 CSS transition으로 스르륵 빠진다).
   assistEl.classList.remove('on', 'tip');
-  spotOff();
 
   elapsed = 0;
   steps = [
@@ -388,24 +404,38 @@ export function initGameOpening() {
   nextBtn = document.getElementById('op-assist-next');
   skipBtn = document.getElementById('op-assist-skip');
 
+  // 대본이 말풍선 내용을 직접 채운다 — 이 파일은 DOM을 잡아 넘겨주기만 한다.
+  initTutorial({ assist: assistEl, head: headEl, text: textEl, fig: figEl, next: nextBtn });
+
   backBtn.addEventListener('click', () => {
     // disabled라 1쪽에선 여기까지 안 오지만, 값의 하한은 여기서도 지킨다.
     if (pageIndex === 0) return;
     pageIndex -= 1;
-    playSfx(SFX.UI_CLICK, { ui: true });
     renderPage();
   });
+  // ★[다음]/[업데이트 재개] — 대본이 돌고 있으면 대본이 받는다.
+  //   ★클릭음을 안 낸다(요구사항) — 이 버튼은 한 번의 튜토리얼에서 여러 번
+  //   눌리는데, 누를 때마다 같은 소리가 나면 그 소리가 곧 소음이 된다.
+  //   튜토리얼에서 나는 소리는 "무슨 일이 일어났다"를 뜻하는 것만 남긴다.
   nextBtn.addEventListener('click', () => {
+    if (isTutorialRunning()) {
+      tutorialNext();
+      return;
+    }
     if (pageIndex >= PAGES.length - 1) {
-      finish(); // 마지막 쪽의 [시작]
+      finish();
       return;
     }
     pageIndex += 1;
-    playSfx(SFX.UI_CLICK, { ui: true });
     renderPage();
   });
   // ★[건너뛰기]는 항상 노출된다(요구사항) — 숨기거나 비활성하지 않는다.
-  skipBtn.addEventListener('click', finish);
+  //   ★남아 있는 시연 적을 먼저 치운다: 설명을 못 들은 놈을 실전으로 데려가면
+  //   "이건 뭔데 안 죽지"가 된다(끝까지 본 경우의 bait는 설명을 들었으므로 남긴다).
+  skipBtn.addEventListener('click', () => {
+    clearDemoEnemies();
+    finish();
+  });
 }
 
 /**

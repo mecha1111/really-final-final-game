@@ -42,6 +42,7 @@ import { initRover, updateRover, showTip } from './ui/rover.js';
 import { initIntro, startIntro, updateIntro } from './ui/intro.js';
 import { initGameOpening, updateGameOpening, isOpeningFrozen } from './ui/gameOpening.js';
 import { initTutorialSpotlight } from './ui/tutorialSpotlight.js';
+import { updateTutorial } from './ui/tutorial.js';
 import { initCursor, updateCursor } from './ui/cursor.js';
 import { updateStatusWindows } from './ui/statusWindow.js';
 import { initUploadPicture, updateUploadPicture } from './ui/uploadPicture.js';
@@ -265,6 +266,10 @@ async function main() {
       // (위 두 early return을 그대로 통과해 여기 왔다는 뜻이므로), 그 외엔
       // 게임 진행과 완전히 독립적으로 자기 큐만 진행한다(진행바는 안 건드린다).
       updateRover(dt);
+      // ★인게임 튜토리얼 대본도 같은 자리다 — 설정 일시정지·히트스톱 동안은 같이
+      //   멈춘다(위 두 early return을 통과해 여기 왔다는 뜻이므로). 스포트라이트가
+      //   움직이는 시연 적을 따라가려면 매 프레임 다시 계산해야 해서 여기 둔다.
+      updateTutorial(dt);
     },
     render: (now) => {
       render({ ctx, canvas, state, gameData, now });
