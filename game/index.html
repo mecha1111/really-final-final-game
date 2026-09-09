@@ -846,7 +846,7 @@
                  (#dex-viewer)이 열리고 긴 설명·처치 수는 거기서 읽는다. -->
           <div class="gallery-page" id="gallery-page-dex">
             <div class="gallery-count-row">
-              발견 <b id="dex-count">0</b> / <span id="dex-total">12</span>
+              발견 <b id="dex-count">0</b> / <span id="dex-total">18</span>
             </div>
             <div class="gallery-grid gallery-dex-grid" id="dex-grid"></div>
           </div>
@@ -904,7 +904,12 @@
               </div>
               <div class="dex-viewer-body">
                 <div class="gallery-viewer-stage dex-viewer-stage">
+                  <!-- 방해꾼은 스프라이트 한 장(img), 환경 방해는 icons.js 글리프
+                       (그릴 스프라이트가 없다 — HTML 레이어에 사는 장치라 "한 장의
+                       그림"이 애초에 없다). ui/dexPanel.js가 항목에 맞는 쪽만
+                       보여주고 나머지는 hidden으로 접는다. -->
                   <img class="dex-viewer-img" id="dex-viewer-img" alt="" />
+                  <div class="dex-viewer-icon" id="dex-viewer-icon" hidden></div>
                 </div>
                 <div class="dex-viewer-info">
                   <div class="dex-viewer-name" id="dex-viewer-name"></div>

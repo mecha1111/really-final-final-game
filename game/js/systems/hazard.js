@@ -26,6 +26,7 @@
 
 import { config } from '../config.js';
 import { state, onPhaseChange } from '../core/state.js';
+import { recordHazardEncounter } from '../core/save.js';
 
 /** id -> 정의. ui/hazards/*.js가 모듈 로드 시점에 registerHazard()로 채운다. */
 const DEFS = new Map();
@@ -169,6 +170,11 @@ export function triggerHazard(id) {
 
   state.hazards.push(inst);
   lastFiredId = def.id;
+  // 도감(ui/dexPanel.js의 환경 방해 구획) 해금 — "한 번 이상 발동을 겪으면"이
+  // 조건이라, 실제로 뜬 이 자리가 유일한 신호다. 전조는 여기 안 온다(예고만
+  // 보고 열리면 "겪었다"가 아니다). 스케줄러가 부르든 디버그 손잡이
+  // (__game.hazard)가 부르든 화면에 뜬 건 마찬가지라 둘 다 센다.
+  recordHazardEncounter(def.id);
   return inst;
 }
 

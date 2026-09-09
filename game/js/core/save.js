@@ -31,7 +31,9 @@ const STORAGE_KEY = 'rff-save-v1';
 // v4(2026-09-07): 인트로 연출(ui/intro.js) 신설로 seenIntro가 생겼다. 위 v3의
 // 경고가 그대로 적용된다 — 필드 하나 늘었다고 옛 세이브를 버리면 해금 그림과
 // 이어할 구간이 통째로 날아간다. 아래 v3→v4 분기가 나머지를 전부 물려받는다.
-const SCHEMA_VERSION = 4;
+// v5(2026-09-09): 도감에 환경 방해 6종이 들어오면서 unlockedHazards가 생겼다.
+// 위 v3·v4의 경고가 그대로 적용된다 — 아래 v4→v5 분기가 나머지를 전부 물려받는다.
+const SCHEMA_VERSION = 5;
 
 /** 세이브의 초기값 = 스키마의 정의 그 자체. 손상·구버전·저장소 없음이 전부 여기로 온다. */
 function defaultSave() {
@@ -104,9 +106,23 @@ function defaultSave() {
     // (그림 갤러리와 같은 원칙으로) 다시 잠기지 않는다.
     unlockedEnemies: [],
 
+    // 환경 방해 도감(ui/dexPanel.js의 두 번째 구획) 해금 목록(중복 없음,
+    // systems/hazard.js의 등록 id). recordHazardEncounter()가 "한 번이라도
+    // 발동을 겪으면" 여기 추가한다 — 방해꾼과 달리 문턱값이 없다(겪는 것 자체가
+    // 드물어서 1회로 충분하고, 무엇보다 "겪었으면 안다"가 이 구획의 규칙이다).
+    // ★ 방해꾼 목록(unlockedEnemies)과 한 배열에 섞지 않는다 — id 공간이 다르고
+    //   (지금은 안 겹치지만 겹치지 않는다는 보장이 없다), "발견 N / 18"을 구획별로
+    //   쪼개 세는 쪽이 나중에도 안 꼬인다.
+    unlockedHazards: [],
+
     // 종류별 누적 횟수(id -> number) — 보통은 "처치 수"지만 bait는 "클릭당한
     // 횟수", hourglass/fake_btn은 "발동 횟수", copier는 "자폭 횟수"다(위 config.
     // dex 주석 참고). 도감 카드의 "처치 N회" 표시와 해금 판정이 같은 값을 본다.
+    // ★ 2026-09-09: 환경 방해 id(reboot/screensaver/…)도 여기 같이 쌓는다. 이 맵은
+    //   원래부터 "종류별 누적 횟수"이고 종류마다 세는 의미가 다른 맵이라(위 문장이
+    //   이미 그렇게 정의한다) 환경 방해의 "겪은 횟수"도 같은 자리에 들어맞는다 —
+    //   맵을 하나 더 만들 이유가 없다. 도감이 방해꾼은 "처치 N회", 환경 방해는
+    //   "겪음 N회"로 이름만 달리 붙여 보여준다.
     killCounts: {},
 
     // ★ 자리만 잡아둔 필드 — 지금 아무도 읽지도 쓰지도 않는다. 공모전 뒤 상점이
@@ -170,6 +186,13 @@ function migrate(raw) {
   if (cur.schemaVersion === 3) {
     cur = { ...cur, schemaVersion: 4, seenIntro: false };
   }
+  // v4 → v5: 도감에 환경 방해 구획 신설. 옛 세이브엔 발동 이력이 없으니 안전한
+  // 쪽(전부 미발견)으로 둔다 — 위 v2→v3(방해꾼 도감)과 완전히 같은 판단이다.
+  // 이미 겪어본 방해도 이 판부터 다시 세기 시작할 뿐, 해금 그림·이어할 구간·
+  // 방해꾼 도감 등 나머지 필드는 여기서 전부 그대로 물려받는다.
+  if (cur.schemaVersion === 4) {
+    cur = { ...cur, schemaVersion: 5, unlockedHazards: [] };
+  }
   return cur.schemaVersion === SCHEMA_VERSION ? cur : null;
 }
 
@@ -224,6 +247,9 @@ function sanitize(raw) {
     unlockedEnemies: Array.isArray(raw.unlockedEnemies)
       ? [...new Set(raw.unlockedEnemies.filter((s) => typeof s === 'string'))]
       : d.unlockedEnemies,
+    unlockedHazards: Array.isArray(raw.unlockedHazards)
+      ? [...new Set(raw.unlockedHazards.filter((s) => typeof s === 'string'))]
+      : d.unlockedHazards,
     killCounts: sanitizeKillCounts(raw.killCounts),
     coins: Math.max(0, Math.floor(num(raw.coins, d.coins))),
     upgrades:
@@ -485,6 +511,19 @@ export function recordEnemyEncounter(id) {
     if (save.killCounts[id] >= threshold && !save.unlockedEnemies.includes(id)) {
       save.unlockedEnemies.push(id);
     }
+  });
+}
+
+/**
+ * 환경 방해 도감 누적 — 그 방해가 "실제로 발동한" 순간마다 부른다
+ * (systems/hazard.js의 triggerHazard 한 곳뿐이다. 전조(telegraph)는 아직 발동이
+ * 아니라 안 센다 — 예고만 보고 도감이 열리면 "겪었다"는 말이 무의미해진다).
+ * 방해꾼(recordEnemyEncounter)과 달리 문턱값이 없다: 한 번 겪으면 바로 해금이다.
+ */
+export function recordHazardEncounter(id) {
+  return updateSave((save) => {
+    save.killCounts[id] = (save.killCounts[id] || 0) + 1;
+    if (!save.unlockedHazards.includes(id)) save.unlockedHazards.push(id);
   });
 }
 
