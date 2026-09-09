@@ -1,6 +1,10 @@
 // 이 파일 역할: 환경 방해 C — "절전 모드". XP 전원관리를 흉내 낸다. 가만히 두면
-// 화면이 서서히 꺼지고(3초에 걸쳐 암전), 마우스를 움직이면 다시 밝아진다.
-// 좌하단에는 XP 풍선 도움말이 뜬다.
+// 화면이 서서히 꺼지고(3초에 걸쳐 암전), 마우스를 계속 움직이는 동안만 같은
+// 속도로 다시 밝아진다. 좌하단에는 XP 풍선 도움말이 뜬다.
+//
+// ★ 2026-09-09: 밝아지는 속도를 어두워지는 속도와 같게 맞췄다(config의
+//   wakeRecoverSec). 예전엔 회복이 5.6배 빨라서 조금만 움직여도 즉시 100%로
+//   돌아왔고, 그래서 "서서히 어두워진다"는 연출을 볼 일 자체가 없었다.
 //
 // ★ 앞의 둘과 성격이 다르다: 재부팅·스크린세이버는 "한 번 해제하면 끝"이지만
 //   이건 계속 움직여야 유지된다 — 멈추면 다시 어두워진다. 조준하려면 손을 멈춰야
@@ -50,6 +54,7 @@ registerHazard({
 
     inst.data.dimEl = el.querySelector('.hz-dim');
     inst.data.dim = 0; // 지금 막의 불투명도(0=밝음)
+    inst.data.speed = 0; // 커서 속도의 짧은 창 이동평균(월드 px/초) — update() 주석 참고
 
     inst.el = el;
     // 전용 소리가 없어 "전원이 내려간다" 결에 가장 가까운 기존 소리를 재사용한다.
@@ -62,8 +67,22 @@ registerHazard({
     // 움직이는 중이면 밝아지고(회복), 멈춰 있으면 계속 어두워진다.
     // ★ 해제(dismissHazard)를 부르지 않는다 — 이 방해는 "풀고 끝"이 아니라
     //   움직이는 동안만 밝은 상태를 유지하는 것이라, 끝은 durationSec이 낸다.
-    const awake = inst.pointerDelta >= c.wakeDeltaPx;
-    const speed = awake ? -c.wakeRecoverPerSec : c.maxOpacity / c.dimInSec;
+    //
+    // ★ 판정을 "이번 프레임에 몇 px 움직였나"가 아니라 "초당 몇 px인가"로 본다 —
+    //   pointerDelta는 프레임당 거리라 그대로 문턱값과 비교하면 같은 손놀림이
+    //   120Hz에서 60Hz의 절반으로 잡힌다(config의 wakePxPerSec 주석 참고).
+    //   dt가 0인 첫 프레임은 나눗셈이 Infinity가 되므로 아예 "안 움직였다"로 친다.
+    const pxPerSec = dt > 0 ? inst.pointerDelta / dt : 0;
+    // 그 순간값을 그대로 쓰지 않고 wakeWindowSec 길이의 이동평균으로 본다 —
+    // 마우스 보고 주기와 프레임 주기가 어긋나면 손이 일정하게 움직여도 어떤
+    // 프레임은 0으로 잡히기 때문이다(config의 wakeWindowSec 주석에 실측 근거).
+    // 시간 기반 지수 이동평균이라 프레임 간격이 들쭉날쭉해도 가중치가 맞는다.
+    const alpha = dt > 0 ? 1 - Math.exp(-dt / c.wakeWindowSec) : 0;
+    inst.data.speed += (pxPerSec - inst.data.speed) * alpha;
+    const awake = inst.data.speed >= c.wakePxPerSec;
+    // ★ 회복과 감쇠가 대칭이다(둘 다 maxOpacity를 각자의 시간으로 나눈 속도) —
+    //   그래서 손을 멈추는 순간 밝아지던 것과 같은 속도로 곧장 어두워진다.
+    const speed = awake ? -(c.maxOpacity / c.wakeRecoverSec) : c.maxOpacity / c.dimInSec;
     inst.data.dim = clamp(inst.data.dim + speed * dt, 0, c.maxOpacity);
 
     // ★알파를 5단계로 끊는다(config.fx.alphaSteps) — 이 프로젝트는 매끄러운 연속
