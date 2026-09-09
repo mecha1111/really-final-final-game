@@ -93,10 +93,14 @@ export const state = {
   //   ★ 이 판단을 다시 하게 되면 "지금 어디에 배포하나"부터 확인할 것.
   //   그래서 아래 세 값은 이제 실제로 저장된다 — ui/settingsPanel.js가 조작이
   //   확정될 때마다 core/save.js에 찍고, 부팅 때 applySavedSettings()가 되돌린다.
+  //   ★ 2026-09-09: 100 → 50. 부팅 직후 아주 짧은 순간(applySavedSettings이
+  //   불리기 전)에만 쓰이는 값이라 사실상 안 보이지만, core/save.js의
+  //   defaultSave()와 항상 같은 수를 들고 있어야 한다 — 한쪽만 고치면 "새
+  //   세이브 첫 프레임"과 "그 이후"가 서로 다른 볼륨으로 잠깐 갈린다.
   settings: {
-    soundMaster: 100,
-    soundSfx: 100,
-    soundBgm: 100,
+    soundMaster: 50,
+    soundSfx: 50,
+    soundBgm: 50,
   },
 
   blocked: false, // A타입 때문에 업로드가 멈춰 있나
