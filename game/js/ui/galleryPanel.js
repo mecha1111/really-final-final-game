@@ -34,7 +34,7 @@ import { getSave } from '../core/save.js';
 import { allPictureSrcs, pictureLabel } from '../systems/filePicture.js';
 import { icon } from './icons.js';
 import { playSfx, SFX } from '../systems/sound.js';
-import { initDex, buildDexGrid } from './dexPanel.js';
+import { initDex, buildDexGrid, handleDexViewerKey, closeDexViewer } from './dexPanel.js';
 
 let layer = null;
 let gridEl = null;
@@ -190,6 +190,13 @@ function isViewerOpen() {
  *   onKeyDown 상단 주석에 이 순서를 그대로 적어뒀다.
  */
 export function handleGalleryViewerKey(code) {
+  // ★ 도감 상세 팝업(ui/dexPanel.js)도 여기서 함께 받는다 — systems/input.js의
+  //   진입점을 하나로 유지하려는 것이다(그 파일 onKeyDown 상단의 ESC 순서
+  //   주석이 "갤러리 확대 팝업이 설정 ESC보다 먼저"라고 못박고 있는데, 도감
+  //   팝업도 정확히 같은 자리에 있어야 할 또 하나의 모달-위-모달이다).
+  //   둘은 동시에 열릴 수 없다(탭이 갈려 있고, 탭을 바꾸면 아래 switchTab이
+  //   둘 다 닫는다) — 그래서 순서를 따질 필요 없이 먼저 물어보면 된다.
+  if (handleDexViewerKey(code)) return true;
   if (!isViewerOpen()) return false;
   if (code === 'Escape') { closeViewer(); return true; }
   if (code === 'ArrowLeft') { stepViewer(-1); return true; }
@@ -208,6 +215,7 @@ export function handleGalleryViewerKey(code) {
 function switchTab(tab) {
   if (!tabButtons || !pageEls) return;
   closeViewer(); // [그림] 뷰어가 떠 있는 채로 탭을 넘기면 뒤에서 계속 열려 있게 된다
+  closeDexViewer(); // [도감] 상세 팝업도 같은 이유로 함께 닫는다
   for (const [name, btn] of Object.entries(tabButtons)) btn?.classList.toggle('active', name === tab);
   for (const [name, page] of Object.entries(pageEls)) page?.classList.toggle('show', name === tab);
   if (tab === 'dex') buildDexGrid(); // 이 탭을 실제로 볼 때만 그린다(그림 그리드와 같은 지연 원칙)

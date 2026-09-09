@@ -839,9 +839,11 @@
             <div class="gallery-grid" id="gallery-grid"></div>
           </div>
 
-          <!-- [도감] 탭 — ui/dexPanel.js가 채운다. 12종 고정, 미해금은 실루엣+
-               lock+"???"(스포일러 없음), 해금은 스프라이트+이름+한 줄 설명+
-               처치 수. -->
+          <!-- [도감] 탭 — ui/dexPanel.js가 채운다. 미해금은 실루엣+lock+"???"
+               (스포일러 없음), 해금은 스프라이트+이름만.
+               ★ 2026-09-09: 칸 안에 있던 한 줄 설명·처치 수를 뺐다 — 칸이 좁아
+                 설명이 잘려서 못 읽었다. 칸을 누르면 아래 상세 팝업
+                 (#dex-viewer)이 열리고 긴 설명·처치 수는 거기서 읽는다. -->
           <div class="gallery-page" id="gallery-page-dex">
             <div class="gallery-count-row">
               발견 <b id="dex-count">0</b> / <span id="dex-total">12</span>
@@ -881,6 +883,41 @@
                 <button type="button" class="settings-btn gallery-viewer-navbtn" id="gallery-viewer-next">▶</button>
                 <span class="gallery-viewer-meta" id="gallery-viewer-meta"></span>
                 <button type="button" class="settings-btn" id="gallery-viewer-close">닫기</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- [도감] 칸을 누르면 열리는 상세 팝업. 위 그림 확대 팝업
+               (#gallery-viewer)과 완전히 같은 뼈대·같은 닫기 4경로다
+               (docs/xp-design-system.html 섹션 5 .xp-lightbox 정본) — 다른 건
+               내용뿐이라 CSS도 .gallery-viewer* 규칙을 그대로 물려 쓰고,
+               글자 블록(.dex-viewer-info)만 따로 얹는다.
+               ★ 미해금 칸은 아예 안 열린다(ui/dexPanel.js가 해금분만 목록으로
+                 만들어 그 안에서만 순환한다 — 그림 팝업의 unlockedList와 같은
+                 방식이라 미해금이 낄 여지가 구조적으로 없다). -->
+          <div class="gallery-viewer dex-viewer" id="dex-viewer">
+            <div class="win gallery-viewer-win dex-viewer-win" id="dex-viewer-win">
+              <div class="tbar">
+                <div class="ico"><span data-icon="bug"></span></div>
+                <div class="t" id="dex-viewer-title">도감</div>
+                <div class="wb"><span class="x" id="dex-viewer-x">×</span></div>
+              </div>
+              <div class="dex-viewer-body">
+                <div class="gallery-viewer-stage dex-viewer-stage">
+                  <img class="dex-viewer-img" id="dex-viewer-img" alt="" />
+                </div>
+                <div class="dex-viewer-info">
+                  <div class="dex-viewer-name" id="dex-viewer-name"></div>
+                  <div class="dex-viewer-kind" id="dex-viewer-kind"></div>
+                  <p class="dex-viewer-desc" id="dex-viewer-desc"></p>
+                  <div class="dex-viewer-count" id="dex-viewer-count"></div>
+                </div>
+              </div>
+              <div class="gallery-viewer-tools">
+                <button type="button" class="settings-btn gallery-viewer-navbtn" id="dex-viewer-prev">◀</button>
+                <button type="button" class="settings-btn gallery-viewer-navbtn" id="dex-viewer-next">▶</button>
+                <span class="gallery-viewer-meta" id="dex-viewer-meta"></span>
+                <button type="button" class="settings-btn" id="dex-viewer-close">닫기</button>
               </div>
             </div>
           </div>
