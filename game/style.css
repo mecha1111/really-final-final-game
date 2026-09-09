@@ -2296,21 +2296,50 @@ body {
   display: flex; justify-content: flex-end;
 }
 
-/* ── B. 스크린세이버 ───────────────────────────────────────────────────────
-   화면 전체를 덮는 검은 막 + 그 위에 별을 그리는 캔버스.
+/* ── B. 스크린세이버 — XP 텍스트 마퀴 ────────────────────────────────────────
+   순수 검정 화면 + 오른쪽에서 왼쪽으로 흐르는 흰 글자 하나. 별도 그라데이션·
+   비네트 없음(요구사항) — 실물 XP 마퀴 화면 보호기가 그렇듯 평평한 단색이다.
    ★ 이 막은 pointer-events:auto다 — "아무 데나 클릭 1회"로 풀리는 방해라 클릭을
      직접 받아야 하고, 동시에 그 클릭을 통째로 삼켜서 아래 캔버스(z5)의 방해꾼
      판정으로 새지 않게 한다(해제 클릭이 방해꾼을 잘못 죽이면 안 된다).
-   ★ 완전 불투명이 아니다 — --hz-saver-dim(config.hazard.screensaver.dimOpacity)
-     만큼만 덮어서 방해꾼이 흐릿하게 비친다. */
+   ★ 2026-09-09: 완전 불투명으로 바꿨다. 예전엔 --hz-saver-dim으로 방해꾼이
+     흐릿하게 비치게 뒀지만, 그건 Mystify 시절 "가려서 못 보게" 타협이었다 —
+     이번 재설계는 XP 실물 마퀴를 그대로 재현하는 게 목적이라 뒤가 안 비친다. */
 #desktop .hz-saver {
   position: absolute; inset: 0;
-  background: rgba(0, 0, 0, var(--hz-saver-dim, 0.75));
+  background: #000000;
   pointer-events: auto;
+  overflow: hidden; /* 마퀴 텍스트가 화면 밖으로 나가 있는 구간을 잘라낸다 */
   cursor: default; /* 스크린세이버 중엔 게임 커서(조준) 대신 평범한 화살표 */
 }
-/* 캔버스는 논리 해상도로 그려두고 CSS가 화면 크기에 맞춰 늘린다(좌표 변환 불필요). */
-#desktop .hz-saver canvas { position: absolute; inset: 0; width: 100%; height: 100%; }
+/* 마퀴 본문 — ui/hazards/screensaver.js가 매 프레임 left(px, #desktop 좌표계)만
+   바꾼다. ★transition 없음 — 8px 단위 계단 이동을 그대로 눈에 보이게 둔다
+   (기준서의 계단식 원칙, "부드럽게 흘리지 말 것"). white-space:nowrap이 없으면
+   글자가 줄바꿈돼 폭 계산(offsetWidth)이 틀어진다. */
+#desktop .hz-saver-text {
+  position: absolute; top: 50%; left: 0;
+  transform: translateY(-50%); /* 세로 중앙 — 정적인 배치라 계단식 규칙과 무관 */
+  white-space: nowrap;
+  font-family: var(--xp-font);
+  font-size: var(--hz-saver-font-px, 150px);
+  color: #ffffff;
+  /* ★그림자 없음(요구사항) — XP 마퀴는 평평한 단색이다. text-shadow는 이 게임이
+     filter 대신 흔히 쓰는 대체 수단이지만, 이 화면만은 그것도 안 쓴다. */
+}
+/* 파훼 힌트 — "아무 곳이나 클릭하면 돌아갑니다". hintDelaySec(4.0초) 전에는
+   .on이 없어 안 보인다 — 그 정적 자체가 연출이다(요구사항). ★hidden 속성이
+   아니라 클래스로 토글한다(이 프로젝트가 두 번 겪은 함정 — display가 박힌
+   규칙에 [hidden]이 특이도로 밀린다). 페이드 없이 즉시 나타난다 — 이 화면은
+   시종일관 "정적"이 어울려서, 등장 자체에 잔재주를 안 얹는다. */
+#desktop .hz-saver-hint {
+  position: absolute; left: 0; right: 0; bottom: var(--hz-saver-hint-bottom-px, 40px);
+  text-align: center;
+  font-family: var(--xp-font);
+  font-size: var(--hz-saver-hint-font-px, 24px);
+  color: #9a9a9a;
+  opacity: 0;
+}
+#desktop .hz-saver-hint.on { opacity: 1; }
 
 /* ── C. 절전 모드 ──────────────────────────────────────────────────────────
    ★ 이 방해는 클릭이 아니라 "마우스 이동"으로 풀린다 — 그래서 막이 클릭을 받을

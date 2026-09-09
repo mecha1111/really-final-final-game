@@ -142,7 +142,15 @@ export function updateUpload(dt, rules) {
     if (enemy.alive && enemy.stopsUpload) blockers.push(enemy.spec.name_kr || enemy.id);
     if (enemy.atkTelegraphRatio > 0) anyTelegraph = true;
 
-    if (enemy.pendingAttack > 0) {
+    // ★state.uploadDamageDisabled — 스크린세이버가 화면을 완전히 잠가 클릭
+    //   자체가 불가능한 동안만 켜진다(core/state.js 주석 참고). 그 사이에도
+    //   enemy.pendingAttack은 평소처럼 계속 채워지지만(이 hazard가 방해꾼의
+    //   공격 타이머를 건드리지 않는다 — "환경 방해는 업로드를 안 건드린다"는
+    //   절대 규칙을 지키려면 방해꾼 쪽 로직도 그대로 둬야 한다), 그 값을 여기서
+    //   damageUpload로 옮기지만 않으면 된다 — enemy.update()가 다음 프레임에
+    //   pendingAttack을 다시 0으로 리셋하므로(Enemy.js) "밀린 피해가 나중에
+    //   한꺼번에 터진다" 같은 빚도 안 생긴다.
+    if (enemy.pendingAttack > 0 && !state.uploadDamageDisabled) {
       damageUpload(enemy.pendingAttack * rules.dpsMultiplier, enemy.x, enemy.y);
     }
   }

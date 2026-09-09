@@ -87,8 +87,10 @@ export function initHazards() {
   //     (core/state.js의 onPhaseChange).
   //   ★ 되돌리기는 각 방해의 onEnd가 맡는다 — 화면 반전(flip), 가짜 커서와
   //     커서 숨김(driver), window 리스너(cracked)가 전부 거기서 풀린다.
-  //     --hz-dim/--hz-saver-dim과 캔버스 오버레이는 방해 자신의 엘리먼트에만
-  //     걸려 있어서 endHazard()의 el.remove()로 같이 사라진다.
+  //     --hz-dim과 캔버스 오버레이는 방해 자신의 엘리먼트에만 걸려 있어서
+  //     endHazard()의 el.remove()로 같이 사라진다. 스크린세이버(screensaver)는
+  //     onEnd()가 state.uploadDamageDisabled를 직접 되돌린다 — DOM 밖 값이라
+  //     el.remove()가 못 건드리는 유일한 경우다.
   //   ★ 사유는 'reset'이라 벌칙이 안 나간다(reboot의 PENALTY_REASONS 참고) —
   //     판이 끝나서 치우는 것이지 플레이어가 방치한 게 아니다.
   onPhaseChange((next) => {

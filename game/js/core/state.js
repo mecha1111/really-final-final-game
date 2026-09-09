@@ -138,6 +138,21 @@ export const state = {
   // (core/stageManager.js의 startGame — 판을 넘어 잔존하면 안 된다).
   hazards: [],
 
+  // ★스크린세이버(ui/hazards/screensaver.js) 전용 게이트. 켜져 있는 동안
+  // systems/upload.js가 방해꾼의 주기 공격 피해를 통째로 건너뛴다.
+  // ★환경 방해는 원래 업로드를 안 건드린다(config.hazard 주석의 절대 규칙) —
+  //   이 플래그가 막는 건 hazard 자신의 효과가 아니라 "그 hazard 때문에 조작이
+  //   아예 불가능한 동안 방해꾼에게 대신 맞는" 부수 피해다. 스크린세이버는
+  //   화면을 완전히 잠가 클릭 자체가 안 먹히는 유일한 hazard라 이게 필요하다 —
+  //   다른 hazard는 전부 조작이 가능하므로 이 값을 안 건드린다.
+  // ★hazard 인스턴스가 판을 넘어 남을 일이 없듯(resetHazards) 이 값도 새 판
+  //   시작 때 반드시 false로 되돌아가야 한다 — core/stageManager.js의
+  //   startGame()이 resetHazards()를 부르고, resetHazards()가 떠 있는 hazard를
+  //   전부 'reset' 사유로 끝내면서 screensaver의 onEnd가 이 값을 false로
+  //   되돌린다. 별도로 여기서 다시 대입하지 않는 이유는 그 경로 하나로 항상
+  //   충분하기 때문이다(끝나는 사유가 무엇이든 onEnd는 반드시 불린다).
+  uploadDamageDisabled: false,
+
   // popup 몸통(= X가 아닌 곳)을 잘못 누른 누적 횟수 — 개체별이 아니라 판 전체
   // 하나로 센다(systems/input.js가 올린다). config.popupHintOutline.threshold에
   // 닿으면 ui/renderEnemies.js가 살아있는 모든 popup의 X 버튼 판정 영역에 테두리
