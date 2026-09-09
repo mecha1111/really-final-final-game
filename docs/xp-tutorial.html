@@ -110,6 +110,43 @@ code{background:#242424;padding:1px 5px;color:#9fd0ff;font-size:12px}
 .xpload .blk i{width:15px;height:12px;border-radius:2px;background:linear-gradient(#9be9ff,#1c74e0)}
 @keyframes xpslide{from{left:-58px}to{left:200px}}
 
+/* ══ ★스포트라이트 ══════════════════════════════════════════
+   "지금 이걸 보라"고 화면 하나를 지목하는 오버레이. 말풍선 5쪽을 읽히는
+   대신, 설명하는 대상을 실제로 가리키고 그 자리에서 시켜본다.
+
+   ★구멍을 어떻게 뚫나 — filter/backdrop-filter/mask 전부 금지다(맨 위
+     금지 규칙). 그래서 "어둠"을 레이어로 깔지 않는다: 빈 요소 하나에
+     box-shadow 확산(spread)을 화면보다 크게(9999px) 걸면, 그 요소의
+     바깥 전체가 어두워지고 요소 자신은 그대로 비친다 — 그게 구멍이다.
+     레이어를 깔고 구멍만 지우는 게 아니라, 애초에 구멍 말고 전부를 칠한다.
+
+   ★모서리 radius 0 — XP 어휘다. 둥근 스포트라이트는 이 화면의 물건이 아니다.
+   ★테두리 2겹 — 바깥 흰 1px + 그 안쪽 검은 점선 1px. XP 포커스 사각형 그대로다.
+     흰 선은 .hole 자신의 border, 점선은 그 안쪽 <i>가 그린다(box-shadow로는
+     점선을 못 그린다 — 그래서 요소를 하나 더 쓴다).
+   ★pointer-events:none — 시연 단계에서 캔버스 클릭이 살아있어야 한다.
+     이 레이어가 클릭을 한 톨이라도 먹으면 "적을 클릭해라"가 성립하지 않는다.
+   ★position:fixed 금지 — 무대(게임에선 #desktop) 안의 absolute다. 부모가
+     transform으로 축소돼 있어도 기준이 안 흔들린다.
+
+   ★게임에서의 자리: .layer-opening(z15) 안, .op-assist(z45)보다 아래.
+     여기 문서에선 .desk 안 z28(말풍선 z30 바로 아래)이다 — 문서의 로딩
+     오버레이(z20)가 작업표시줄(z35)을 안 덮는 기존 관례를 그대로 따랐다.
+     게임에선 작업표시줄이 z6이라 오프닝이 그것까지 함께 덮는다. */
+.spot{position:absolute;inset:0;z-index:28;pointer-events:none;display:none;overflow:hidden}
+.spot.on{display:block}
+.spot .hole{
+  position:absolute;left:0;top:0;width:0;height:0;
+  border:1px solid #fff;border-radius:0;               /* ★각진 사각 — XP 어휘 */
+  box-shadow:0 0 0 9999px rgba(0,0,0,.72);             /* ★이 한 줄이 구멍을 뚫는다 */
+  transition:left .26s ease, top .26s ease, width .26s ease, height .26s ease;
+}
+/* 안쪽 검은 점선 — XP 포커스 사각형의 두 번째 겹 */
+.spot .hole i{position:absolute;inset:0;border:1px dotted #000}
+/* 환산 데모용 "방해꾼" — 게임의 캔버스 스프라이트 자리다(문서엔 캔버스가 없다). */
+.dmob{position:absolute;z-index:12;border-radius:50%;background:#8fd07f;border:3px solid #12161f}
+.dmob[hidden]{display:none}
+
 /* ══ 강아지 도우미 ══ */
 .assist{position:absolute;left:50%;top:45%;transform:translate(-50%,-50%) scale(.92);
   z-index:30;width:380px;opacity:0;pointer-events:none;
@@ -175,6 +212,11 @@ code{background:#242424;padding:1px 5px;color:#9fd0ff;font-size:12px}
   <button onclick="reset()">타이틀로</button>
   <button onclick="startSeq()">▶ [게임 시작] 눌린 상태부터</button>
   <button onclick="showTut()">강아지만</button>
+  <button onclick="spotDemo(0)">스포트라이트: 렉 창</button>
+  <button onclick="spotDemo(1)">로고</button>
+  <button onclick="spotDemo(2)">버튼</button>
+  <button onclick="spotDemo(3)">방해꾼(캔버스 좌표)</button>
+  <button onclick="spotOff()">스포트라이트 끄기</button>
 </div>
 
 <div class="stage" id="stage">
@@ -208,6 +250,16 @@ code{background:#242424;padding:1px 5px;color:#9fd0ff;font-size:12px}
       <div class="xpload"><div class="blk"><i></i><i></i><i></i></div></div>
       <div class="cap" id="loadcap">잠시만 기다려 주십시오 . . .</div>
     </div>
+
+    <!-- ★캔버스 대상 환산 데모 — "방해꾼" 한 마리. 논리좌표(MOB)에서 무대
+         좌표로 옮겨 놓는다. 스포트라이트도 같은 환산을 쓰므로, 구멍이 이 원에
+         정확히 겹치면 환산이 맞는 것이다(어긋나면 그 자리에서 바로 보인다). -->
+    <div class="dmob" id="dmob" hidden></div>
+
+    <!-- ★스포트라이트 — 말풍선(z30)보다 아래. 구멍 하나짜리 레이어다.
+         빈 .hole에 걸린 box-shadow가 바깥 전부를 어둡게 칠하고, .hole 자신만
+         뚫린 채로 남는다(위 CSS 주석 참고). 위치·크기는 spotTo()가 넣는다. -->
+    <div class="spot" id="spot"><div class="hole" id="spothole"><i></i></div></div>
 
     <!-- 강아지 -->
     <div class="assist" id="assist">
@@ -316,6 +368,56 @@ code{background:#242424;padding:1px 5px;color:#9fd0ff;font-size:12px}
   <b>4.</b> 전체 시퀀스가 3초를 넘지 않게. 심사위원이 매번 본다.
   ★[건너뛰기]는 항상 노출.<br>
   <b>5.</b> <code>filter</code> 금지. 고스트는 반투명 흰 도형으로.
+</p>
+
+<h2>5 · ★스포트라이트 — 읽히지 말고 시켜라</h2>
+<p class="note">
+  위 3번의 <b>5쪽 말풍선</b>은 여기서 폐기한다. 다섯 쪽을 읽는 동안 화면에서는
+  아무 일도 안 일어나서, 다 읽고 나면 <b>무엇을 봤는지가 아니라 몇 번 눌렀는지만</b>
+  남았다. 대신 화면의 그 물건을 직접 지목하고, 그 자리에서 시켜본다.
+</p>
+<table class="tbl">
+  <tr><th>단계</th><th>지목하는 것</th><th>진행 방식</th></tr>
+  <tr><td>1 · 목표</td><td>할당량 바 + MB 숫자 → 업데이트 진행바</td><td>[다음]</td></tr>
+  <tr><td>2 · 기본 잡몹</td><td>그 적 → 처치 후 <code>+MB</code> 플로트 → 할당량 숫자</td><td>★처치가 곧 진행</td></tr>
+  <tr><td>3 · 자물쇠</td><td>그 적 + HP 점</td><td>★처치가 곧 진행</td></tr>
+  <tr><td>4 · 놔두면 깎인다</td><td>업데이트 진행바(역주행하는 그것)</td><td>방치 강제 → [다음]</td></tr>
+  <tr><td>5 · 안 죽는 방해꾼</td><td>bait → 제한시간 표시</td><td>[업데이트 재개]</td></tr>
+</table>
+<p class="note" style="margin-top:10px">
+  ★<b>설명 단계엔 버튼, 시연 단계엔 버튼이 없다.</b> 행동이 곧 진행이라야
+  "읽고 넘기는 것"과 "해보는 것"이 손끝에서 갈린다.
+</p>
+
+<h2>6 · 스포트라이트 — 지킬 것</h2>
+<p class="note">
+  <b>1.</b> 구멍은 <code>box-shadow: 0 0 0 9999px rgba(0,0,0,.72)</code>를 건 빈 요소로 뚫는다.
+  <code>filter</code>/<code>backdrop-filter</code>/<code>mask</code> 전부 금지 —
+  어둠을 깔고 지우는 게 아니라 <b>구멍 말고 전부를 칠한다</b>.<br>
+  <b>2.</b> <code>position:fixed</code> 금지. 무대(게임에선 <code>#desktop</code>) 안의
+  <code>absolute</code>다. 부모가 transform으로 축소돼 있어도 기준이 안 흔들린다.<br>
+  <b>3.</b> 모서리 <code>radius:0</code>. 테두리는 <b>흰 1px + 그 안쪽 검은 점선 1px</b> —
+  XP 포커스 사각형 그대로다. 점선은 box-shadow로 못 그리므로 안쪽에 요소를 하나 더 쓴다.<br>
+  <b>4.</b> 레이어 전체 <code>pointer-events:none</code>. 시연 단계에서
+  <b>캔버스 클릭이 살아있어야 한다</b> — 한 톨이라도 먹으면 "적을 클릭해라"가 성립하지 않는다.<br>
+  <b>5.</b> 표시/숨김은 <code>.on</code> 클래스. <code>hidden</code> 속성 금지
+  (display가 박힌 규칙에 특이도로 밀린 전례가 두 번).<br>
+  <b>6.</b> 단위는 <b>px 고정</b>. <code>vh</code> 금지 — 무대는 뷰포트가 아니라
+  자기 고정 좌표계를 산다.
+</p>
+<p class="note">
+  ★<b>좌표 함정 — 여기서 반드시 틀린다.</b>
+  <code>getBoundingClientRect()</code>는 transform으로 <b>줄어든 값</b>을 준다.
+  그대로 넣으면 구멍이 배율만큼 작게, 왼쪽 위로 밀려 그려진다.<br>
+  · <b>HTML 대상</b> — <code>rect ÷ 무대 배율</code>. 배율은 (표시 폭 / 레이아웃 폭)으로 잰다.<br>
+  &nbsp;&nbsp;★<b>offsetLeft 사슬로 가면 틀린다</b> — 대상 자신의 transform을 못 본다.
+  <code>translate(-50%)</code>로 가운데 정렬한 요소(렉 창·로고)에서 실측 <b>215px / 130px</b> 어긋났다.
+  rect는 transform까지 반영한 최종 위치라, 배율로 나누기만 하면 맞는다.<br>
+  · <b>캔버스 대상(방해꾼)</b> — 논리좌표 × (무대 폭 / 캔버스 논리 폭).
+  게임에선 <code>1920 / config.canvas.width</code>이고 이건
+  <code>getUiScaleFactor()</code>의 역수다. 두 값이 다 알려져 있어 잴 이유가 없다.<br>
+  위 <b>[방해꾼(캔버스 좌표)]</b> 버튼이 그 환산을 검사한다 — 초록 원과 구멍이
+  같은 환산을 쓰므로, 어긋나면 그 자리에서 바로 보인다.
 </p>
 
 </div>
@@ -479,12 +581,118 @@ function finish(){
   }, 260);
 }
 
+/* ══ ★스포트라이트 ══════════════════════════════════════════════════════
+   "지금 이걸 보라"고 화면 하나를 지목한다. 구멍 뚫는 방식은 CSS 주석 참고.
+
+   ★좌표 함정 — 여기서 반드시 틀린다 ─────────────────────────────────
+   무대(이 문서는 .desk 1000x570, 게임은 #desktop 1920x1080)는 고정
+   좌표계를 transform:scale로 줄여서 보여준다.
+   getBoundingClientRect()는 ★줄어든 값을 준다. 그대로 구멍에 넣으면
+   배율만큼 어긋난다 — scale 0.5면 구멍이 대상의 절반 크기로 왼쪽 위에 붙는다.
+   (게임의 #desktop은 예전에 CSS zoom이었다가 transform으로 바뀌었다.
+    zoom일 땐 rect가 배율을 아예 반영조차 안 했다 — ui/canvasFit.js 주석.)
+
+   두 갈래로 푼다:
+   · HTML 대상 — rect ÷ 무대 배율. 배율은 (표시 폭 / 레이아웃 폭)으로 잰다.
+     ★offsetLeft 사슬로 가려다 틀렸다 — 대상 자신의 transform을 못 본다.
+       자세한 건 아래 rectIn() 주석에 실측과 함께 적어뒀다.
+   · 캔버스 대상(방해꾼) — 논리좌표 × (무대 폭 / 캔버스 논리 폭).
+     게임에선 1920 / config.canvas.width 이고, 이건 getUiScaleFactor()의 역수다.
+     ★이쪽은 두 숫자가 전부 알려진 값이라 rect를 잴 이유가 없다.
+
+   ★단위는 px 고정. vh 금지 — 무대는 뷰포트가 아니라 자기 고정 좌표계를 산다.
+   ══════════════════════════════════════════════════════════════════════ */
+var spot = document.getElementById('spot'), spothole = document.getElementById('spothole'),
+    desk = document.getElementById('desk');
+
+/** 무대의 현재 배율(표시 폭 / 레이아웃 폭). rect를 환산해야 할 때만 쓴다. */
+function stageScale(host){
+  var w = host.offsetWidth;
+  return w ? host.getBoundingClientRect().width / w : 1;
+}
+
+/** el의 자리를 host 고정 좌표계로 돌려준다 — rect를 무대 배율로 나눈다.
+ *
+ * ★처음엔 offsetLeft/offsetTop 사슬을 우선 썼다. "offset은 무대 좌표계라
+ *   배율이 개입하지 않는다"가 맞긴 한데, ★대상 자신의 transform을 반영하지
+ *   않는다. 이 문서의 렉 창은 left:50% + translate(-50%,-50%)이고 로고는
+ *   translateX(-50%)라, offset은 변환 ★전 위치를 준다 — 실측으로 구멍이
+ *   렉 창에서 215px, 로고에서 130px 어긋났다(가운데 정렬을 transform으로
+ *   하는 요소는 이 게임에 흔하다).
+ *
+ * ★rect는 대상의 transform까지 반영한 최종 위치다. 남는 문제는 무대 배율
+ *   하나뿐이고 그건 잴 수 있다(stageScale) — 나누기 한 번이면 끝난다.
+ *   ★게임의 #desktop이 CSS zoom이 아니라 transform:scale인 것이 이 방법의
+ *   전제다. zoom이던 시절엔 일부 크롬이 rect에 배율을 아예 반영조차 안 했다
+ *   (ui/canvasFit.js 주석의 그 사고). transform으로 바뀌면서 rect가 곧
+ *   실제 표시 크기가 됐고, 그래서 이 나눗셈이 성립한다. */
+function rectIn(host, el){
+  var s = stageScale(host);
+  var a = el.getBoundingClientRect(), b = host.getBoundingClientRect();
+  return { x:(a.left-b.left)/s, y:(a.top-b.top)/s, w:a.width/s, h:a.height/s };
+}
+
+/** 구멍을 무대 고정 좌표계 (x,y,w,h)에 둔다. pad만큼 사방으로 넓힌다(px). */
+function spotToRect(x, y, w, h, pad){
+  pad = (pad == null) ? 6 : pad;
+  spothole.style.left   = (x - pad) + 'px';
+  spothole.style.top    = (y - pad) + 'px';
+  spothole.style.width  = (w + pad*2) + 'px';
+  spothole.style.height = (h + pad*2) + 'px';
+  spot.classList.add('on');
+}
+
+/** HTML 대상 — 엘리먼트 하나를 지목한다. */
+function spotTo(el, pad){
+  if (!el) return;
+  var r = rectIn(desk, el);
+  spotToRect(r.x, r.y, r.w, r.h, pad);
+}
+
+function spotOff(){ spot.classList.remove('on'); }
+
+/* ── 캔버스 대상 환산 데모 ──────────────────────────────────────────────
+   이 문서엔 캔버스가 없으므로 "논리 폭 500짜리 캔버스가 무대 1000에 펼쳐져
+   있다"고 가정한다(k=2). 게임에선 k = 1920 / config.canvas.width 다.
+   .dmob(방해꾼)과 스포트라이트가 ★같은 환산을 쓰므로, 구멍이 원에 정확히
+   겹치지 않으면 그 자리에서 바로 틀린 게 보인다. */
+var CANVAS_LOGICAL_W = 500;                 /* 게임: config.canvas.width */
+var MOB = { x:200, y:150, w:90, h:90 };     /* 방해꾼의 논리좌표(중심)와 논리 크기 */
+function mobScale(){ return desk.offsetWidth / CANVAS_LOGICAL_W; }
+function placeMob(){
+  var k = mobScale(), el = document.getElementById('dmob');
+  el.hidden = false;
+  el.style.left   = (MOB.x*k - MOB.w*k/2) + 'px';
+  el.style.top    = (MOB.y*k - MOB.h*k/2) + 'px';
+  el.style.width  = (MOB.w*k) + 'px';
+  el.style.height = (MOB.h*k) + 'px';
+}
+/** 방해꾼(캔버스 논리좌표)을 지목한다 — rect를 안 쓰고 비율만으로 옮긴다. */
+function spotMob(){
+  placeMob();
+  var k = mobScale();
+  spotToRect(MOB.x*k - MOB.w*k/2, MOB.y*k - MOB.h*k/2, MOB.w*k, MOB.h*k, 8);
+}
+
+/* 데모 버튼 — 대상마다 구멍이 정확히 겹치는지 눈으로 확인하는 용도.
+   ★대상은 전부 무대(.desk) 안에 있어야 한다. 밖에 있는 것(작업표시줄)은 이
+     레이어의 overflow:hidden에 잘린다 — 게임에선 오프닝 레이어가 #desktop
+     전체를 덮으므로 작업표시줄까지 지목할 수 있다. */
+function spotDemo(which){
+  document.getElementById('dmob').hidden = (which !== 3);
+  if (which === 0) { hang.classList.add('on'); spotTo(hang); }        /* HTML: 렉 창 */
+  else if (which === 1) spotTo(document.querySelector('.title .logo'));    /* HTML: 로고 */
+  else if (which === 2) spotTo(document.querySelector('.title .menu .bigbtn')); /* HTML: 버튼 */
+  else spotMob();                                                     /* 캔버스 논리좌표 */
+}
+
 /* ══ 시퀀스 ══ */
 function reset(){
   clearT();
   title.style.display = ''; hang.classList.remove('on','dead');
   load.classList.remove('on','dim','low'); assist.classList.remove('on');
   cur.classList.remove('wait');
+  spotOff(); document.getElementById('dmob').hidden = true;
   document.getElementById('hangt').textContent = '진짜_최종_final_수정_진짜최종(5).exe';
 }
 function startSeq(){
