@@ -36,6 +36,7 @@ import { initEndingScreen, updateEndingScreen } from './ui/endingScreen.js';
 import { initCrtTransition, syncCrtTransition } from './ui/crtTransition.js';
 import { initSettingsPanel, applySavedSettings } from './ui/settingsPanel.js';
 import { initConfirmDialog } from './ui/confirmDialog.js';
+import { initTrapDialog } from './ui/trapDialog.js';
 import { initGallery } from './ui/galleryPanel.js';
 import { initRover, updateRover, showTip } from './ui/rover.js';
 import { initIntro, startIntro, updateIntro } from './ui/intro.js';
@@ -199,6 +200,7 @@ async function main() {
   initCrtTransition(); // 화면 전환 CRT 킥 — config.crt.durationMs를 CSS 변수로 내려보낸다
   initSettingsPanel(); // ESC 설정 팝업(사운드값 저장/CRT 실시간 토글/전체화면)
   initConfirmDialog(); // 공용 확인 대화상자(새 게임 덮어쓰기 등) — 설정창보다 뒤여도 무관
+  initTrapDialog(); // fake_btn 함정 알림 — 창을 미리 만들어 두고 .open으로만 여닫는다
   initGallery(); // 그림 갤러리(타이틀 전용) — 버튼/그리드/뷰어 핸들러
   initRover(); // 튜토리얼 도우미(러버) — 슬라이드 패널 DOM/클릭 배선
   // 인트로(첫 실행 전용, 타이틀보다 앞) — DOM/버튼 배선 + 가짜 파일 아이콘 생성.

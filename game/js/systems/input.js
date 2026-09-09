@@ -12,6 +12,7 @@ import { pointInRect } from '../ui/draw.js';
 import { handleDebugKey, debugState } from '../debug.js';
 import { handleSettingsKey } from '../ui/settingsPanel.js';
 import { handleGalleryViewerKey } from '../ui/galleryPanel.js';
+import { showTrapDialog } from '../ui/trapDialog.js';
 import { clientToWorld, worldToClient, getCanvasGeometry, isRotationSettling } from '../ui/canvasGeometry.js';
 
 // pointerdown에서 "방해꾼을 못 맞혀 아래로 흘려보낸" 대상. 이어서 오는 click을
@@ -266,6 +267,12 @@ function hitTestEnemies(pt) {
       // 시각 피드백(번쩍임·비네트·수치)은 damageUpload가 그대로 켠다.
       playSfx(SFX.FAKEBTN_PENALTY);
       damageUpload(enemy.effect.wrongClickPct, enemy.x, enemy.y, { silent: true });
+      // ★ 벌칙 경로는 위 그대로다(damageUpload → triggerHitFeedback 한 줄기).
+      //   여기 얹는 건 "왜 깎였는지"를 글자로 알려주는 창 한 장뿐이다 — 공통
+      //   피해 연출(번쩍임·비네트·"-10%")만으로는 방해꾼한테 맞은 것과 함정을
+      //   밟은 것이 구분되지 않았다. 게임은 안 멈추고, 이 창은 클릭도 안 받는다
+      //   (ui/trapDialog.js 상단 주석).
+      showTrapDialog();
       enemy.hitFlash = config.enemy.hitFlashSec;
       // 낚인 그 자리에서 바로 사라진다(요구사항) — reason을 'clicked'가 아닌 값으로
       // 줘서 처치 연출(파편·처치음·kill 통계)은 안 타게 한다. 이건 "잡았다"가 아니라

@@ -398,6 +398,12 @@ body {
    규칙에서 auto로 연다(아래 각 방해 CSS). 그래야 방해가 떠 있어도 그 바깥을 누른
    클릭은 캔버스(z5)의 방해꾼 판정으로 평소와 똑같이 내려간다. */
 #desktop .layer-hazard { position: absolute; inset: 0; z-index: 7; pointer-events: none; overflow: hidden; }
+/* fake_btn 함정 알림(ui/trapDialog.js). z는 환경 방해와 같은 7이고, DOM에서
+   .layer-hazard보다 앞이라 방해 창이 이 알림 위에 온다(index.html 주석의 이유).
+   ★ 이 레이어는 절대 pointer-events:auto가 되면 안 된다 — 그 순간 화면 한복판
+     1.5초 동안 방해꾼 클릭이 먹히지 않는다. */
+#desktop .layer-trapdlg { position: absolute; inset: 0; z-index: 7; pointer-events: none; display: none; }
+#desktop .layer-trapdlg.open { display: block; }
 #desktop .layer-vignette { position: absolute; inset: 0; z-index: 8; pointer-events: none; }
 #desktop .layer-urgent { position: absolute; inset: 0; z-index: 8; pointer-events: none; opacity: 0; }
 #desktop .layer-crt-steady { position: absolute; inset: 0; z-index: 9; pointer-events: none; display: none; overflow: hidden; }
@@ -2263,6 +2269,31 @@ body {
 #desktop .hz-foot {
   margin-top: 20px; padding-top: 14px; border-top: 1px solid var(--xp-sep);
   display: flex; justify-content: flex-end; gap: 10px;
+}
+
+/* ── fake_btn 함정 알림 ────────────────────────────────────────────────────
+   XP 시스템 대화상자 한 장(ui/trapDialog.js). 뼈대는 위 환경 방해 창과 같은
+   .win/.tbar/.ico 어휘를 그대로 쓴다 — 새 회색조나 새 창 장치를 안 만든다.
+   ★ .hz-win과 달리 pointer-events를 열지 않는다(그 이유는 index.html의
+     .layer-trapdlg 주석). 그래서 커서 모양도 창 위에서 안 바뀐다. */
+#desktop .trap-dlg {
+  position: absolute; left: 50%; top: 300px; transform: translateX(-50%);
+  width: 520px; pointer-events: none;
+}
+#desktop .trap-dlg .tbar { cursor: default; }
+#desktop .trap-dlg .tbar .ico { background: var(--xp-tooltip-bg); font-size: 20px; }
+#desktop .trap-dlg-body {
+  background: var(--xp-win-face); padding: 20px 24px 16px;
+  display: flex; gap: 16px; align-items: flex-start;
+}
+#desktop .trap-dlg-ico { color: #c47f00; flex-shrink: 0; line-height: 1; }
+#desktop .trap-dlg-ico .xicon { width: 40px; height: 40px; }
+#desktop .trap-dlg-msg { color: var(--xp-tooltip-text); font-size: 19px; line-height: 1.5; }
+#desktop .trap-dlg-msg p { margin: 0; }
+#desktop .trap-dlg-sub { margin-top: 8px !important; color: var(--xp-tooltip-sub); font-size: 16px; }
+#desktop .trap-dlg-foot {
+  background: var(--xp-win-face); padding: 0 24px 16px;
+  display: flex; justify-content: flex-end;
 }
 
 /* ── B. 스크린세이버 ───────────────────────────────────────────────────────

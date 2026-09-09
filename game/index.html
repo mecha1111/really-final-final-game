@@ -539,6 +539,17 @@
              평소와 똑같이 내려간다. 캔버스의 pointer-events를 잠깐 껐다 켜는 식의
              임시 상태 변경은 절대 안 쓴다(systems/input.js forwardClickThrough 주석의
              "한 번 굳으면 새로고침 전까지 먹통" 사고). -->
+      <!-- fake_btn 함정을 밟았을 때 뜨는 XP 시스템 대화상자(ui/trapDialog.js).
+           ★ 환경 방해(.layer-hazard)보다 "앞"에 둔다 — z-index가 같아서 DOM 순서로
+             갈리는데, 재부팅 카운트다운처럼 시간 안에 눌러야 하는 방해 창이 이
+             알림에 가려지면 안 되기 때문이다(이건 1.5초 뒤 알아서 사라지는 알림이고
+             저쪽은 벌칙이 걸린 선택이다).
+           ★ 레이어도 창도 pointer-events:none이다 — 플레이 도중 화면 한복판에
+             뜨는 창이라 클릭을 조금이라도 받으면 그 아래 방해꾼을 못 누른다.
+             "클릭하면 닫힌다"는 window에서 클릭을 엿듣는 방식으로 만족시킨다
+             (ui/trapDialog.js 상단 주석). -->
+      <div class="layer-trapdlg" id="layer-trapdlg"></div>
+
       <div class="layer-hazard" id="layer-hazard"></div>
 
       <!-- 피해를 입은 순간 화면 가장자리가 빨갛게 펄스(레이어8). systems/upload.js의
