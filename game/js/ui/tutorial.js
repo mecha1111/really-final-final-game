@@ -260,7 +260,6 @@ const BEATS = [
 
 let headEl = null;
 let textEl = null;
-let figEl = null;
 let nextBtn = null;
 let assistEl = null;
 let index = -1;
@@ -271,7 +270,6 @@ let onFinish = null;
 export function initTutorial(dom) {
   headEl = dom.head;
   textEl = dom.text;
-  figEl = dom.fig;
   nextBtn = dom.next;
   assistEl = dom.assist;
 }
@@ -285,9 +283,6 @@ function renderBeat() {
   const b = BEATS[index];
   headEl.textContent = b.head;
   textEl.innerHTML = b.tx;
-  // 새 대본에는 그림이 없다 — 설명하는 대상을 화면에서 직접 가리키므로 그릴
-  // 이유가 사라졌다. 비워두면 :empty가 상자째 숨긴다(style.css).
-  figEl.innerHTML = '';
   syncButton();
 }
 
@@ -325,11 +320,6 @@ export function tutorialNext() {
   const b = BEATS[index];
   if (!b.btn || (b.ready && !b.ready())) return;
   advance();
-}
-
-/** 튜토리얼이 도는 중인가 — 오프닝이 [다음] 버튼을 누구에게 줄지 가른다. */
-export function isTutorialRunning() {
-  return running;
 }
 
 /** 대본을 처음부터 돌린다. 강아지가 뜨는 그 순간(config.opening.assistSec) 불린다. */

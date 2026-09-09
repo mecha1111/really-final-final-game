@@ -2819,6 +2819,15 @@ body {
    클릭을 받아야 하는 것(말풍선·버튼)은 자기 규칙에서 auto를 연다(.op-assist.on). */
 #desktop .layer-opening.on { display: block; }
 
+/* ★[건너뛰기] — 화면 우상단 고정. 말풍선 안에 있던 것을 뺐다(index.html 주석).
+   ★z-index는 말풍선(45)보다 위다: 말풍선이 어디로 비키든(.tut / .tut-left) 이
+   버튼만은 절대 가리면 안 된다 — 빠져나갈 문이다.
+   ★레이어가 pointer-events:none이라 여기서 auto를 직접 연다. */
+#desktop .op-skip {
+  position: absolute; right: 24px; top: 24px; z-index: 50;
+  pointer-events: auto; font-size: 24px; padding: 8px 22px;
+}
+
 /* ===== ★스포트라이트 (마크업 주석: index.html의 #op-spot) =====
    구멍 하나짜리 레이어. 빈 .hole에 화면보다 큰 box-shadow 확산을 걸면 그 바깥
    전부가 어두워지고 .hole만 그대로 비친다 — filter/backdrop-filter/mask 금지
@@ -2961,13 +2970,6 @@ body {
    ui/tutorial.js가 대상 위치를 보고 고른다. */
 #desktop .op-assist.tut.tut-left { left: 10px; right: auto; }
 
-/* [뒤로]와 쪽수(1/5)는 새 대본에 없는 개념이다 — 시연을 되감을 수는 없고
-   (이미 소환하고 처치한 것을 되돌려야 한다), 단락 수도 보여줄 이유가 없다.
-   ★마크업 자체는 아직 남아 있어서(옛 5쪽 경로가 다음 커밋에서 걷힌다) 여기서
-   가린다. 그 커밋에서 이 규칙도 마크업과 함께 사라진다. */
-#desktop .op-assist.tut #op-assist-back,
-#desktop .op-assist.tut .pg { display: none; }
-
 /* 시연 단락에는 [다음]이 없다 — 행동이 곧 진행이라, 누를 것이 보이면 안 된다.
    ★hidden 속성이 아니라 클래스다: .settings-btn에 display가 박혀 있어서
    [hidden]이 특이도로 밀린다(이 프로젝트가 두 번 겪은 함정). */
@@ -2984,13 +2986,6 @@ body {
 /* ★그림 자리 — 흰 종이 위에 도형을 얹는 느낌(설명 대상을 그려준다).
    min-height로 쪽마다 높이가 안 흔들리게 한다(줄 수가 달라도 [다음] 버튼이
    위아래로 튀지 않아야 연타가 안 빗나간다 — 예전 <ul>에 걸어뒀던 것과 같은 이유). */
-#desktop .op-assist .fig {
-  background: #fff; border: 2px solid #b9b39c; padding: 16px; margin-bottom: 18px;
-  display: grid; place-items: center; min-height: 130px;
-}
-/* 그림이 없는 쪽에서는 상자 자체를 안 그린다 — 빈 흰 칸이 남으면 더 어색하다. */
-#desktop .op-assist .fig:empty { display: none; }
-#desktop .op-assist .fig svg { display: block; }
 
 /* ★본문 28px — 이 아래로 내리지 말 것(위 개편 1번 주석). */
 #desktop .op-assist .tx {
@@ -3009,7 +3004,6 @@ body {
   display: flex; gap: 11px; justify-content: flex-end; align-items: center;
   margin-top: 19px; padding-top: 17px; border-top: 2px solid #d8d29c;
 }
-#desktop .op-assist .balloon .bset .pg { margin-right: auto; font-size: 21px; color: #6b6640; }
 /* 게임의 XP 대화상자 버튼(.settings-btn)을 그대로 쓰되, 말풍선 안이라 한 단계
    작게(문서의 .xp-btn.sm에 해당). 색·눌림·비활성은 전부 그 규칙을 물려받는다. */
 #desktop .op-assist .balloon .bset .settings-btn { font-size: 21px; padding: 6px 19px; }
