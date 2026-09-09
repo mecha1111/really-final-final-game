@@ -20,6 +20,28 @@
 //   진행바를 깎지 않는다(damageUpload를 직접 부르지 않는다) — 예비동작 →
 //   피격음 → 빨간 잔상까지 전부 실전과 같은 경로로 일어나야, 실전에서 같은
 //   장면을 봤을 때 "아까 그거"가 된다.
+//
+// ── ★소리 계약 ──────────────────────────────────────────────────────────────
+// 이 대본은 ★효과음을 하나도 직접 재생하지 않는다. 여기서 나는 소리는 전부
+// "무슨 일이 일어났다"의 결과로 실전 경로가 알아서 내는 것뿐이다:
+//
+//   crt_kick      판 시작(title→playing 전이) — ui/crtTransition.js
+//   ui_open       강아지 등장 — ui/gameOpening.js의 showTutorial
+//   entrance_pop  basic 소환 ×2 (2단계·4단계)   ┐ 전부 enemies/entrance.js가
+//   entrance_slam ransom 소환                   │ 종류를 보고 고른다 —
+//   bait_appear   bait 소환                     ┘ 실전과 같은 소리여야 학습이 옮겨간다
+//   kill_soft     basic 처치            ┐ Enemy.kill()/takeHit()이 낸다
+//   ransom_crack_1/2 + kill_hard  ransom 3타 ┘
+//   atk_warning + hit   4단계의 실제 피격 — systems/upload.js
+//   start         [업데이트 재개] — 판 시작음을 여기로 미뤄뒀다(core/stageManager.js)
+//
+// ★일부러 안 내는 것:
+//   · [다음] 버튼 클릭음 — 한 번의 튜토리얼에서 여러 번 눌린다. 매번 같은 소리가
+//     나면 그게 곧 소음이고, 정작 들려야 할 소리(피격·처치)를 덮는다.
+//   · 스포트라이트 이동음 / 단락 전환음 — 대응하는 "사건"이 없다. 화면이 바뀌는
+//     것 자체는 눈으로 이미 보인다.
+// ★새 단락을 추가할 때 playSfx를 부르고 싶어지면 먼저 "이게 실전에도 있는
+//   사건인가"를 물을 것. 아니면 안 내는 게 맞다.
 
 import { config, gameData } from '../config.js';
 import { state } from '../core/state.js';
@@ -237,7 +259,12 @@ const BEATS = [
       demo = spawnDemo('bait', { x: 0.5, y: 0.5 });
       const a = getPlayArea();
       balloonSide(demo && demo.x > a.x + a.w / 2 ? 'left' : 'right');
-      state.tutorial.blockClicks = true;
+      // ★여기서는 클릭을 열어둔다 — 문구가 "클릭해도 안 죽습니다"인데 정작 눌러볼
+      //   수가 없으면 그냥 주장이다. 열어두면 눌러서 직접 확인할 수 있고, bait는
+      //   시트에서 hit_w/hit_h가 0이라 그 클릭이 곧 허공 클릭이 된다 — 리플만
+      //   퍼지고 아무 일도 안 일어난다. ★소리도 안 난다(허공 클릭에는 전용음이
+      //   없다) — 아래 sfx 계약을 안 건드린다.
+      state.tutorial.blockClicks = false;
     },
     spot: () => spotEnemy(demo),
   },
@@ -250,6 +277,7 @@ const BEATS = [
       // ★bait는 그대로 남겨둔다(요구사항) — 치우지 않는다. 실전이 시작되면
       //   releaseTutorial()이 동결을 풀어, 그 순간부터 평범한 bait가 된다.
       demo = null;
+      state.tutorial.blockClicks = true; // 설명 단락이므로 다시 닫는다
       balloonSide('right'); // 제한시간 표시는 왼쪽 위(.winA)라 말풍선은 오른쪽이 맞다
     },
     spot: () => spotToIds(['st-time']),

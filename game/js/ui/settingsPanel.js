@@ -133,11 +133,14 @@ export function applySavedSettings() {
 //   설정창 조작음은 그 와중에 사용자가 직접 누른 것이므로 나야 한다.
 export function openSettings() {
   if (!layer || !ESC_OPENABLE_PHASES.has(state.phase)) return;
-  // ★게임 시작 오프닝이 도는 중이면 안 연다(2026-09-08). 그 오프닝은 phase가
-  //   'title'인 채로 도는데(ui/gameOpening.js 상단 주석), 위 phase 검사만으로는
-  //   ESC가 그대로 통과해 설정창(z11)이 오프닝(z15) 뒤에 가려진 채 열린다 —
-  //   화면엔 안 보이는데 입력만 먹는 상태가 된다. 인트로가 ESC_OPENABLE_PHASES에
-  //   'intro'를 안 넣어 막은 것과 같은 취지를, phase가 겹치는 이 경우엔 이렇게 건다.
+  // ★게임 시작 오프닝이 도는 중이면 안 연다(2026-09-08). 설정창(z11)이 오프닝(z15)
+  //   뒤에 가려진 채 열려 "화면엔 안 보이는데 입력만 먹는" 상태가 되기 때문이다.
+  //   인트로가 ESC_OPENABLE_PHASES에 'intro'를 안 넣어 막은 것과 같은 취지를,
+  //   phase만으로는 못 가르는 이 경우에 이렇게 건다.
+  // ★2026-09-09: 이 가드가 더 중요해졌다. 예전엔 오프닝이 phase 'title'인 채로
+  //   돌았지만, 튜토리얼이 붙는 회차는 이제 판을 먼저 시작해 phase가 ★'playing'이다
+  //   (ui/gameOpening.js 상단 주석) — 그건 ESC_OPENABLE_PHASES에 들어 있는 값이라
+  //   위 검사를 그냥 통과한다. 즉 지금은 이 한 줄만이 튜토리얼 중 ESC를 막는다.
   if (isOpeningActive()) return;
   playSfx(SFX.UI_OPEN, { ui: true });
   syncAllControls();
