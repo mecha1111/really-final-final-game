@@ -8,9 +8,9 @@
 //
 // ── ★ 단일 정착 가드 (이 방해에만 있는 문제) ────────────────────────────────
 // 해제 경로가 셋이고 그중 둘이 벌칙을 부른다:
-//   [지금 다시 시작] → 즉시 -15% (함정 버튼)
+//   [지금 다시 시작] → 즉시 -8% (함정 버튼)
 //   [나중에]        → 벌칙 없음 (유일한 안전한 선택)
-//   방치(카운트다운 만료) → -15%
+//   방치(카운트다운 만료) → -8%
 // 버튼 클릭(DOM 이벤트)과 만료(rAF 갱신 루프)는 서로 다른 태스크라, 거의 동시에
 // 일어나면 "벌칙이 두 번" 또는 "이미 닫힌 창에 뒤늦게 벌칙"이 될 수 있다. 그래서
 // 벌칙을 버튼 핸들러에 두지 않고 onEnd() 한 곳으로 모으고, 거기에 settled 빗장을
@@ -53,6 +53,15 @@ registerHazard({
     const root = document.createElement('div');
     root.className = 'hz-center';
 
+    // ★ 2026-09-09(승인분) — 두 버튼의 좌우 위치를 매번 무작위로 섞는다. 문구는
+    //   고정이다(안전한 선택지는 항상 「나중에」) — 바뀌는 건 자리뿐이다. 그래야
+    //   "오른쪽이 항상 함정"처럼 자리로 외워버리는 걸 막는다. .settings-btn-primary
+    //   (XP 기본 버튼 강조 테두리)는 자리와 무관하게 항상 [지금 다시 시작] 쪽에
+    //   남는다 — 그 강조 자체가 함정의 일부다(실물 XP도 기본 버튼이 강조된다).
+    const restartBtn = '<button type="button" class="settings-btn settings-btn-primary hz-restart">지금 다시 시작</button>';
+    const laterBtn = '<button type="button" class="settings-btn hz-later">나중에</button>';
+    const buttons = Math.random() < 0.5 ? restartBtn + laterBtn : laterBtn + restartBtn;
+
     // 창 자체만 pointer-events:auto(style.css) — 이 창 바깥을 누른 클릭은 평소처럼
     // 캔버스의 방해꾼 판정으로 그대로 내려간다.
     root.innerHTML = `
@@ -70,10 +79,7 @@ registerHazard({
               <p class="hz-count">${mmss(c.countdownSec)}</p>
             </div>
           </div>
-          <div class="hz-foot">
-            <button type="button" class="settings-btn settings-btn-primary hz-restart">지금 다시 시작</button>
-            <button type="button" class="settings-btn hz-later">나중에</button>
-          </div>
+          <div class="hz-foot">${buttons}</div>
         </div>
       </div>
     `;
@@ -105,8 +111,8 @@ registerHazard({
 
     const c = config.hazard.reboot;
     // 피해는 반드시 damageUpload → triggerHitFeedback 한 줄기로만 보낸다
-    // (번쩍임·비네트·"-15%" 표시가 자동으로 따라온다). cause를 넘겨 HUD 캡션에
-    // "재부팅 -15%"로 원인을 밝힌다 — 진행 정지 배지(state.blocked)는 안 건드린다.
+    // (번쩍임·비네트·"-8%" 표시가 자동으로 따라온다). cause를 넘겨 HUD 캡션에
+    // "재부팅 -8%"로 원인을 밝힌다 — 진행 정지 배지(state.blocked)는 안 건드린다.
     damageUpload(c.penaltyPct, config.canvas.width / 2, config.canvas.height / 2, {
       cause: c.penaltyCause,
     });

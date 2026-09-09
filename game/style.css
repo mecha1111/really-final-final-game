@@ -2394,6 +2394,14 @@ body {
      풍선(.hz-balloon)도 그 값을 그대로 물려받는다(별도로 auto를 여는 규칙이
      없다 — 위 C. 절전 모드와 같은 이유). */
 #desktop .hz-driver { position: absolute; inset: 0; pointer-events: none; }
+/* ★ 2026-09-09(승인분) — 실제 커서 위치를 옅게 알려주는 점선 원(ui/hazards/
+   driver.js의 update()가 매 프레임 left/top을 옮긴다). 답을 그대로 주지 않게
+   흐릿하게만 — 있는지 모르고 지나칠 수 있을 만큼만 존재감을 준다. */
+#desktop .hz-driver-real {
+  position: absolute; left: 0; top: 0; width: 18px; height: 18px;
+  margin: -9px 0 0 -9px; border-radius: 50%;
+  border: 1px dashed rgba(255, 255, 255, 0.4);
+}
 
 /* ── E. 화면 깨짐 ──────────────────────────────────────────────────────────
    ★ 이 방해는 "시야만 가리고 클릭은 통과"가 핵심이라, 컨테이너·캔버스 전부
