@@ -38,7 +38,7 @@ zombie,좀비 프로세스,B,90,90,100,100,45,직선+벽반사,1,2,FALSE,9,12,4,
 [stage]
 key,value,unit,note
 time_limit,180,sec,하루 제한시간 3분
-quota,250,MB,할당량
+quota,180,MB,할당량 — 2026-09-10 밸런스 재설계: 동시상한 축소와 세트로 250→180 (game/js/balance/progression.js FINITE_MAX_ALIVE 주석 참고)
 skip_limit,3,회,하루 파일 스킵 횟수
 canvas_w,960,px,기준 해상도
 canvas_h,540,px,기준 해상도

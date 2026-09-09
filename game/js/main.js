@@ -9,6 +9,7 @@ import {
   applyStageToConfig,
   applyEnemyFallbacks,
   applyEnemyUnlockPlan,
+  applyStageOverride,
   createRules,
 } from './config.js';
 import { loadEnemyImages } from './assets.js';
@@ -83,6 +84,9 @@ async function applyLoadedData() {
   // 해금 배치의 정본(config.stage.enemyUnlockPlan)을 입힌다. ★ 폴백으로 채워 넣은
   // 행까지 함께 맞춰야 하므로 반드시 applyEnemyFallbacks() 다음이다.
   applyEnemyUnlockPlan();
+  // quota 확정값(config.stage.quotaOverride)을 입힌다 — 같은 이유·같은 자리
+  // (config.js의 applyStageOverride() 주석 참고).
+  applyStageOverride();
   applyStageToConfig();
   // 논리 해상도(시트의 canvas_w/h)가 바뀌었을 수 있으니 표시 크기와 백킹스토어를
   // 다시 맞춘다 — 리로드 때도 창을 꽉 채운 채로 유지된다.

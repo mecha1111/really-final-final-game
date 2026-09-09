@@ -103,6 +103,19 @@ export const config = {
     //   거기도 반드시 같이 고칠 것.
     finiteCount: 5,
 
+    // ── 유한 구간 quota 확정값(시트/로컬CSV 드리프트 방지) ────────────────────
+    // ★ 2026-09-10 밸런스 재설계 — stage 시트의 quota를 250→180으로 낮췄다
+    //   (game/public/balance.csv, balance/progression.js의 quotaMult 주석 참고).
+    //   ★ 아래 applyEnemyUnlockPlan()과 완전히 같은 이유로 이 값도 코드가 한 번
+    //   더 덮어쓴다 — 실측 확인: 구글 시트(SHEET_URLS.stage)는 이 재설계 시점
+    //   에도 여전히 quota=250을 서빙하고 있고, balance/loader.js의 배경 동기화
+    //   (catchUpFromSheet)는 타이틀 화면에 5초(SHEET_TIMEOUT_MS)만 머물러도
+    //   조용히 그 250으로 되돌린다 — 로컬 CSV만 고쳐서는 이 재설계가 플레이
+    //   세션 중간에 소리 없이 원복된다. applyStageOverride()가 로드 직후(시트든
+    //   로컬CSV든 하드코딩이든) 이 값으로 다시 덮어써서 막는다.
+    //   시트의 quota가 이 값으로 고쳐지면 아래 경고가 저절로 사라진다.
+    quotaOverride: 180,
+
     // ── 해금 배치의 정본 ───────────────────────────────────────────────────
     // ★ 설계 원칙: 누적이다. 한 번 등장한 요소는 절대 빠지지 않는다 — 학습 곡선
     //   (하나씩 차분히)이 아니라 혼돈 누적(계속 쌓이기)이고, 1구간부터 이미
@@ -1771,6 +1784,32 @@ export function applyEnemyUnlockPlan() {
     );
   }
   return changed;
+}
+
+/**
+ * config.stage.quotaOverride(유한 구간 quota 확정값)를 gameData.stage.quota에
+ * 입힌다. 위 applyEnemyUnlockPlan()과 완전히 같은 이유·같은 모양이다 — main.js가
+ * 그 바로 다음(같은 applyLoadedData() 안)에 부른다. quotaOverride가 null/undefined면
+ * 아무 일도 안 한다(당장은 늘 값이 있지만, 나중에 이 덮어쓰기 자체를 끄고 싶을 때
+ * 한 줄로 끌 수 있게).
+ *
+ * @returns {{from: number, to: number}|null} 실제로 덮어썼으면 그 내역, 아니면 null
+ */
+export function applyStageOverride() {
+  const want = config.stage.quotaOverride;
+  if (want == null) return null;
+
+  const had = gameData.stage.quota?.value;
+  if (had === want) return null;
+
+  gameData.stage.quota = { value: want, unit: gameData.stage.quota?.unit ?? 'MB' };
+  if (config.debug.enabled) {
+    console.warn(
+      `[balance] 시트/로컬CSV의 quota(${had}MB)를 config.stage.quotaOverride로 ${want}MB로 덮어썼다 — ` +
+        `시트를 이 값으로 고치면 이 경고는 사라진다.`,
+    );
+  }
+  return { from: had, to: want };
 }
 
 /**

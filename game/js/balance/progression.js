@@ -15,9 +15,10 @@
  *   (enemies 시트의 min_stage는 1부터라 해금 판정만 n+1 로 맞춘다 — rules.js)
  *
  * 공식 (rules.js의 createRules가 유일한 구현부):
- *   할당량(MB)   = baseQuota × quotaMult^n
+ *   할당량(MB)   = baseQuota × quotaMult^n            (유한 4·5구간은 FINITE_QUOTA_OVERRIDE로 한 번 더 덮인다)
  *   스폰간격(초) = max(baseSpawn ÷ spawnMult^n, minSpawn)   ← 나눗셈이라 n이 크면 빨라진다
- *   동시최대     = min(baseMax + maxAdd×n, maxCap)          ← 정수로 내림
+ *   동시최대     = 유한(n<FINITE_COUNT)은 FINITE_MAX_ALIVE[n] 표를 그대로 쓴다.
+ *                  무한(n>=FINITE_COUNT)은 옛 공식 min(baseMax + maxAdd×n, maxCap) 그대로.
  *   제한시간     = stage 시트의 time_limit 고정(구간과 무관)
  *   dps·수명배율 = difficulty 시트 normal 행 고정(구간과 무관)
  *
@@ -26,6 +27,8 @@
  *   "normal이 곧 n=0의 base"라는 규칙을 코드가 literal하게 지키게 하려는 것.
  *   시트에 값이 없을 때만 아래 숫자가 쓰인다. 반면 *Mult/*Cap/min*은 시트에
  *   대응 컬럼이 없어서 여기가 유일한 출처다.
+ *   ★ baseMax(difficulty 시트 normal 행 max_alive)는 2026-09-10부터 유한 구간에선
+ *     안 쓴다 — 아래 FINITE_MAX_ALIVE 표 주석 참고. 무한모드 공식에서는 그대로 쓴다.
  *
  * ★ 공식을 고치면 이 값을 "읽어서 보여주는 쪽"(ui/screens.js 결과화면,
  *   debug.js 슬라이더)도 같이 확인할 것. 표시부가 옛 공식을 쓰면 "할당량 0" 류 버그가 난다.
@@ -69,16 +72,54 @@ export const PROGRESSION = {
   //       이 표의 숫자는 전부 "평균"이지 "그 판에서 나올 값"이 아니다.
   //   ★ 1구간(n=0)은 어떤 배율을 써도 baseQuota 그대로라 손대도 안 변한다 —
   //     "1구간은 현행 유지" 요구를 이 공식이 구조적으로 보장한다.
+  //
+  // ★ 2026-09-10 밸런스 재설계 — quotaMult 자체(1.09)는 그대로 두고, stage 시트의
+  //   baseQuota를 250 → 180으로 낮췄다(game/public/balance.csv). 근거는 quotaMult가
+  //   아니라 동시최대였다: 아래 FINITE_MAX_ALIVE 표 주석 참고 — 손익분기(대형 파일
+  //   기준 4~5마리)의 3배 가까이 열려 있던 동시최대(11~14)가 "한 번 밀리면 상한 없이
+  //   폭주"를 만들던 진짜 원인이었다(헤드리스 시뮬레이터 실측: 5구간 보통 실력에서
+  //   동시최대 6→8 사이에 클리어율 49.5%→7.5%로 붕괴). 동시최대를 낮추면 같은
+  //   quotaMult로도 체감 난이도가 훨씬 가팔라지므로, baseQuota를 250→180으로
+  //   내려 quota 곡선(180×1.09^n = 180/196/214/233/254, 4·5구간은 아래
+  //   FINITE_QUOTA_OVERRIDE가 255/270으로 한 번 더 덮는다) 자체를 완화했다.
   quotaMult: 1.09,
   baseSpawn: 1.5,
   // ★ 2026-08-22 완화: 1.08 → 1.05. 나눗셈이라 이 값이 클수록 스폰이 빨리 조여진다.
   //   normal 행의 0.8초 기준으로 2구간 0.741→0.762, 3구간 0.686→0.726으로 느슨해진다.
   spawnMult: 1.05,
   minSpawn: 0.6, // 아무리 구간이 올라도 이보다 빨라지지 않는다(하한 클램프)
+  // ★ baseMax/maxAdd/maxCap 셋은 2026-09-10부터 무한모드 전용이다(아래
+  //   FINITE_MAX_ALIVE 표 주석 참고) — 유한 구간(n<FINITE_COUNT)은 이 셋을
+  //   더 이상 안 읽는다. 무한 쪽 계산은 옛 공식을 n 그대로 물려 한 글자도
+  //   안 바꿨다(min(baseMax+maxAdd×n, maxCap) — rules.js의 isInfinite 분기).
   baseMax: 8,
   maxAdd: 1,
   maxCap: 14,
 };
+
+/**
+ * 유한 5구간(n=0..4) 전용 동시최대(maxAlive) 표. 2026-09-10 밸런스 재설계로
+ * 공식(baseMax+maxAdd×n, 옛 값 11/12/13/14/14)을 이 표로 교체했다.
+ *
+ * ★ 왜 공식을 버렸는가 — 헤드리스 시뮬레이터로 "파일 진행 대비 방해꾼 피해"의
+ *   손익분기를 재보니 4~5마리였다(가장 약한 대형 파일 100MB/40s=2.50%p/s 기준,
+ *   살아있는 적 1마리당 평균 피해 0.55~1.1%p/s). 그런데 동시최대는 11~14로
+ *   손익분기의 3배 가까이 열려 있어서, 한 번 밀려 적이 쌓이면 상한 없이
+ *   폭주했다 — 실측(5구간 보통 실력, quota 255MB 고정): 상한 4=98%·5=79.5%·
+ *   6=49.5%·7=19%·8=7.5%. 6과 8 사이에서 클리어율이 무너지는 "불안정 평형"이라
+ *   공식(정수 두 손잡이 baseMax·maxAdd)으로는 이 폭을 정교하게 못 짚는다 —
+ *   구간마다 직접 정하는 표로 바꿨다.
+ *
+ * ★ 목표(구간별 클리어율 95/90/80/65/50%, 소요시간 70~90/100~120/115~135/
+ *   130~150/140~165초, 보통 실력 반응 400ms·명중 85% 기준)에서 역산한 값이다.
+ *   FINITE_QUOTA_OVERRIDE(4·5구간 quota 상향)와 세트로 봐야 한다 — 이 표만
+ *   놓고 보면 낮아 보이지만, quota도 함께 낮췄으므로(위 quotaMult 주석) 체감
+ *   난이도는 옛 곡선과 같은 자리를 겨냥한다.
+ *
+ * ★ 무한모드는 이 표를 안 본다 — rules.js가 n>=FINITE_COUNT일 때 옛 공식으로
+ *   되돌아간다(그 값 자체도 안 바뀐다, 위 baseMax/maxAdd/maxCap 주석 참고).
+ */
+export const FINITE_MAX_ALIVE = [4, 4, 5, 6, 6];
 
 /**
  * ★ config.stage.finiteCount(5)와 반드시 같아야 하는 하드코딩 중복이다. 이

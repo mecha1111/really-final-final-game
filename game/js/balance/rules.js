@@ -1,7 +1,7 @@
 // 이 파일 역할: 시트 값을 게임이 바로 쓸 형태로 가공한다(판 규칙 묶음, 파일 3종, special_effect 문구 해석).
 
 import { gameData, getStageValue } from './loader.js';
-import { PROGRESSION, INFINITE, FINITE_COUNT } from './progression.js';
+import { PROGRESSION, INFINITE, FINITE_COUNT, FINITE_MAX_ALIVE } from './progression.js';
 
 /** 업로드할 파일 3종(소/중/대)을 stage 시트에서 뽑아온다. */
 export function getFileTiers() {
@@ -53,8 +53,15 @@ export function createRules(stageIndex = 0) {
       : Math.round(baseQuota * Math.pow(p.quotaMult, n)),
     // 스폰 간격: **나눗셈**이라 n이 클수록 짧아진다(= 더 자주 나온다). 하한 클램프.
     spawnInterval: Math.max(baseSpawn / Math.pow(p.spawnMult, n), p.minSpawn),
-    // 동시 최대: 더해서 늘고 상한에서 멈춘다. 정수.
-    maxAlive: Math.min(Math.floor(baseMax + p.maxAdd * n), p.maxCap),
+    // 동시 최대: 2026-09-10부터 유한/무한이 서로 다른 손잡이를 쓴다(quota와 같은
+    // 분리 원칙 — progression.js의 FINITE_MAX_ALIVE 주석 참고).
+    //   유한(n<FINITE_COUNT) — FINITE_MAX_ALIVE[n] 표를 그대로 쓴다.
+    //   무한(n>=FINITE_COUNT) — 옛 공식 그대로(n을 그대로 물린다, layer가 아니다).
+    //     ★이 분기는 무한모드의 동시최대 값을 단 하나도 바꾸지 않는다는 뜻이다 —
+    //     n=5부터는 원래도 min(baseMax+maxAdd×n, maxCap)=14로 이미 상한에 닿아
+    //     있었고(baseMax=difficulty 시트 normal 행=11), 그 계산식을 문자 그대로
+    //     보존했다. 무한모드 재측정은 이번 재설계 범위 밖이다.
+    maxAlive: isInfinite ? Math.min(Math.floor(baseMax + p.maxAdd * n), p.maxCap) : FINITE_MAX_ALIVE[n],
 
     // 아래 둘은 구간으로 안 건드린다 — normal 값 고정
     dpsMultiplier: base.dps_multiplier ?? 1,
