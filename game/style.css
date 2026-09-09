@@ -2345,7 +2345,7 @@ body {
    ★ 이 방해는 클릭이 아니라 "마우스 이동"으로 풀린다 — 그래서 막이 클릭을 받을
      이유가 없고, 받으면 안 된다(어두운 동안에도 방해꾼은 평소처럼 눌려야 한다.
      막이 클릭을 삼키면 "보기 힘들게"가 아니라 "못 하게"가 되어버린다).
-     컨테이너·막·풍선 전부 pointer-events:none으로 둔다. */
+     컨테이너·막·풍선·아래 대화상자 전부 pointer-events:none으로 둔다. */
 #desktop .hz-powersave { position: absolute; inset: 0; pointer-events: none; }
 /* 실제 암전 막. 불투명도는 ui/hazards/powersave.js가 --hz-dim으로 흘려보낸다
    (매 프레임 값이 바뀌는 연속값이라 클래스 토글이 아니라 CSS 변수 — 피해
@@ -2355,6 +2355,19 @@ body {
   /* 검정은 토큰을 안 만든다 — 브랜드 색이 아니라 "화면이 꺼진다"는 물리 현상이다. */
   background: #000; opacity: var(--hz-dim, 0);
 }
+/* "입력 신호 없음" 대화상자(2026-09-10 추가) — 화면 정중앙(.hz-center, reboot와
+   공용). .win/.tbar/.ico/.t는 전부 기존 창 크롬을 그대로 물려받는다(위
+   #desktop .win 등 전역 규칙). DOM 순서상 .hz-dim보다 뒤라 막 위에 그려진다.
+   ★ hz-win 클래스를 안 쓴다 — #desktop .hz-win이 pointer-events:auto를 여는데
+     이 대화상자는 클릭으로 푸는 게 아니라서 그러면 안 된다(ui/hazards/
+     powersave.js 상단 주석). 부모(.hz-powersave)가 이미 none이라 명시 안 해도
+     상속으로 none이지만, 이 저장소 관례대로 값을 명시해 나중에 누가 실수로
+     hz-win을 얹어도 이 규칙(더 구체적인 선택자)이 이긴다. */
+#desktop .hz-powersave .hz-powersave-osd { width: 400px; pointer-events: none; }
+#desktop .hz-powersave-osd .tbar .ico { background: var(--xp-tooltip-bg); font-size: 15px; }
+#desktop .hz-powersave-osd .hz-msg { color: var(--xp-tooltip-text); font-size: 17px; line-height: 1.5; }
+#desktop .hz-powersave-osd .hz-msg p { margin: 0; }
+#desktop .hz-powersave-osd .hz-sub { margin-top: 8px !important; color: var(--xp-tooltip-sub); font-size: 15px; }
 /* XP 풍선 도움말 — 작업표시줄 알림 영역에서 튀어나오던 그 노란 말풍선.
    좌하단 고정. 막(.hz-dim)보다 위라 어두워져도 계속 읽힌다.
    ★ 2026-09-07: .hz-powersave 전용이었던 걸 공용으로 뺐다 — 드라이버 오류
