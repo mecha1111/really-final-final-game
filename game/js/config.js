@@ -520,7 +520,14 @@ export const config = {
       // 애초에 모든 클릭이 통째로 무시되므로(같은 파일의 onPointerDown 가드) 사실
       // "다시 발동시킬 클릭" 자체가 들어올 수 없다 — 그래도 나중에 그 가드가 느슨해질
       // 경우를 대비해 대입 방식 자체를 규칙으로 못박아 둔다.
-      freezeSec: 1.0,
+      //
+      // ★ 2026-09-09: 1.0 → 4.0. 1초는 "밟아도 별것 아니다"라 이 함정의 설계
+      //   (무시가 정답 — 시트 note에도 그렇게 적혀 있다)가 전혀 안 읽혔다. 4초는
+      //   방해꾼 여럿이 날뛰는 와중에 상당히 길다 — 그게 의도다. 벌칙이 아프지
+      //   않으면 "안 누르는 선택"에 무게가 안 실린다.
+      //   ★ 값을 키워도 스택 금지 규칙은 위 그대로다(대입만 하므로 4초가 8초가
+      //     되는 경로가 없다).
+      freezeSec: 4.0,
     },
 
     // zombie(좀비 프로세스) — 처치해도 reviveDelaySec 뒤 같은 자리에서 한 번 더 살아난다.
@@ -1470,7 +1477,7 @@ const ENEMY_SHEET_FALLBACK = [
     size_w: 90, size_h: 110, hit_w: 90, hit_h: 110,
     speed: 25, move_pattern: '떠다님',
     hp: 0, dps: 0, stops_upload: false, lifetime: 7,
-    weight: 8, min_stage: 3, action: 'none', special_effect: '클릭시 조작불능 1초+콤보리셋',
+    weight: 8, min_stage: 3, action: 'none', special_effect: '클릭시 조작불능 4초+콤보리셋',
   },
   {
     id: 'zombie', name_kr: '좀비 프로세스', type: 'B',
