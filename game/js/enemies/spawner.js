@@ -3,32 +3,64 @@
 // 겹침 방지는 stage 시트(min_gap)에서 온다.
 
 import { config, getScaleFactor } from '../config.js';
+import { gameData } from '../balance/loader.js';
 import { Enemy } from './Enemy.js';
 
 export class Spawner {
   constructor() {
     this.timer = 0;
+    // 이번 구간에서 새로 해금된 종류의 id 목록(등장 순서대로) — reset()이 채우고
+    // update()가 하나씩 빼 쓴다. config.enemy.soloIntroSec 주석 참고.
+    this.soloQueue = [];
   }
 
   /**
    * 판이 시작될 때 호출. 첫 방해꾼도 다른 스폰과 똑같이 spawn_interval을
    * 기다렸다 나온다 — 0으로 두면 시작하자마자 A타입이 튀어나와
    * 손 쓸 새도 없이 업로드가 멈춰버린다.
+   *
+   * ★ 2026-09-10: soloQueue도 여기서 같이 잡는다 — 이번 rules.stage에서
+   *   min_stage가 "정확히" 이번 구간과 같은 것만 신규다(그 전 구간에서 이미
+   *   해금된 건 min_stage가 더 작으므로 안 걸린다). buildPool을 다시 부르는
+   *   이유: update()가 받는 world.pool은 첫 프레임이 되어야 stageManager가
+   *   만들어 넘겨주는데, 그 전에(이 reset 시점에) 큐를 먼저 정해둬야 첫
+   *   프레임부터 곧바로 단독 등장 로직을 탈 수 있다.
    */
   reset(rules) {
     this.timer = rules.spawnInterval;
+    const pool = buildPool(gameData.enemies, rules.stage);
+    this.soloQueue = pool.filter((s) => (s.min_stage ?? 1) === rules.stage).map((s) => s.id);
   }
 
   /**
    * @param {number} dt
-   * @param {object} world { rules, playArea, enemies, pool, pointer }
+   * @param {object} world { rules, playArea, enemies, pool, pointer, elapsed }
    *   pool: 이번 판에 등장 가능한 spec 목록(min_stage로 이미 걸러진 것)
    *   pointer: copier가 진짜 커서 근처에 스폰되기 위해 필요
+   *   elapsed: 이번 구간이 시작된 뒤 흐른 시간(초) — 단독 등장 마감 판정용
    * @returns {Enemy[]} 이번 프레임에 새로 생긴 방해꾼
    */
   update(dt, world) {
     const { rules, enemies, pool } = world;
     if (pool.length === 0) return [];
+
+    // ── 신규 종류 단독 등장(config.enemy.soloIntroSec) ─────────────────────
+    // 큐가 비어있지 않은 동안은 정상 스폰을 통째로 쉰다 — 그래야 "화면이
+    // 비었다"가 이 대기 중에 다른 스폰으로 다시 채워지지 않고 그대로 유지된다.
+    // 화면이 실제로 비었거나 마감 시각이 되면 큐의 맨 앞을 그 자리에서 낸다.
+    if (this.soloQueue.length > 0) {
+      const elapsed = world.elapsed ?? 0;
+      const screenEmpty = enemies.every((e) => !e.alive);
+      if (!screenEmpty && elapsed < config.enemy.soloIntroSec) return [];
+
+      const id = this.soloQueue.shift();
+      this.timer = rules.spawnInterval; // 정상 스폰 타이머도 이 순간부터 다시 잰다
+      const spec = pool.find((s) => s.id === id);
+      // 방어적 분기 — pool은 soloQueue와 같은 stage 필터를 거치므로 이론상
+      // 항상 찾는다. 못 찾아도(시트가 판 중간에 바뀌는 등의 극단적 상황) 게임이
+      // 죽지 않고 그 항목만 조용히 건너뛴다.
+      return spec ? [this.spawnOne(spec, world)] : [];
+    }
 
     this.timer -= dt;
     if (this.timer > 0) return [];

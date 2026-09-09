@@ -293,7 +293,10 @@ export function update(dt) {
 
   // 등장 가능 목록을 매번 다시 만든다 — 디버그에서 일차를 바꾸면 바로 반영된다
   const pool = buildPool(gameData.enemies, rules.stage);
-  const world = { rules, playArea, pointer: state.pointer, enemies: state.enemies, pool };
+  // 구간 시작 후 흐른 시간(초) — spawner의 신규 종류 단독 등장 마감 판정용
+  // (config.enemy.soloIntroSec, enemies/spawner.js 참고).
+  const elapsed = rules.timeLimit - state.timeLeft;
+  const world = { rules, playArea, pointer: state.pointer, enemies: state.enemies, pool, elapsed };
   // ★일반 스폰 정지 — 튜토리얼이 소환하는 시연용 말고는 한 마리도 안 나온다.
   //   spawner의 타이머는 안 건드린다: 실전이 시작될 때 어차피 첫 간격을 새로
   //   기다려야 하고(reset은 startGame에서 이미 했다), 여기서 timer만 안 깎으면

@@ -117,48 +117,48 @@ export const config = {
     quotaOverride: 180,
 
     // ── 해금 배치의 정본 ───────────────────────────────────────────────────
-    // ★ 설계 원칙: 누적이다. 한 번 등장한 요소는 절대 빠지지 않는다 — 학습 곡선
-    //   (하나씩 차분히)이 아니라 혼돈 누적(계속 쌓이기)이고, 1구간부터 이미
-    //   시끄러워야 한다. 그래서 아래 값은 "그 구간에서 새로 추가되는 것"이고,
-    //   판정은 min_stage <= 지금 구간이라 한 번 열리면 계속 나온다.
+    // ★ 2026-09-10 밸런스 재설계로 표를 다시 짰다 — 본편(유한 5구간)의 등장
+    //   종류를 방해꾼 7종 + 환경 방해 2종으로 줄이고(★기존 12종+6종 전부를
+    //   유한 구간에 우겨넣던 것을 그만뒀다), 나머지 5종(방해꾼)+4종(환경 방해)은
+    //   전부 무한모드 전용으로 미룬다 — "무한 1층부터 18종 전부 등장"(아래 표의
+    //   min_stage=finiteCount+1=6인 항목들)이 그 신규 요소가 처음 만나는 자리다.
+    //   설계 원칙(누적)은 그대로다 — 한 번 등장한 요소는 절대 빠지지 않는다.
     //
     //   구간(0-based) — 새로 추가되는 것 / 그때 함께 열리는 환경 방해
-    //     1구간(0): basic, clone, ransom, popup, bait   ← 5종으로 시작
-    //     2구간(1): bomb, fake_btn                      / hazard: screensaver
-    //     3구간(2): unplug, hourglass                   / hazard: powersave, reboot
-    //     4구간(3): copier, hidden, zombie          / hazard: driver
-    //     5구간(4): (신규 방해꾼 없음)                 / hazard: flip(상하반전)
-    //     무한(5+): 전부 활성
-    //
-    // ★ 2026-09-07 정정: 전날(2026-09-06) 이 표를 처음 만들 때 bait를 5구간
-    //   (예비 슬롯)으로 늦춰뒀던 건 표의 실수였다(시트는 처음부터 1이었다 —
-    //   클릭해도 안 죽는 미끼 자체는 이미 완성된 기능이라 늦출 이유가 없었다).
-    //   시트가 맞고 이 표가 틀렸던 유일한 항목.
+    //     1구간(0): basic
+    //     2구간(1): ransom, bait
+    //     3구간(2): popup                              / hazard: screensaver
+    //     4구간(3): bomb, clone
+    //     5구간(4): unplug                              / hazard: flip(상하반전)
+    //     무한(5+): fake_btn, hourglass, copier, hidden, zombie
+    //               / hazard: reboot, powersave, driver, cracked
+    //               (본편 요소 7+2와 합쳐 1층부터 18종 전부)
     //
     // 아래 숫자는 enemies 시트의 min_stage와 같은 1-based 값이다(구간 n → n+1).
+    // 무한 전용 5종은 finiteCount+1(=6)을 줘서 "유한 5구간엔 min_stage<=5가
+    // 전부 5보다 작거나 같아 못 들어오고, 무한 1층(n=5, rules.stage=6)부터는
+    // 6<=6이라 정확히 그 순간부터 들어온다" — 별도 분기 없이 기존 min_stage
+    // 비교(spawner.js의 buildPool) 하나로 유한/무한 배치가 갈린다.
     //
     // ★ 원칙적으로 해금은 구글시트 enemies 탭의 min_stage가 정한다. 이 표는 그
     //   값이 설계와 어긋나 있는 동안 게임이 틀린 배치로 돌아가지 않게 하는
     //   임시 덮어쓰기다 — applyEnemyUnlockPlan()이 로드 직후 이 표로 min_stage를
     //   맞추고, 실제로 뭔가 덮어썼으면 config.debug.enabled일 때 콘솔에 찍어
     //   "시트와 코드가 다르다"가 조용히 묻히지 않게 한다.
-    //   ★ 지금(2026-09-06 시트 정리 후)은 시트와 이 표가 완전히 같다 — 그래서
-    //     경고가 안 뜬다. 값이 같아도 표 자체는 지우지 않는다: 시트가 다시
-    //     바뀌면(누가 실수로 min_stage를 고치면) 그 순간 경고가 다시 뜨는 게
-    //     이 표의 존재 이유다.
     enemyUnlockPlan: {
       basic: 1,
-      clone: 1,
-      ransom: 1,
-      popup: 1,
-      bait: 1,
-      bomb: 2,
-      fake_btn: 2,
-      unplug: 3,
-      hourglass: 3,
-      copier: 4,
-      hidden: 4,
-      zombie: 4,
+      ransom: 2,
+      bait: 2,
+      popup: 3,
+      bomb: 4,
+      clone: 4,
+      unplug: 5,
+      // ── 여기부터 무한 전용(finiteCount+1) ──
+      fake_btn: 6,
+      hourglass: 6,
+      copier: 6,
+      hidden: 6,
+      zombie: 6,
     },
 
     // ── 방해꾼 weight 확정값(시트/로컬CSV 드리프트 방지) ──────────────────────
@@ -282,6 +282,15 @@ export const config = {
     spawnTries: 24,
     // 남은 수명 바의 두께(px). 0으로 두면 수명 표시가 사라진다.
     lifeBarH: 5,
+
+    // ★ 2026-09-10 신설 — 이번 구간에서 새로 해금된 종류(min_stage가 정확히
+    //   이번 rules.stage와 같은 것)는 구간 시작 후 이 시간(초) 안에 「단독으로」
+    //   먼저 1마리 등장한다(enemies/spawner.js의 soloQueue). 화면이 빌 때까지는
+    //   정상 스폰도 함께 멈춘다 — 그래야 "단독"이 항상 문자 그대로 참이다. 이
+    //   시간이 다 되도록 화면이 안 비면(운이 나쁘면) 그때는 비지 않은 채로라도
+    //   강제로 내보낸다 — "15초 안에는 반드시" 쪽을 "항상 완전히 혼자"보다
+    //   우선한다.
+    soloIntroSec: 15,
 
     // === 주기 공격(구 dps) ===
     // 시트엔 아직 dps 한 칸뿐이라, "dps%를 초당 지속으로 깎기" 대신
@@ -752,9 +761,10 @@ export const config = {
     // XP 자동 업데이트의 "시스템 설정 변경" 재시작 알림 그대로. 화면 한가운데를
     // 차지해 그 아래 방해꾼을 가린다 — 시야를 막는 게 이 방해의 본체다.
     reboot: {
-      // 3구간(index 2)부터. 아래 powersave와 같은 구간에 함께 열린다 —
-      // 해금 배치의 정본은 config.stage.enemyUnlockPlan 위의 표 주석이다.
-      minStage: 3,
+      // ★ 2026-09-10 밸런스 재설계 — 본편(유한 5구간)에서 뺐다(방해꾼 7종 +
+      //   환경 방해 2종만 남기는 재설계, config.stage.enemyUnlockPlan 위의
+      //   표 주석 참고). 무한 1층(finiteCount+1=6)부터 등장한다.
+      minStage: 6,
       // 카운트다운 길이(초) = 자동 종료 시간. 이 시간을 다 흘려보내면(방치) 벌칙.
       countdownSec: 10,
       // 방치했을 때 / [지금 다시 시작]을 눌렀을 때 깎이는 진행도(%p).
@@ -786,8 +796,9 @@ export const config = {
     //   state.uploadDamageDisabled를 켠다(systems/upload.js가 읽는다) — 다른
     //   hazard는 전부 조작이 가능하므로 이 플래그를 안 건드린다.
     screensaver: {
-      // 2구간(index 1)부터 — 환경 방해 중 가장 먼저 등장하는 종류.
-      minStage: 2,
+      // ★ 2026-09-10 2→3(밸런스 재설계) — 본편에 남는 환경 방해 2종(screensaver·
+      //   flip) 중 먼저 나오는 쪽. 3구간(index 2)부터, popup과 같은 구간에 함께 열린다.
+      minStage: 3,
       // 해제 안 하면 이 시간(초) 뒤 저절로 꺼진다.
       durationSec: 10,
 
@@ -822,8 +833,9 @@ export const config = {
     // 다시 밝아진다. 위 둘과 달리 "한 번 해제하고 끝"이 아니라 계속 움직여야
     // 유지되는 방해라, 조준(정지)과 회피(움직임)가 서로 충돌하는 게 핵심이다.
     powersave: {
-      // 3구간(index 2)부터(reboot와 동시 해금).
-      minStage: 3,
+      // ★ 2026-09-10 밸런스 재설계 — 본편에서 뺐다(reboot와 같은 이유,
+      //   config.stage.enemyUnlockPlan 위의 표 주석 참고). 무한 1층부터 등장한다.
+      minStage: 6,
       // 해제 못 해도 이 시간(초) 뒤엔 저절로 풀린다.
       // ★ 2026-09-09 7 → 6(승인분) — 아래 maxOpacity를 낮춰 부담이 준 만큼
       //   방치 시간도 같이 줄였다.
@@ -934,8 +946,9 @@ export const config = {
     // 클릭 판정은 항상 실제 위치 기준이다(systems/input.js가 애초에 state.pointer의
     // 실시간 값만 보므로 손댈 곳이 없다 — 화면과 판정을 분리하는 게 이 방해의 핵심).
     driver: {
-      // 4구간(index 3)부터 — copier/hidden/zombie와 함께 열린다.
-      minStage: 4,
+      // ★ 2026-09-10 밸런스 재설계 — 본편에서 뺐다(copier/hidden/zombie와 함께
+      //   무한 전용으로 미뤘다, config.stage.enemyUnlockPlan 위의 표 주석 참고).
+      minStage: 6,
       // 방치 시 이 시간(초) 뒤 저절로 복구된다(요구사항의 "6초 경과").
       durationSec: 6,
       // 커서가 늦게 따라오는 시간차(초). config.cursor.trailMaxAgeSec(2.5)보다
@@ -977,8 +990,9 @@ export const config = {
     //   그래서 ①단색 흰색을 없애고(RGB 분리/스캔 결손/색 반전 3종) ②열을 세로로
     //   2~5조각으로 끊어 조각마다 좌우로 밀고 ③그 밀림을 0.15초마다 다시 뽑는다.
     cracked: {
-      // 4구간(index 3)부터 — driver와 같은 구간에 함께 열린다.
-      minStage: 4,
+      // ★ 2026-09-10 밸런스 재설계 — 본편에서 뺐다(driver와 같은 이유, 무한
+      //   1층부터). config.stage.enemyUnlockPlan 위의 표 주석 참고.
+      minStage: 6,
       // 이 시간(초) 뒤 자동 복구. ★ 2026-09-10 8 → 4.5 — 문질러 지우는 해제를
       //   없애면서(자동 해제만 남는다) 방치 시간을 그만큼 짧게 잡았다.
       durationSec: 4.5,
