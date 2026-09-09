@@ -1,7 +1,14 @@
 // 이 파일 역할: 시트 값을 게임이 바로 쓸 형태로 가공한다(판 규칙 묶음, 파일 3종, special_effect 문구 해석).
 
 import { gameData, getStageValue } from './loader.js';
-import { PROGRESSION, INFINITE, FINITE_COUNT, FINITE_MAX_ALIVE, FINITE_QUOTA_OVERRIDE } from './progression.js';
+import {
+  PROGRESSION,
+  INFINITE,
+  FINITE_COUNT,
+  FINITE_MAX_ALIVE,
+  FINITE_QUOTA_OVERRIDE,
+  FINITE_TYPE_CAP,
+} from './progression.js';
 
 /** 업로드할 파일 3종(소/중/대)을 stage 시트에서 뽑아온다. */
 export function getFileTiers() {
@@ -64,6 +71,10 @@ export function createRules(stageIndex = 0) {
     //     있었고(baseMax=difficulty 시트 normal 행=11), 그 계산식을 문자 그대로
     //     보존했다. 무한모드 재측정은 이번 재설계 범위 밖이다.
     maxAlive: isInfinite ? Math.min(Math.floor(baseMax + p.maxAdd * n), p.maxCap) : FINITE_MAX_ALIVE[n],
+    // 동시 화면 "종류 수" 상한(마릿수와 별개 축) — enemies/spawner.js가 읽는다.
+    // 무한모드는 상한이 없다(요구사항) — Infinity를 주면 스폰러의 비교
+    // (aliveTypes.size >= typeCap)가 항상 거짓이라 필터가 사실상 무동작이 된다.
+    typeCap: isInfinite ? Infinity : FINITE_TYPE_CAP[n],
 
     // 아래 둘은 구간으로 안 건드린다 — normal 값 고정
     dpsMultiplier: base.dps_multiplier ?? 1,

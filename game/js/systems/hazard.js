@@ -40,6 +40,10 @@ let layerEl = null;
 let fireTimer = 0; // 0이 되는 순간 발동을 시도한다(초)
 let lastFiredId = null; // 같은 종류 연속 금지
 let lastPointer = null; // 해제 조건이 '이동'인 방해가 쓰는 직전 프레임 커서 위치
+// 이번 구간(판)에서 스케줄러가 실제로 발동시킨 횟수. config.hazard.maxPerStage 참고.
+// ★ 디버그 손잡이(__game.hazard)로 수동 발동한 건 안 센다 — 아래 updateHazards()의
+//   전조 완료 지점(자동 스케줄이 triggerHazard를 부르는 그 자리)에서만 올린다.
+let scheduledFireCount = 0;
 
 const rand = (min, max) => min + Math.random() * (max - min);
 
@@ -137,6 +141,9 @@ export function resetHazards() {
   fireTimer = config.hazard.graceSec + rand(config.hazard.intervalMinSec, config.hazard.intervalMaxSec);
   lastFiredId = null;
   lastPointer = null;
+  // ★ 2026-09-10 신설 — 구간(판)당 자동 발동 횟수 카운터. config.hazard.maxPerStage
+  //   주석 참고. 판이 새로 시작할 때마다 0으로 되돌린다.
+  scheduledFireCount = 0;
 }
 
 /**
@@ -277,12 +284,17 @@ export function updateHazards(dt, rules) {
       const id = pending.id;
       endTelegraph();
       triggerHazard(id);
+      scheduledFireCount += 1; // 자동 스케줄이 실제로 하나 내보냈다
     }
     return; // 전조 중엔 새 스케줄을 돌리지 않는다
   }
 
   // 2) 스케줄 — 꺼져 있으면 발동만 멈춘다(이미 뜬 건 위에서 계속 갱신·종료된다).
   if (!config.hazard.enabled) return;
+  // ★ 2026-09-10 신설 — 구간당 최대 발동 횟수(config.hazard.maxPerStage, 기본 1).
+  //   이미 뜬 것과 진행 중인 전조는 위 1)/1-b)에서 그대로 끝까지 간다 — 여기서
+  //   막는 건 "새로" 거는 것뿐이다(endGuardSec와 같은 결).
+  if (scheduledFireCount >= config.hazard.maxPerStage) return;
   // 뭔가 떠 있는 동안은 타이머를 안 깎는다 — "끝난 뒤부터 쿨타임"이 되게.
   if (state.hazards.length >= config.hazard.maxConcurrent) return;
   // ★ 구간 종료 임박 가드(config.hazard.endGuardSec, 2026-09-09 승인분) — 남은

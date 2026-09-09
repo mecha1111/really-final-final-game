@@ -83,7 +83,13 @@ export class Spawner {
     const spawnable = filterByExclusiveGroups(capped, enemies);
     if (spawnable.length === 0) return [];
 
-    const spec = pickWeighted(spawnable);
+    // 동시 화면 "종류 수" 상한(rules.typeCap, 마릿수 상한과 별개 축) — 이미
+    // 화면에 떠 있는 종류 가짓수가 상한에 닿았으면, 아직 화면에 없는 새 종류를
+    // 후보에서 뺀다(이미 떠 있는 종류를 한 마리 더 늘리는 건 막지 않는다).
+    const typeCapped = filterByTypeCap(spawnable, enemies, rules.typeCap);
+    if (typeCapped.length === 0) return [];
+
+    const spec = pickWeighted(typeCapped);
     if (!spec) return [];
 
     return [this.spawnOne(spec, world)];
@@ -161,6 +167,25 @@ function filterByExclusiveGroups(pool, enemies) {
     }
     return true;
   });
+}
+
+/**
+ * rules.typeCap(동시 화면 "종류" 수 상한, 2026-09-10 신설 — balance/rules.js·
+ * progression.js의 FINITE_TYPE_CAP 주석 참고)에 이미 닿았으면, 지금 화면에 없는
+ * 새 종류를 후보에서 뺀다. 이미 화면에 떠 있는 종류를 한 마리 더 늘리는 건(그
+ * 종류의 개별 상한이 허용하는 한) 막지 않는다 — "몇 가지가 보이는가"만 제한하지
+ * "몇 마리인가"는 다른 필터(마릿수 상한·개별 상한)의 일이다.
+ * ★ "살아있는가" 판정은 위 두 필터와 일부러 다르게 뒀다 — 여기는 .alive만 본다
+ *   (countsForConcurrency처럼 zombie의 부활 대기까지 포함하지 않는다). 종류
+ *   상한은 "지금 화면에 실제로 보이는 그림 가짓수"를 세는 것이라, 잠깐 죽어
+ *   corpseTimer로 남은 시체나 부활을 기다리는 동안의 zombie까지 "보인다"고
+ *   치면 정작 화면엔 없는데 다른 신규 종류가 못 들어오는 조용한 과잉규제가 된다.
+ * cap이 Infinity(무한모드)면 비교가 항상 거짓이라 그대로 통과시킨다.
+ */
+function filterByTypeCap(pool, enemies, cap) {
+  const aliveTypes = new Set(enemies.filter((e) => e.alive).map((e) => e.id));
+  if (aliveTypes.size < cap) return pool;
+  return pool.filter((spec) => aliveTypes.has(spec.id));
 }
 
 /** weight 칸을 가중치로 써서 하나 고른다. weight가 클수록 자주 나온다. */

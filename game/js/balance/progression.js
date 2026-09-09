@@ -138,6 +138,18 @@ export const FINITE_MAX_ALIVE = [4, 4, 5, 6, 6];
 export const FINITE_QUOTA_OVERRIDE = { 3: 255, 4: 270 };
 
 /**
+ * 유한 5구간(n=0..4) 전용 "동시 화면 종류 수" 상한. 마릿수 상한(FINITE_MAX_ALIVE)과는
+ * 완전히 다른 축이다 — 마릿수는 "몇 마리"를, 이건 "몇 가지"를 제한한다. 2026-09-10
+ * 등장 스케줄 재설계(config.stage.enemyUnlockPlan)로 구간이 오를수록 해금 종류 수가
+ * 늘어나는데(1/3/4/6/7종), 전부 동시에 화면에 떠 있으면 시각적 복잡도가 마릿수
+ * 상한과 별개로 튄다 — 그래서 "지금 이 순간 화면에 몇 가지가 보이는가"를 따로 죈다.
+ *
+ * ★ 무한모드는 이 표를 안 본다 — rules.js가 n>=FINITE_COUNT일 때 Infinity를 준다
+ *   ("종류 수 상한 없음" 요구사항).
+ */
+export const FINITE_TYPE_CAP = [1, 2, 3, 3, 4];
+
+/**
  * ★ config.stage.finiteCount(5)와 반드시 같아야 하는 하드코딩 중복이다. 이
  *   파일(잎 모듈)은 config.js를 못 읽어(순환참조, 파일 상단 주석) 진짜 값을
  *   직접 못 본다 — config.enemy.cloneSplitMaxTierByStage의 "stage: 5"와 같은
