@@ -285,6 +285,13 @@ export function updateHazards(dt, rules) {
   if (!config.hazard.enabled) return;
   // 뭔가 떠 있는 동안은 타이머를 안 깎는다 — "끝난 뒤부터 쿨타임"이 되게.
   if (state.hazards.length >= config.hazard.maxConcurrent) return;
+  // ★ 구간 종료 임박 가드(config.hazard.endGuardSec, 2026-09-09 승인분) — 남은
+  //   시간이 이 이하면 새로 시작하지 않는다. 막판에 환경 방해가 겹치면 정직하게
+  //   채운 할당량을 시간 안에 못 내는 억울함이 생긴다. 이미 떠 있는 것과 진행
+  //   중인 전조는 그대로 끝까지 간다 — 여기서 막는 건 "새로" 거는 것뿐이다.
+  //   state.timeLeft는 튜토리얼에선 이 함수 자체가 안 불려서(core/stageManager.js
+  //   의 `if (!tut) updateHazards(...)`) 항상 실제 판의 값이다.
+  if (state.timeLeft <= config.hazard.endGuardSec) return;
 
   fireTimer -= dt;
   if (fireTimer > 0) return;

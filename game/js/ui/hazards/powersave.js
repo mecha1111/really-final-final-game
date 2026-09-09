@@ -104,11 +104,21 @@ registerHazard({
   //   것이므로 그 효과의 축소판으로 딱 맞는다.
   //   ★진짜 화면(#stage)을 scaleY 하지 않는다 — 좌표계를 건드리면 전조 중 클릭이
   //     밀린다. 위아래에서 조여드는 검은 띠 두 장으로 그린다(style.css).
+  //
+  // ★ 2026-09-09(승인분) — 트레이 XP 풍선 도움말로 "무엇이 오는지" 이름을 밝힌다
+  //   (전조 규격 통일, config.hazard.telegraphSec 주석 참고). 본 효과의 풍선과
+  //   같은 아이콘(plug)을 쓴다.
   telegraph: {
     mount(t) {
       const el = document.createElement('div');
       el.className = 'hz-tele-crt';
-      el.innerHTML = '<i class="t"></i><i class="b"></i><b></b>';
+      el.innerHTML = `
+        <i class="t"></i><i class="b"></i><b></b>
+        <div class="hz-balloon hz-tele-balloon">
+          <div class="hz-balloon-ico">${icon('plug', 26)}</div>
+          <div class="hz-balloon-txt"><b>절전 모드로 전환됩니다</b></div>
+        </div>
+      `;
       t.el = el;
     },
   },

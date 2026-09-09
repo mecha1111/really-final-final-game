@@ -2711,7 +2711,21 @@ body {
    눌러 좌상단으로 끌고 갔다(실측으로 잡음). */
 #desktop .hz-tele { pointer-events: none; }
 
+/* ★ 2026-09-09(승인분) — 전조마다 "무엇이 오는지" 이름을 밝히는 트레이 XP 풍선
+   도움말(전조 규격 통일). 본 효과의 .hz-balloon과 같은 자리·같은 생김새를
+   그대로 쓰되, 문구가 한 줄뿐이라 폭만 줄인다(430px는 두 줄짜리 본 효과 문구
+   기준). 애니메이션을 안 준다 — 각 전조의 순간 연출(방패 팝/암전 등)과 달리
+   이 풍선은 telegraphSec 내내(1.8초) 읽혀야 해서, keyframes 1s 고정 길이로
+   끊으면 나머지 시간 동안 사라져 있게 된다. */
+#desktop .hz-tele-balloon { width: auto; max-width: 380px; }
+
 /* ── 재부팅: 트레이에 XP 방패가 뿅 (실물 XP 자동업데이트 알림) ─────────────── */
+/* ★ 2026-09-09(승인분) — 방패(오른쪽 아래 트레이)와 풍선(왼쪽 아래)을 같이
+   담는 wrapper. inset:0을 줘서 두 자식이 각자 own right/bottom·left/bottom으로
+   화면 전체를 기준 삼게 한다(위 .hz-tele 공통 규칙의 "기하는 각자 정의한다"에
+   따라, 이 클래스에만 inset:0을 준다 — 다른 전조 클래스와 같은 값이지만 각자
+   따로 적어둔다). */
+#desktop .hz-tele-reboot { position: absolute; inset: 0; }
 #desktop .hz-tele-shield {
   position: absolute; right: 16px; bottom: calc(var(--taskbar-h, 52px) + 8px);
   width: 30px; height: 30px; display: grid; place-items: center;

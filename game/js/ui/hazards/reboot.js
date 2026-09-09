@@ -117,11 +117,26 @@ registerHazard({
   //   아이콘은 0번 커밋에서 만든 파일 아이콘 카탈로그의 shield를 그대로 쓴다 —
   //   UI 크롬용 icons.js의 단색 방패가 아니라 다색 아이소메트릭 쪽이라야
   //   "실물 XP 트레이"로 읽힌다.
+  //
+  // ★ 2026-09-09(승인분) — 트레이 XP 풍선 도움말로 "무엇이 오는지" 이름을 밝힌다
+  //   (전조 규격 통일, config.hazard.telegraphSec 주석 참고). 방패 아이콘(오른쪽
+  //   아래 트레이)과 풍선(왼쪽 아래)이 자리가 달라 wrapper 하나로 같이 묶는다 —
+  //   .hz-tele-shield 혼자는 30x30짜리 자기 위치(right/bottom)만 있는 상자라,
+  //   그 안에 .hz-balloon(자기 left/bottom을 쓰는 요소)을 그냥 넣으면 그 30x30
+  //   상자를 기준으로 다시 밀려서 자리가 어긋난다 — wrapper를 inset:0으로 둬서
+  //   두 자식 모두 화면 전체를 기준으로 자기 위치를 잡게 한다(style.css의
+  //   .hz-tele-reboot).
   telegraph: {
     mount(t) {
       const el = document.createElement('div');
-      el.className = 'hz-tele-shield';
-      el.innerHTML = fileIcon('shield', 22);
+      el.className = 'hz-tele-reboot';
+      el.innerHTML = `
+        <div class="hz-tele-shield">${fileIcon('shield', 22)}</div>
+        <div class="hz-balloon hz-tele-balloon">
+          <div class="hz-balloon-ico">${icon('shield', 26)}</div>
+          <div class="hz-balloon-txt"><b>재시작 알림이 표시됩니다</b></div>
+        </div>
+      `;
       t.el = el;
       playSfx(SFX.UI_OPEN, { ui: true });
     },

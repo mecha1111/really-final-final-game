@@ -105,11 +105,21 @@ registerHazard({
   // ★전조 — 화면이 살짝 기울었다 돌아온다.
   //   ★진짜 화면을 안 돌린다(회전각은 canvasGeometry가 아는 값이라, 전조가 몰래
   //     돌리면 판정이 그만큼 밀린다). 테두리 한 겹만 기울여 "곧 뒤집힌다"를 알린다.
+  //
+  // ★ 2026-09-09(승인분) — 트레이 XP 풍선 도움말로 "무엇이 오는지" 이름을 밝힌다
+  //   (전조 규격 통일, config.hazard.telegraphSec 주석 참고). 본 효과의 풍선과
+  //   같은 아이콘(monitor)을 쓴다.
   telegraph: {
     mount(t) {
       const el = document.createElement('div');
       el.className = 'hz-tele-tilt';
-      el.innerHTML = '<i></i>';
+      el.innerHTML = `
+        <i></i>
+        <div class="hz-balloon hz-tele-balloon">
+          <div class="hz-balloon-ico">${icon('monitor', 26)}</div>
+          <div class="hz-balloon-txt"><b>화면 방향이 변경됩니다</b></div>
+        </div>
+      `;
       t.el = el;
     },
   },

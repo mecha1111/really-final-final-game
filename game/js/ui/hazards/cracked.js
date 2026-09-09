@@ -29,6 +29,7 @@ import { config } from '../../config.js';
 import { registerHazard, dismissHazard } from '../../systems/hazard.js';
 import { state } from '../../core/state.js';
 import { playSfx, SFX } from '../../systems/sound.js';
+import { icon } from '../icons.js';
 
 const rand = (min, max) => min + Math.random() * (max - min);
 const randInt = (min, max) => Math.floor(rand(min, max + 1));
@@ -177,6 +178,9 @@ registerHazard({
   // ★전조 — 세로선 하나가 잠깐 번쩍했다 사라진다(참조 문서의 crackTelegraph()).
   //   본 효과가 "세로 열 고장"이라 그중 한 줄만 미리 보여주는 축소판이다.
   //   x는 매번 다르게 — 같은 자리면 "저기 온다"를 외워버려 전조가 아니라 예고가 된다.
+  //
+  // ★ 2026-09-09(승인분) — 트레이 XP 풍선 도움말로 "무엇이 오는지" 이름을 밝힌다
+  //   (전조 규격 통일, config.hazard.telegraphSec 주석 참고).
   telegraph: {
     mount(t) {
       const el = document.createElement('div');
@@ -184,6 +188,13 @@ registerHazard({
       const line = document.createElement('i');
       line.style.left = `${8 + Math.random() * 84}%`;
       el.appendChild(line);
+      const balloon = document.createElement('div');
+      balloon.className = 'hz-balloon hz-tele-balloon';
+      balloon.innerHTML = `
+        <div class="hz-balloon-ico">${icon('warning', 26)}</div>
+        <div class="hz-balloon-txt"><b>화면 출력에 오류가 있습니다</b></div>
+      `;
+      el.appendChild(balloon);
       t.el = el;
     },
   },

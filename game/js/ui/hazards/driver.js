@@ -91,11 +91,21 @@ registerHazard({
   //   전조용 커서 로직을 따로 만들면 둘이 조용히 갈라진다. 다만 ★진짜 커서를
   //   숨기지는 않는다(state.hideSystemCursor를 안 건드린다): 전조 동안 조준을
   //   빼앗으면 "짧아서 못 막는다"가 아니라 "전조 때문에 손해를 본다"가 된다.
+  //
+  // ★ 2026-09-09(승인분) — 트레이 XP 풍선 도움말로 "무엇이 오는지" 이름을 밝힌다
+  //   (전조 규격 통일, config.hazard.telegraphSec 주석 참고). 본 효과의 풍선과
+  //   같은 아이콘(monitor)을 써서 "같은 방해의 예고"임을 알아보게 한다.
   telegraph: {
     mount(t) {
       const el = document.createElement('div');
       el.className = 'hz-tele-glitch';
-      el.innerHTML = '<i></i>';
+      el.innerHTML = `
+        <i></i>
+        <div class="hz-balloon hz-tele-balloon">
+          <div class="hz-balloon-ico">${icon('monitor', 26)}</div>
+          <div class="hz-balloon-txt"><b>디스플레이 드라이버에 문제가 있습니다</b></div>
+        </div>
+      `;
       t.el = el;
 
       const p = state.pointer;

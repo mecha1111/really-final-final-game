@@ -37,6 +37,7 @@ import { config } from '../../config.js';
 import { registerHazard } from '../../systems/hazard.js';
 import { state } from '../../core/state.js';
 import { playSfx, SFX } from '../../systems/sound.js';
+import { icon } from '../icons.js';
 
 const REF_W = config.canvas.uiBaseWidth; // #desktop 좌표계 폭(1920) — 다른 hazard와 같은 기준
 
@@ -139,10 +140,20 @@ registerHazard({
   },
 
   // ★전조 — 본 효과의 축소판 그대로: 화면이 아주 짧게 한 번 어두워졌다 돌아온다.
+  //
+  // ★ 2026-09-09(승인분) — 트레이 XP 풍선 도움말로 "무엇이 오는지" 이름을 밝힌다
+  //   (전조 규격 통일, config.hazard.telegraphSec 주석 참고). 아이콘은 lock —
+  //   "화면이 잠긴다"는 이 방해의 본질과 맞는다.
   telegraph: {
     mount(t) {
       const el = document.createElement('div');
       el.className = 'hz-tele-dim';
+      el.innerHTML = `
+        <div class="hz-balloon hz-tele-balloon">
+          <div class="hz-balloon-ico">${icon('lock', 26)}</div>
+          <div class="hz-balloon-txt"><b>화면 보호기가 실행됩니다</b></div>
+        </div>
+      `;
       t.el = el;
     },
   },
