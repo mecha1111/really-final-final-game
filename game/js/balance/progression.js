@@ -122,6 +122,22 @@ export const PROGRESSION = {
 export const FINITE_MAX_ALIVE = [4, 4, 5, 6, 6];
 
 /**
+ * 유한 4·5구간(n=3,4) 전용 quota 덮어쓰기. 1~3구간(n=0,1,2)은 손대지 않고
+ * PROGRESSION.quotaMult 공식 그대로 간다(180/196/214) — rules.js가 이 표에
+ * 키가 있는 n만 골라 대체한다.
+ *
+ * ★ 2026-09-10 밸런스 재설계 — copier weight 5→2, hourglass freezeSec 4.0→2.5로
+ *   회피 불가 요소(둘 다 클릭 판정만으로 갈리고 실력으로 막을 수 없다)를
+ *   완화하면서 4·5구간이 그만큼 물러졌다. 같은 판정 조건(quota를 목표
+ *   클리어율에서 역산)으로 다시 맞춘 값이 255/270이다 — 공식이 내는 233/254보다
+ *   높다(완화한 만큼 quota로 되갚는다).
+ *
+ * ★ 무한모드는 이 표를 안 본다 — INFINITE.baseQuota/quotaMult는 원래부터
+ *   독립 리터럴이다(위 INFINITE 주석의 절대 원칙).
+ */
+export const FINITE_QUOTA_OVERRIDE = { 3: 255, 4: 270 };
+
+/**
  * ★ config.stage.finiteCount(5)와 반드시 같아야 하는 하드코딩 중복이다. 이
  *   파일(잎 모듈)은 config.js를 못 읽어(순환참조, 파일 상단 주석) 진짜 값을
  *   직접 못 본다 — config.enemy.cloneSplitMaxTierByStage의 "stage: 5"와 같은

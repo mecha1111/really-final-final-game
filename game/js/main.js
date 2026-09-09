@@ -9,6 +9,7 @@ import {
   applyStageToConfig,
   applyEnemyFallbacks,
   applyEnemyUnlockPlan,
+  applyEnemyWeightOverride,
   applyStageOverride,
   createRules,
 } from './config.js';
@@ -84,6 +85,8 @@ async function applyLoadedData() {
   // 해금 배치의 정본(config.stage.enemyUnlockPlan)을 입힌다. ★ 폴백으로 채워 넣은
   // 행까지 함께 맞춰야 하므로 반드시 applyEnemyFallbacks() 다음이다.
   applyEnemyUnlockPlan();
+  // weight 확정값(config.stage.enemyWeightOverride)을 입힌다 — 같은 이유·같은 자리.
+  applyEnemyWeightOverride();
   // quota 확정값(config.stage.quotaOverride)을 입힌다 — 같은 이유·같은 자리
   // (config.js의 applyStageOverride() 주석 참고).
   applyStageOverride();

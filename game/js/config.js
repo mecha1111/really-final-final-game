@@ -160,6 +160,19 @@ export const config = {
       hidden: 4,
       zombie: 4,
     },
+
+    // ── 방해꾼 weight 확정값(시트/로컬CSV 드리프트 방지) ──────────────────────
+    // ★ 2026-09-10 밸런스 재설계 — copier(클릭 불가·커서 자동 추격·회피 수단
+    //   없음)가 시트 note("강력해서 하루 1-2회만")와 달리 실제로는 판당 5.9회
+    //   등장했다(헤드리스 시뮬레이터 실측, weight 5 기준). 회피 불가 요소가
+    //   실력과 무관하게 대응 불가 시간을 깎아먹는 비중이 가장 컸다(5구간 판당
+    //   9.2초, 6종 환경 방해를 다 합친 것보다 크다) — weight를 2로 낮춰
+    //   note가 말하던 빈도(판당 2~3회대)로 되돌린다.
+    //   ★ applyEnemyUnlockPlan()·applyStageOverride()와 같은 이유·같은 모양의
+    //   덮어쓰기다 — 아래 applyEnemyWeightOverride() 주석 참고.
+    enemyWeightOverride: {
+      copier: 2,
+    },
   },
 
   // HUD는 캔버스에서 HTML 창(ui/statusWindow.js)으로 옮겨갔다.
@@ -590,7 +603,14 @@ export const config = {
       //   않으면 "안 누르는 선택"에 무게가 안 실린다.
       //   ★ 값을 키워도 스택 금지 규칙은 위 그대로다(대입만 하므로 4초가 8초가
       //     되는 경로가 없다).
-      freezeSec: 4.0,
+      // ★ 2026-09-10 밸런스 재설계: 4.0 → 2.5. hourglass는 클릭 한 번으로 조작을
+      //   통째로 얼리는, 회피 수단이 없는(클릭 여부만으로 갈리는) 벌칙이라 대응
+      //   불가 시간에서 차지하는 비중이 컸다(헤드리스 시뮬레이터 실측: 보통 실력
+      //   5구간 기준 판당 7.2초 — 6종 환경 방해를 다 합친 것보다 크다). 회피
+      //   불가 요소를 완화하는 쪽(copier weight 5→2와 세트)으로 4.0→2.5초로
+      //   줄이고, 그만큼 물러진 4·5구간은 quota 상향(FINITE_QUOTA_OVERRIDE)으로
+      //   보상한다 — balance/progression.js의 그 표 주석 참고.
+      freezeSec: 2.5,
     },
 
     // zombie(좀비 프로세스) — 처치해도 reviveDelaySec 뒤 같은 자리에서 한 번 더 살아난다.
@@ -1810,6 +1830,34 @@ export function applyStageOverride() {
     );
   }
   return { from: had, to: want };
+}
+
+/**
+ * config.stage.enemyWeightOverride를 로드된 enemies 데이터에 입힌다.
+ * applyEnemyUnlockPlan()과 완전히 같은 모양 — main.js가 그 바로 다음에 부른다.
+ * 표에 없는 id는 손대지 않는다(시트 weight 그대로 돈다).
+ *
+ * @returns {Array<{id: string, from: number, to: number}>} 실제로 덮어쓴 항목
+ */
+export function applyEnemyWeightOverride() {
+  const plan = config.stage.enemyWeightOverride;
+  const changed = [];
+  for (const spec of gameData.enemies) {
+    const want = plan[spec.id];
+    if (want === undefined) continue;
+    const had = spec.weight;
+    if (had === want) continue;
+    spec.weight = want;
+    changed.push({ id: spec.id, from: had, to: want });
+  }
+  if (changed.length && config.debug.enabled) {
+    console.warn(
+      `[balance] 시트 weight를 config.stage.enemyWeightOverride로 덮어썼다(${changed.length}건) — ` +
+        `시트를 이 값으로 고치면 이 경고는 사라진다: ` +
+        changed.map((c) => `${c.id} ${c.from}→${c.to}`).join(', '),
+    );
+  }
+  return changed;
 }
 
 /**

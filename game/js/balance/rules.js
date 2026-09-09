@@ -1,7 +1,7 @@
 // 이 파일 역할: 시트 값을 게임이 바로 쓸 형태로 가공한다(판 규칙 묶음, 파일 3종, special_effect 문구 해석).
 
 import { gameData, getStageValue } from './loader.js';
-import { PROGRESSION, INFINITE, FINITE_COUNT, FINITE_MAX_ALIVE } from './progression.js';
+import { PROGRESSION, INFINITE, FINITE_COUNT, FINITE_MAX_ALIVE, FINITE_QUOTA_OVERRIDE } from './progression.js';
 
 /** 업로드할 파일 3종(소/중/대)을 stage 시트에서 뽑아온다. */
 export function getFileTiers() {
@@ -48,9 +48,11 @@ export function createRules(stageIndex = 0) {
     // 할당량: 유한/무한이 서로 다른 독립 곡선을 쓴다. 무한 쪽(INFINITE)은 유한
     // 쪽 base/mult를 단 하나도 참조하지 않는다 — 유한을 튜닝해도 무한이 조용히
     // 따라가지 않는다(progression.js의 INFINITE 주석 참고, 요구사항이기도 하다).
+    // 유한 쪽은 FINITE_QUOTA_OVERRIDE에 n이 있으면(4·5구간) 그 값이 공식을
+    // 대체한다 — 나머지 구간(1~3)은 공식 그대로다(progression.js의 그 표 주석).
     quota: isInfinite
       ? Math.round(INFINITE.baseQuota * Math.pow(INFINITE.quotaMult, layer - 1))
-      : Math.round(baseQuota * Math.pow(p.quotaMult, n)),
+      : (FINITE_QUOTA_OVERRIDE[n] ?? Math.round(baseQuota * Math.pow(p.quotaMult, n))),
     // 스폰 간격: **나눗셈**이라 n이 클수록 짧아진다(= 더 자주 나온다). 하한 클램프.
     spawnInterval: Math.max(baseSpawn / Math.pow(p.spawnMult, n), p.minSpawn),
     // 동시 최대: 2026-09-10부터 유한/무한이 서로 다른 손잡이를 쓴다(quota와 같은
