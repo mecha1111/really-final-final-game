@@ -450,7 +450,25 @@ export const config = {
     //   같이 센다(enemies/Enemy.js의 countsForConcurrency, spawner.js가 그걸 쓴다) —
     //   안 그러면 부활을 기다리는 동안 새 zombie가 상한 없이 계속 채워져 실제 동시
     //   존재 수가 3마리를 훌쩍 넘어버린다(결정: 포함).
-    maxConcurrentById: { copier: 1, hourglass: 2, zombie: 3 },
+    // ★ 2026-09-10: "가짜 커서/함정이 너무 자주 나와서 진행이 안 됨" 피드백으로
+    //   상한을 다시 손봤다(가중치는 이번엔 건드리지 않는다 — 확정안).
+    //   - hourglass: 2 → 1. 모래시계는 화면 일부를 못 누르게 잠그는 함정이라
+    //     둘이 동시에 떠 있으면 조작 가능 영역이 급격히 줄어 손이 묶인다.
+    //   - fake_btn: 새로 1로 제한. "업데이트 취소" 버튼 함정은 잘못 누르면 진행이
+    //     꼬이는 오조작 유도형이라, 원래도 무제한이었던 걸 copier/hourglass와
+    //     같은 선으로 맞췄다(지금까지 상한이 없던 게 오히려 예외였다).
+    maxConcurrentById: { copier: 1, fake_btn: 1, hourglass: 1, zombie: 3 },
+
+    // ★ 2026-09-10: copier·fake_btn·hourglass 상호배제 그룹. 셋 다 "손을 뺏거나
+    //   오조작을 유도하는" 계열이라(copier=진짜 커서를 가리는 가짜 커서,
+    //   fake_btn=잘못 누르면 진행이 꼬이는 버튼 함정, hourglass=조작 영역을 잠그는
+    //   함정) 개별 상한을 1로 낮춰도 셋이 겹쳐 뜨면 여전히 "화면이 막혀서 진행이
+    //   안 된다"는 원래 불만이 재현된다. 그래서 종류별 상한과 별개로, 이 그룹 중
+    //   하나라도 살아있으면 나머지 둘은 이번 굴림 후보에서 통째로 뺀다
+    //   (enemies/spawner.js의 filterByExclusiveGroups).
+    //   표 형태(배열의 배열)로 둔 이유: 나중에 다른 상호배제 그룹이 더 생겨도
+    //   spawner 코드는 안 건드리고 여기 표만 늘리면 되게 하기 위해서다.
+    exclusiveGroups: [['copier', 'fake_btn', 'hourglass']],
     // 몸통(= X 버튼이 아닌 곳)을 잘못 눌렀을 때 흔들리는 시간(초).
     bodyShakeSec: 0.25,
     // 그 흔들림의 폭(px).

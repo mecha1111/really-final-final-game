@@ -43,7 +43,12 @@ export class Spawner {
     // 후보에서 이미 상한에 닿은 종류를 미리 걸러낸다. 그러니까 "대체"다: copier가
     // 상한(1마리)에 걸려 있으면 이번 굴림은 나머지 pool 중에서만 골라지고, 굴릴
     // 후보가 아예 없으면(전부 상한) 스폰 자체를 건너뛴다.
-    const spawnable = filterByConcurrencyCap(pool, enemies);
+    const capped = filterByConcurrencyCap(pool, enemies);
+    if (capped.length === 0) return [];
+
+    // 상호배제 그룹(config.enemy.exclusiveGroups) — 위 상한을 통과했더라도,
+    // 같은 그룹의 다른 종류가 이미 살아있으면 이번 굴림 후보에서 뺀다.
+    const spawnable = filterByExclusiveGroups(capped, enemies);
     if (spawnable.length === 0) return [];
 
     const spec = pickWeighted(spawnable);
@@ -95,6 +100,34 @@ function filterByConcurrencyCap(pool, enemies) {
     if (cap == null) return true;
     const aliveCount = enemies.reduce((n, e) => n + (e.countsForConcurrency && e.id === spec.id ? 1 : 0), 0);
     return aliveCount < cap;
+  });
+}
+
+/**
+ * config.enemy.exclusiveGroups에 올라온 그룹 중 하나라도 이미 살아있으면, 같은
+ * 그룹의 나머지 종류를 이번 굴림 후보에서 뺀다. 개별 상한(filterByConcurrencyCap)만
+ * 으로는 "copier 1마리 + hourglass 1마리 + fake_btn 1마리"가 동시에 떠 있는 걸
+ * 못 막는다 — 셋 다 손을 뺏거나 오조작을 유도하는 계열이라 이렇게 겹치면 개별
+ * 상한을 지켜도 화면이 막혀서 진행이 안 된다(2026-09-10, config.js 주석 참고).
+ * ★ "살아있는가" 판정은 filterByConcurrencyCap과 반드시 같은 기준
+ *   (enemy.countsForConcurrency)을 쓴다 — 두 필터가 시체·부활 대기 처리를
+ *   다르게 하면 "상한엔 안 걸렸는데 상호배제엔 걸린다" 같은 조용한 불일치가 생긴다.
+ * 후보가 전부 걸러지면(그룹 셋이 이미 다 살아있는 등) 빈 배열을 반환하고,
+ * 호출부(update)는 기존과 같이 이번 차례 스폰을 건너뛴다.
+ */
+function filterByExclusiveGroups(pool, enemies) {
+  const groups = config.enemy.exclusiveGroups;
+  if (!groups || groups.length === 0) return pool;
+
+  return pool.filter((spec) => {
+    for (const group of groups) {
+      if (!group.includes(spec.id)) continue;
+      const groupHasAlive = enemies.some(
+        (e) => e.countsForConcurrency && group.includes(e.id) && e.id !== spec.id,
+      );
+      if (groupHasAlive) return false;
+    }
+    return true;
   });
 }
 
