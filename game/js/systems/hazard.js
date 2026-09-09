@@ -86,7 +86,7 @@ export function initHazards() {
   //     지점에 흩뿌리면 또 놓친다. 그래서 전이 자체를 한 곳에서 듣는다
   //     (core/state.js의 onPhaseChange).
   //   ★ 되돌리기는 각 방해의 onEnd가 맡는다 — 화면 반전(flip), 가짜 커서와
-  //     커서 숨김(driver), window 리스너(cracked)가 전부 거기서 풀린다.
+  //     커서 숨김(driver)이 전부 거기서 풀린다.
   //     --hz-dim과 캔버스 오버레이는 방해 자신의 엘리먼트에만 걸려 있어서
   //     endHazard()의 el.remove()로 같이 사라진다. 스크린세이버(screensaver)는
   //     onEnd()가 state.uploadDamageDisabled를 직접 되돌린다 — DOM 밖 값이라

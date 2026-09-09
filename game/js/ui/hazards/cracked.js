@@ -1,97 +1,185 @@
-// 이 파일 역할: 환경 방해 E — "화면 깨짐". ★세로 픽셀 열 고장이다.
+// 이 파일 역할: 환경 방해 E — "화면 깨짐". ★CRT 신호가 찢어진 화면이다.
 //
-// ── 왜 노이즈 블록에서 갈아엎었나 ────────────────────────────────────────────
-// 예전엔 화면 여기저기에 노이즈 사각 블록 3~5개를 띄웠는데, 그건 "고장난 모니터"가
-// 아니라 그냥 노이즈다. ★실물 패널 고장은 세로로 한 줄이 통째로 죽거나 색이 튄다 —
-// 그래서 화면을 위아래로 관통하는 얇은 열 2~4개로 바꿨다(정본: docs/xp-icons-crack.html §5).
-//   · 죽은 열(dead)  — 검정. 아예 신호가 안 온다.
-//   · 박힌 열(stuck) — 흰색. 한 값에 붙어버렸다.
-//   · 색 튀는 열(rgb) — 빨/초/파가 계속 바뀐다.
-// ★열 안에서도 세로 토막마다 다르게 튄다. 균일하면 그냥 막대로 보인다.
-// 여기에 CRT 어휘를 얹는다: 열 가장자리 흰 번짐(형광 잔상)과 가끔 스치는 수평 지직 밴드.
+// ── 2026-09-10 재작업: 왜 갈아엎었나 ────────────────────────────────────────
+// 예전 구현은 화면에서 "흰 네모 블럭"으로 읽혔다. 폭 때문이 아니었다(그때도
+// 3~8px로 이미 얇았다) — 원인은 셋이었고 전부 색과 움직임 쪽이었다:
+//   1) kind 'stuck'이 순백(#ffffff)이라, 밝은 XP 배경 위에서는 "고장"이 아니라
+//      그냥 흰 막대로 보였다(강제 stuck 스크린샷으로 재현 확인).
+//   2) 열 하나가 위아래를 같은 색으로 관통했다 — 신호가 깨진 게 아니라
+//      누가 그려 넣은 막대처럼 보인다.
+//   3) 수평 밀림이 없었다. "찢어진 신호"라는 어휘의 핵심이 통째로 빠져 있었다.
+// 그래서 지금은 ①단색 흰색을 아예 안 쓰고(아래 KINDS 3종) ②열을 세로로 2~5조각
+// 으로 끊어 조각마다 좌우로 밀고 ③그 밀림을 offsetIntervalSec마다 다시 뽑는다.
 //
-// ★ 시야만 가리고 클릭을 안 막는 핵심 트릭(그대로 유지): 이 방해의 DOM(.hz-cracked)이
-//   pointer-events:none이다 — 그래서 이 위 어디를 눌러도 이벤트가 캔버스(z5)로 그대로
-//   통과해 방해꾼 판정이 평소와 똑같다(systems/hazard.js 상단의 pointer-events 규칙).
-//   문제는 그러면 이 요소 자신은 마우스 이벤트를 못 받는다는 것 — "드래그로 문질러
-//   지운다"를 pointer-events:auto 없이 구현해야 한다. 그래서 window에 pointerdown/up만
-//   곁다리로 걸어 "지금 눌려있나"만 추적하고, 실제 위치는 이미 매 프레임 갱신되는
-//   state.pointer(systems/input.js)를 그대로 읽는다. 좌표 변환을 또 하지 않는다.
+// ── 파훼법: 없다(자동 복구) ─────────────────────────────────────────────────
+// ★ 2026-09-10: "드래그로 문질러 지우기"를 걷어냈다. 그 해제법 때문에 window에
+//   pointerdown/up 리스너를 직접 걸고(레이어가 pointer-events:none이라 자기
+//   요소로는 드래그를 못 받는다) 선분-열 교차 판정까지 들고 있었는데, 그 전부가
+//   사라졌다. 지금 이 방해는 durationSec(4.5초) 뒤 저절로 복구되는 것 하나뿐이다.
 //
-// ★ 드래그 판정은 "점"이 아니라 ★"선분"이다. 참조 구현을 실제로 문질러 보니
-//   포인터 이동 보폭이 52px일 때 폭 6px짜리 열을 그대로 건너뛰어 "안 지워진다"가
-//   됐다(실측). 프레임당 이전 위치 → 현재 위치 구간을 통째로 검사한다.
+// ★ 시야만 가리고 클릭은 통과 — 이 방해의 DOM(.hz-cracked)이 pointer-events:none
+//   이라, 이 위 어디를 눌러도 이벤트가 캔버스(z5)로 그대로 내려가 방해꾼 판정이
+//   평소와 똑같다(systems/hazard.js 상단의 pointer-events 규칙).
 //
-// 그림은 캔버스 2D로 그린다(screensaver와 같은 방식 — DOM에 <canvas> 하나를 얹고
-// 논리 해상도로 그린다). ★매 프레임 다시 그리지 않는다(아래 flickerIntervalSec).
+// ── 왜 캔버스가 두 장인가(색 반전 전용) ─────────────────────────────────────
+// KINDS의 'invert'는 "뒤에 있는 화면색의 보색"이라, 이 캔버스 안의 픽셀만 봐서는
+// 만들 수 없다(뒤 화면은 다른 DOM 레이어다 — 캔버스의 globalCompositeOperation은
+// 같은 캔버스 안에서만 합성한다). 그래서 반전 열만 별도 캔버스에 흰색으로 그리고,
+// 그 캔버스에 mix-blend-mode:difference를 건다 — 흰색과의 difference가 곧 보색이다.
+// ★ filter/backdrop-filter 금지 규칙과는 다른 이야기다: 그 금지는 "흐릿하게
+//   번지는 효과"를 막는 것이고, 여기 blend는 흐림이 전혀 없는 채널 반전이다.
+//   같은 결과를 낼 다른 방법이 없기도 하다.
+//
+// ★★ 그 캔버스만 .layer-hazard 밖(#desktop 직계)에 붙인다 — 실측으로 잡은 함정.
+//   mix-blend-mode는 "가장 가까운 스택 문맥" 안에서만 뒤와 섞인다. .layer-hazard는
+//   z-index:7이라 그 자체가 스택 문맥이고, 그 안에 두면 섞을 뒤 화면이 그 레이어
+//   내부(=아무것도 없음)뿐이라 반전이 아니라 ★납작한 회색 막대로 그려진다
+//   (before (213,210,190)·(16,81,182) 어느 배경이든 after가 (213,213,213)으로
+//   똑같이 나오는 걸 스크린샷 픽셀로 확인했다 — 없애려던 "흰 블럭"이 그대로
+//   되살아난 셈이다). #desktop 직계로 옮기면 그 문맥의 z<7 전부(배경·창·게임
+//   캔버스·작업표시줄)가 섞을 대상이 되어 진짜 보색이 나온다.
+//   ★그 대신 이 캔버스는 프레임워크의 el.remove() 청소를 못 받는다 —
+//   반드시 onEnd()에서 직접 지운다(어떤 사유로 끝나든 onEnd는 항상 불린다).
 
 import { config } from '../../config.js';
-import { registerHazard, dismissHazard } from '../../systems/hazard.js';
-import { state } from '../../core/state.js';
+import { registerHazard } from '../../systems/hazard.js';
 import { playSfx, SFX } from '../../systems/sound.js';
 import { icon } from '../icons.js';
 
 const rand = (min, max) => min + Math.random() * (max - min);
 const randInt = (min, max) => Math.floor(rand(min, max + 1));
 
-/** 열의 성격 3종. 이 셋이 섞여 있어야 "패널 고장"으로 읽힌다(전부 검정이면 그냥 가림막). */
-const KINDS = ['dead', 'stuck', 'rgb'];
+/**
+ * 열의 성격 3종. ★순백 단색은 없다(위 재작업 주석).
+ *   rgb    — RGB 분리. 적/녹/청 중 한 채널만 남은 색띠.
+ *   scan   — 스캔 결손. 신호가 아예 안 온 검은 띠.
+ *   invert — 색 반전. 뒤 화면색의 보색(전용 캔버스 + difference).
+ */
+const KINDS = ['rgb', 'scan', 'invert'];
 
-/** 열 하나 — 화면을 세로로 관통한다(y 범위가 따로 없는 이유). */
-function makeColumn(c) {
-  const w = Math.round(rand(c.colWidthMin, c.colWidthMax));
-  return {
-    x: Math.round(rand(20, Math.max(21, config.canvas.width - 40))),
-    w,
-    kind: KINDS[Math.floor(Math.random() * KINDS.length)],
-    // ★토막마다 다른 난수 — 이게 있어야 한 열 안에서도 밝기가 들쭉날쭉해진다.
-    segs: Array.from({ length: c.segments }, () => Math.random()),
-  };
+/** 알파/밝기를 계단으로 끊는다(config.fx.alphaSteps) — 이 프로젝트 전역 규칙. */
+function stepped01() {
+  const steps = config.fx.alphaSteps;
+  return Math.round(Math.random() * steps) / steps;
 }
 
-/** 토막 하나의 색. t는 흐른 시간(초) — rgb 열만 이 값으로 색이 순환한다. */
-function segColor(col, s, t) {
-  if (col.kind === 'dead') return s > 0.25 ? '#000000' : '#141414';
-  if (col.kind === 'stuck') return s > 0.3 ? '#ffffff' : '#c8c8c8';
-  return ['#ff2020', '#20ff40', '#3050ff'][((s * 3 + t) | 0) % 3];
+/**
+ * 열 하나를 세로로 2~5조각으로 끊는다. ★경계는 균등분할이 아니라 난수다 —
+ * 균등하면 그 규칙성 자체가 무늬로 읽혀서 "찢어졌다"가 안 된다.
+ * dx(좌우 밀림)는 여기서 정하지 않는다 — reshuffleOffsets()가 주기마다 다시 뽑는다.
+ */
+function makeSegments(c) {
+  const H = config.canvas.height;
+  const n = randInt(c.segMin, c.segMax);
+
+  const cuts = [0];
+  for (let i = 1; i < n; i++) cuts.push(Math.random());
+  cuts.push(1);
+  cuts.sort((a, b) => a - b);
+
+  const segs = [];
+  for (let i = 0; i < n; i++) {
+    segs.push({
+      y0: Math.round(cuts[i] * H),
+      y1: Math.round(cuts[i + 1] * H),
+      shade: stepped01(), // 조각마다 밝기가 달라야 한 열 안에서도 들쭉날쭉해진다
+      dx: 0,
+    });
+  }
+  return segs;
 }
 
-function drawColumns(ctx, cols, t, c) {
+/**
+ * 열 목록. ★총 점유폭 예산(maxOccupancyRatio)을 넘기려 하면 거기서 멈춘다 —
+ * 개수를 늘려도 화면이 통째로 가려지는 일이 구조적으로 없다.
+ */
+function makeColumns(c) {
+  const W = config.canvas.width;
+  const budget = W * c.maxOccupancyRatio;
+  const want = randInt(c.colCountMin, c.colCountMax);
+
+  const cols = [];
+  let used = 0;
+  for (let i = 0; i < want; i++) {
+    const w = Math.round(rand(c.colWidthMin, c.colWidthMax));
+    if (used + w > budget) break;
+    used += w;
+    cols.push({
+      x: Math.round(rand(20, Math.max(21, W - 40))),
+      w,
+      kind: KINDS[Math.floor(Math.random() * KINDS.length)],
+      channel: Math.floor(Math.random() * 3), // rgb 열이 남길 채널(0=R,1=G,2=B)
+      segs: makeSegments(c),
+    });
+  }
+  return cols;
+}
+
+/** 조각마다 좌우 밀림을 다시 뽑는다. ★보간 없음 — 이 순간 값이 통째로 바뀐다. */
+function reshuffleOffsets(cols, c) {
+  for (const col of cols) {
+    for (const s of col.segs) {
+      const mag = Math.round(rand(c.offsetMinPx, c.offsetMaxPx));
+      s.dx = Math.random() < 0.5 ? -mag : mag;
+    }
+  }
+}
+
+/** 조각 하나의 색. 흰 단색은 어디에도 없다(invert 캔버스의 흰색은 blend 재료다). */
+function segFill(col, s) {
+  if (col.kind === 'scan') {
+    // 스캔 결손 — 검은 띠. 조각마다 농도만 다르다.
+    return `rgba(0,0,0,${(0.7 + s.shade * 0.3).toFixed(2)})`;
+  }
+  if (col.kind === 'invert') {
+    // 이 캔버스는 difference로 합성된다 — 흰색이 곧 "완전 반전"이고,
+    // 알파를 낮추면 그만큼 덜 반전된다.
+    return `rgba(255,255,255,${(0.5 + s.shade * 0.5).toFixed(2)})`;
+  }
+  // RGB 분리 — 한 채널만 남긴다.
+  const v = Math.round(120 + s.shade * 135);
+  if (col.channel === 0) return `rgb(${v},0,0)`;
+  if (col.channel === 1) return `rgb(0,${v},0)`;
+  return `rgb(0,0,${v})`;
+}
+
+function draw(mainCtx, invCtx, cols, c) {
   const W = config.canvas.width;
   const H = config.canvas.height;
-  ctx.clearRect(0, 0, W, H);
+  mainCtx.clearRect(0, 0, W, H);
+  invCtx.clearRect(0, 0, W, H);
 
   for (const col of cols) {
-    const n = col.segs.length;
-    const sh = H / n;
-    for (let j = 0; j < n; j++) {
-      const s = col.segs[j];
-      if (s < c.segmentSkip) continue; // 군데군데 멀쩡한 토막
-      ctx.fillStyle = segColor(col, s, t + j * 0.3);
-      ctx.fillRect(col.x, Math.round(j * sh), col.w, Math.ceil(sh));
+    const ctx = col.kind === 'invert' ? invCtx : mainCtx;
+
+    for (const s of col.segs) {
+      ctx.fillStyle = segFill(col, s);
+      ctx.fillRect(col.x + s.dx, s.y0, col.w, s.y1 - s.y0);
     }
-    // ★열 가장자리 흰 번짐 — CRT 형광 잔상. 이 1px 두 줄이 "화면 고장"의 결을 만든다.
-    ctx.fillStyle = 'rgba(255,255,255,.25)';
-    ctx.fillRect(col.x - 1, 0, 1, H);
-    ctx.fillRect(col.x + col.w, 0, 1, H);
+
+    // ★열 위/아래 끝의 1px 밝은 선 — CRT 라인 마감. 밀린 조각을 따라가야
+    //   "그 열이 밀렸다"가 되므로 첫/마지막 조각의 dx를 그대로 쓴다.
+    const first = col.segs[0];
+    const last = col.segs[col.segs.length - 1];
+    ctx.fillStyle = 'rgba(255,255,255,.85)';
+    ctx.fillRect(col.x + first.dx, 0, col.w, c.capLinePx);
+    ctx.fillRect(col.x + last.dx, H - c.capLinePx, col.w, c.capLinePx);
   }
 
   // 수평 지직 밴드 — 가끔만. 늘 있으면 세로 열이 주인공이 아니게 된다.
   if (Math.random() < c.bandChance) {
-    ctx.fillStyle = 'rgba(255,255,255,.16)';
-    ctx.fillRect(0, Math.floor(Math.random() * H), W, 3);
+    mainCtx.fillStyle = 'rgba(255,255,255,.16)';
+    mainCtx.fillRect(0, Math.floor(Math.random() * H), W, 3);
   }
 }
 
-/**
- * 이전 위치 → 현재 위치 선분이 이 열을 스쳤는가.
- * ★점 하나만 보면 빠르게 문질렀을 때 얇은 열을 그대로 건너뛴다(실측: 보폭 52px 대
- *   폭 6px). 열은 세로로 화면을 관통하므로 x 구간이 겹치는지만 보면 된다.
- */
-function sweepHitsColumn(col, x0, x1, pad) {
-  const lo = Math.min(x0, x1) - pad;
-  const hi = Math.max(x0, x1) + pad;
-  return hi >= col.x && lo <= col.x + col.w;
+/** 논리 해상도 캔버스 한 장. 화면에 맞춰 늘리는 건 style.css가 한다. */
+function makeCanvas(className) {
+  const el = document.createElement('canvas');
+  el.className = className;
+  el.width = config.canvas.width;
+  el.height = config.canvas.height;
+  return el;
 }
 
 registerHazard({
@@ -102,36 +190,28 @@ registerHazard({
   get durationSec() {
     return config.hazard.cracked.durationSec;
   },
-  dismiss: 'drag',
+  // 해제 조작이 없다 — 방치하면 durationSec 뒤 프레임워크가 'timeout'으로 끝낸다.
+  dismiss: 'timeout',
 
   mount(inst) {
     const c = config.hazard.cracked;
 
     const el = document.createElement('div');
     el.className = 'hz-cracked';
-    const canvas = document.createElement('canvas');
-    canvas.width = config.canvas.width;
-    canvas.height = config.canvas.height;
-    el.appendChild(canvas);
+    const main = makeCanvas('hz-cracked-main');
+    el.appendChild(main);
     inst.el = el;
 
-    inst.data.ctx = canvas.getContext('2d');
-    inst.data.cols = Array.from({ length: randInt(c.colCountMin, c.colCountMax) }, () => makeColumn(c));
-    inst.data.flickerTimer = 0; // 첫 프레임에 바로 한 번 그린다
-    inst.data.t = 0;
-    inst.data.dragging = false;
-    inst.data.prev = null; // 직전 프레임 포인터 위치(선분 판정용)
+    // ★반전 캔버스만 #desktop 직계로 — 이유는 파일 상단 주석(스택 문맥과 blend).
+    const invert = makeCanvas('hz-cracked-invert');
+    document.getElementById('desktop')?.appendChild(invert);
+    inst.data.invertEl = invert;
 
-    // ★ 위 파일 상단 주석 참고 — .hz-cracked는 pointer-events:none이라 이 요소로는
-    //   드래그를 못 받는다. window에 곁다리로 걸어 "지금 눌려있나"만 본다
-    //   (preventDefault/stopPropagation 없음 — 캔버스의 기존 클릭 판정과 무관).
-    inst.data.onDown = () => {
-      inst.data.dragging = true;
-      inst.data.prev = null; // 누른 그 순간부터 새 획이다(직전 획 끝과 이어붙지 않게)
-    };
-    inst.data.onUp = () => { inst.data.dragging = false; };
-    window.addEventListener('pointerdown', inst.data.onDown);
-    window.addEventListener('pointerup', inst.data.onUp);
+    inst.data.mainCtx = main.getContext('2d');
+    inst.data.invCtx = invert.getContext('2d');
+    inst.data.cols = makeColumns(c);
+    inst.data.timer = 0; // 첫 프레임에 바로 한 번 그린다
+    reshuffleOffsets(inst.data.cols, c);
 
     // 전용 소리가 없어 화면이 지지직거리며 손상되는 느낌의 기존 소리를 재사용한다.
     playSfx(SFX.OVERLOAD_START);
@@ -139,39 +219,22 @@ registerHazard({
 
   update(inst, dt) {
     const c = config.hazard.cracked;
-    inst.data.t += dt;
+    // ★offsetIntervalSec마다만 — 밀림 재추첨과 다시 그리기가 같은 시계를 쓴다.
+    //   매 프레임 clearRect + fillRect를 도는 건 순수한 낭비이고(예전 구현이
+    //   그랬다) 눈에도 발작 유발 수준으로 어지럽다.
+    inst.data.timer -= dt;
+    if (inst.data.timer > 0) return;
+    inst.data.timer = c.offsetIntervalSec;
 
-    // ── 드래그로 열 단위 제거 ──────────────────────────────────────────────
-    if (inst.data.dragging && inst.data.cols.length) {
-      const p = state.pointer;
-      const prev = inst.data.prev ?? p;
-      const before = inst.data.cols.length;
-      inst.data.cols = inst.data.cols.filter((col) => !sweepHitsColumn(col, prev.x, p.x, c.wipePad));
-      if (inst.data.cols.length < before) {
-        playSfx(SFX.KILL_SOFT); // 문질러 지운 손맛
-        inst.data.flickerTimer = 0; // 열이 사라졌다 — 이번 프레임에 다시 그린다
-      }
-      if (inst.data.cols.length === 0) {
-        dismissHazard(inst, 'dismissed'); // 전부 지웠다 — 즉시 종료
-        return;
-      }
-      inst.data.prev = { x: p.x, y: p.y };
-    } else {
-      inst.data.prev = null;
-    }
-
-    // ── 다시 그리기 ────────────────────────────────────────────────────────
-    // ★flickerIntervalSec마다만. 매 프레임 clearRect + fillRect를 도는 건 순수한
-    //   낭비이고(예전 구현이 그랬다) 눈에도 발작 유발 수준으로 어지럽다.
-    inst.data.flickerTimer -= dt;
-    if (inst.data.flickerTimer > 0) return;
-    inst.data.flickerTimer = c.flickerIntervalSec;
-    drawColumns(inst.data.ctx, inst.data.cols, inst.data.t, c);
+    reshuffleOffsets(inst.data.cols, c);
+    draw(inst.data.mainCtx, inst.data.invCtx, inst.data.cols, c);
   },
 
   onEnd(inst) {
-    window.removeEventListener('pointerdown', inst.data.onDown);
-    window.removeEventListener('pointerup', inst.data.onUp);
+    // ★반전 캔버스는 .layer-hazard 밖(#desktop 직계)에 있어서 프레임워크의
+    //   el.remove()가 못 치운다 — 어떤 사유(timeout/dismissed/reset)로 끝나든
+    //   여기서 반드시 직접 지운다. 안 지우면 판이 끝난 화면에 반전 막대가 남는다.
+    inst.data.invertEl?.remove();
     playSfx(SFX.OVERLOAD_END);
   },
 

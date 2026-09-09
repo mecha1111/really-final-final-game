@@ -84,7 +84,7 @@ const HAZARD_DEX = [
   { id: 'driver', name: '드라이버 오류', icon: 'warning',
     desc: '커서가 늦게 따라온다. 보이는 것보다 앞서 눌러야 한다.' },
   { id: 'cracked', name: '화면 깨짐', icon: 'error',
-    desc: '세로줄이 화면을 가린다. 문질러서 지운다.' },
+    desc: '찢어진 세로줄이 화면을 가린다. 잠시 참으면 복구된다.' },
   { id: 'flip', name: '화면 상하반전', icon: 'monitor',
     desc: '화면이 뒤집힌다. 잠시 참으면 돌아온다.' },
 ];

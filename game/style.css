@@ -2405,11 +2405,25 @@ body {
 
 /* ── E. 화면 깨짐 ──────────────────────────────────────────────────────────
    ★ 이 방해는 "시야만 가리고 클릭은 통과"가 핵심이라, 컨테이너·캔버스 전부
-     pointer-events:none이다(해제 드래그는 ui/hazards/cracked.js가 window에
-     직접 걸어서 받는다 — 위 그 파일 상단 주석 참고). 캔버스는 논리 해상도로
-     그려두고 CSS가 화면 크기에 맞춰 늘린다(스크린세이버 캔버스와 같은 방식). */
+     pointer-events:none이다. ★2026-09-10: 해제 조작(드래그로 문질러 지우기)이
+     통째로 없어졌다 — 이제 durationSec 뒤 자동 복구뿐이라, 이 레이어가 입력을
+     받을 이유가 아예 없다. 캔버스는 논리 해상도로 그려두고 CSS가 화면 크기에
+     맞춰 늘린다(스크린세이버 캔버스와 같은 방식). */
 #desktop .hz-cracked { position: absolute; inset: 0; pointer-events: none; }
 #desktop .hz-cracked canvas { position: absolute; inset: 0; width: 100%; height: 100%; }
+/* ★색 반전(KINDS의 'invert') 전용 캔버스 — 흰색으로 그린 뒤 difference로 합성하면
+   그 자리가 뒤 화면색의 보색이 된다. 캔버스 안에서는 만들 수 없는 색이라(뒤 화면은
+   다른 DOM 레이어다) 이 방법 말고는 없다. ★filter 금지 규칙과 다른 이야기다 —
+   그 금지는 "흐릿하게 번지는 효과"를 막는 것이고, 여기 blend는 흐림이 0인
+   채널 반전이다(ui/hazards/cracked.js 상단 주석에 근거).
+   ★이 캔버스만 .layer-hazard 안이 아니라 #desktop 직계다 — blend는 가장 가까운
+   스택 문맥 안에서만 뒤와 섞이는데, .layer-hazard(z-index:7)가 그 문맥이라 그
+   안에 두면 섞을 뒤가 없어 납작한 회색 막대가 된다(실측). z-index는 그 레이어와
+   같은 7이고 DOM 순서상 뒤에 붙으므로 그 위에 얹힌다. */
+#desktop > .hz-cracked-invert {
+  position: absolute; inset: 0; width: 100%; height: 100%;
+  z-index: 7; pointer-events: none; mix-blend-mode: difference;
+}
 
 /* ── F. 모니터 세로모드 ────────────────────────────────────────────────────
    풍선만 얹는다(회전 자체는 아래 #stage 규칙이 한다). 다른 방해와 같은 이유로
