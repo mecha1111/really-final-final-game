@@ -10,7 +10,21 @@
 import { config } from '../config.js';
 
 function normalCursorValue() {
-  return `url('${config.mouseCursor.url}') ${config.mouseCursor.hotspotX} ${config.mouseCursor.hotspotY}, auto`;
+  return cursorValue(config.mouseCursor.url);
+}
+
+/** 조작 불능(hourglass) 동안 쓰는 모래시계 커서. */
+function waitCursorValue() {
+  return cursorValue(config.mouseCursor.waitUrl);
+}
+
+/**
+ * `cursor:` 값 한 줄을 조립한다. ★hotspot은 두 그림이 같은 값을 공유한다 —
+ * 같은 41x44 캔버스에 그려서 같은 화소가 같은 자리이기 때문이고, 그래야 커서가
+ * 바뀌는 순간 "포인터가 가리키는 지점"이 안 튄다(config.mouseCursor 주석).
+ */
+function cursorValue(url) {
+  return `url('${url}') ${config.mouseCursor.hotspotX} ${config.mouseCursor.hotspotY}, auto`;
 }
 
 /** 최초 1회. */
@@ -24,14 +38,17 @@ let lastFrozen = false;
 
 /**
  * hourglass 함정 발동으로 조작이 얼어있는 동안(state.inputFreezeSec > 0) 게임
- * 영역 커서를 "모래시계로 변경"한다(요구사항). 새 그림을 안 만들고 브라우저
- * 기본 대기 커서(cursor: wait, 대부분의 OS에서 모래시계/스피너로 그려진다)를
- * 재사용했다 — 어차피 이 동안은 클릭이 전부 무시되므로(systems/input.js)
- * config.mouseCursor의 hotspot 정밀도가 의미가 없어서 이 용도엔 이 정도로 충분하다.
- * main.js의 render 루프가 매 프레임 이 함수를 부른다.
+ * 영역 커서를 모래시계로 바꾼다(요구사항). main.js의 render 루프가 매 프레임 부른다.
+ *
+ * ★ 2026-09-09: 예전엔 CSS 키워드 `wait`(OS 기본 대기 커서)였다. "어차피 클릭이
+ *   전부 무시되니 hotspot 정밀도가 의미 없다"는 게 당시 근거였는데, 실제로
+ *   플레이해 보니 문제는 정밀도가 아니라 크기였다 — OS 기본 대기 커서가 게임
+ *   커서(41x44)보다 확연히 작아서, 얼어붙는 순간 커서가 작아지며 튀었다.
+ *   지금은 같은 41x44 캔버스에 같은 hotspot으로 그린 전용 그림을 쓴다
+ *   (config.mouseCursor.waitUrl) — 그림만 바뀌고 크기·기준점은 그대로다.
  */
 export function updateCursor(frozen) {
   if (frozen === lastFrozen) return;
   lastFrozen = frozen;
-  document.documentElement.style.setProperty('--game-cursor', frozen ? 'wait' : normalCursorValue());
+  document.documentElement.style.setProperty('--game-cursor', frozen ? waitCursorValue() : normalCursorValue());
 }
