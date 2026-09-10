@@ -6,6 +6,7 @@ import {
   loadGameData,
   reloadGameData,
   startBackgroundSheetSync,
+  setDesktopMode,
   applyStageToConfig,
   applyEnemyFallbacks,
   applyEnemyUnlockPlan,
@@ -16,6 +17,7 @@ import {
 import { loadEnemyImages } from './assets.js';
 import { buildAssetKeys } from './sprite/animator.js';
 import { state, setPhase, settlePhase } from './core/state.js';
+import { isDesktopApp } from './core/platform.js';
 import { startLoop } from './core/gameLoop.js';
 import { update, getPlayArea, startGame } from './core/stageManager.js';
 import { consumeHitStop, updateParticles, clearJuice } from './systems/juice.js';
@@ -188,6 +190,13 @@ function exposeDebugHandle() {
 //   중 문제를 일으킨다는 증거가 없다. 굳이 쪼개서 얻는 이득보다 건드리다
 //   실수할 위험이 커서 그대로 둔다.
 async function main() {
+  // ★ loadGameData()(아래)보다 반드시 먼저다 — balance/loader.js의
+  //   loadFromSheets()가 이 값을 보고 exe에서는 구글 시트에 아예 안 닿는다
+  //   (config.js가 balance/loader.js를 재수출하므로 여기서 그 setter를 그대로
+  //   가져다 쓴다. loader.js가 platform.js를 직접 import하면 순환참조가 생겨서
+  //   이렇게 main.js에서 한 번 읽어 넘겨준다).
+  setDesktopMode(isDesktopApp());
+
   // 정적 마크업의 아이콘 자리표시자([data-icon], index.html)를 채운다 — 모듈
   // 스크립트라 DOM은 이미 파싱이 끝나 있다. 다른 init보다 먼저 할 이유는 없지만
   // 미룰 이유도 없어서 맨 앞에 둔다(어차피 전부 정적 엘리먼트라 순서 무관).
@@ -233,14 +242,19 @@ async function main() {
   applySavedSettings();
   initDebugPanel();
   exposeDebugHandle();
-  initReloadButton(async () => {
-    await reloadGameData();
-    await applyLoadedData();
-    // 리로드는 "지금 판을 접고 새 숫자로 다시 본다"는 뜻이라 진행 중이었어도
-    // 타이틀로 되돌린다(기존 동작 그대로) — 위 settlePhase는 이 의도까지는
-    // 모르므로 여기서 명시적으로 한 번 더 찍는다.
-    setPhase('title');
-  });
+  // ★ exe(Electron)에서는 이 버튼을 아예 안 만든다 — 데스크톱은 구글 시트에
+  //   안 닿으므로(setDesktopMode 호출부 주석) 눌러도 로컬 CSV를 다시 읽는 것
+  //   뿐이라 심사위원에게는 "눌러도 반응 없는 버튼"으로만 보인다.
+  if (!isDesktopApp()) {
+    initReloadButton(async () => {
+      await reloadGameData();
+      await applyLoadedData();
+      // 리로드는 "지금 판을 접고 새 숫자로 다시 본다"는 뜻이라 진행 중이었어도
+      // 타이틀로 되돌린다(기존 동작 그대로) — 위 settlePhase는 이 의도까지는
+      // 모르므로 여기서 명시적으로 한 번 더 찍는다.
+      setPhase('title');
+    });
+  }
 
   startLoop({
     update: (dt) => {

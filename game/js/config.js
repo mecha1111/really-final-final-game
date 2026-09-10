@@ -1832,7 +1832,14 @@ export const config = {
 
 import { gameData, getStageValue } from './balance/loader.js';
 
-export { gameData, getStageValue, loadGameData, reloadGameData, startBackgroundSheetSync } from './balance/loader.js';
+export {
+  gameData,
+  getStageValue,
+  loadGameData,
+  reloadGameData,
+  startBackgroundSheetSync,
+  setDesktopMode,
+} from './balance/loader.js';
 export { getFileTiers, createRules, parseSpecialEffect } from './balance/rules.js';
 
 /**

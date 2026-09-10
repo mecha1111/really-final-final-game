@@ -32,6 +32,20 @@ const SHEET_URLS = {
     'https://docs.google.com/spreadsheets/d/e/2PACX-1vRzShTzljyNeIYLxwULAD1zHkOCir3I2LpyorOUo6XxLO0Ay68y_ZHkG4YOBAJ6AkV8pNXQAs9PHO1I/pub?gid=802521072&single=true&output=csv',
 };
 
+// ★ 2026-09-10: exe(Electron) 빌드에서는 구글 시트에 아예 안 닿는다 — 심사장에
+//   인터넷이 없을 수 있고, 있어도 시트가 배경에서 조용히 로컬 값을 덮어써 버리는
+//   드리프트 사고 전례가 있다(이 파일 위쪽 catchUpFromSheet 주석). main.js가 부팅
+//   맨 앞에서 platform.isDesktopApp() 결과를 setDesktopMode()로 여기 박아준다 —
+//   이 파일이 core/platform.js를 직접 import하면 안 된다(platform.js →
+//   config.js → 이 파일로 되돌아오는 순환참조가 생긴다, config.js 하단의
+//   재수출 참고). loadFromSheets() 한 곳만 막으면 아래 세 호출부
+//   (loadGameData/catchUpFromSheet/reloadGameData)가 전부 이미 갖고 있던
+//   실패 처리(로컬 CSV → 하드코딩)를 그대로 타므로 나머지 로직은 손대지 않는다.
+let desktopMode = false;
+export function setDesktopMode(value) {
+  desktopMode = value;
+}
+
 // 시트가 텅 비어있거나 fetch 자체가 완전히 막힌 환경(오프라인 등)에서도
 // 게임이 그대로 돌아가게 하는 최후의 안전망.
 //
@@ -134,6 +148,10 @@ async function fetchCsvText(url, signal) {
  *   "셋을 합쳐 timeoutMs" 예산이다. 하나만 붙잡고 있어도 나머지까지 함께 끊는다.
  */
 async function loadFromSheets(timeoutMs) {
+  if (desktopMode) {
+    throw new Error('exe 빌드 — 구글 시트 fetch 비활성화(로컬 balance.csv만 사용)');
+  }
+
   const signal = AbortSignal.timeout(timeoutMs);
   const [difficultyText, enemiesText, stageText] = await Promise.all([
     fetchCsvText(SHEET_URLS.difficulty, signal),
