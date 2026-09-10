@@ -29,7 +29,8 @@ import { applyCrtSteadyVars } from './crtTransition.js';
 import { clearActiveHazards } from '../systems/hazard.js';
 import { resetRoverQueue } from './rover.js';
 import { openConfirm } from './confirmDialog.js';
-import { isOpeningActive } from './gameOpening.js';
+import { isOpeningActive, startGameOpening } from './gameOpening.js';
+import { startGame } from '../core/stageManager.js';
 
 // ESC로 "열 수" 있는 phase. 이미 열려 있으면 phase와 무관하게 항상 닫을 수 있다
 // (아래 handleSettingsKey). failed(BSOD)는 뺐다 — 그 화면은 이미 자기 버튼
@@ -209,6 +210,35 @@ export function initSettingsPanel() {
   document.getElementById('settings-title')?.addEventListener('click', () => {
     setPhase('title');
     closeSettings();
+  });
+
+  // 심사용 구간 선택(index.html의 #settings-judge-grp, syncJudgeSection이
+  // 'title'에서만 보여준다). 버튼마다 data-judge-stage(0~5, 0부터인 이 게임의
+  // 구간 규칙 그대로)를 달아뒀다 — 값 하나로 갈래를 나눈다.
+  // ★ 1구간(n=0)만 타이틀 [새 게임]과 완전히 같은 경로(startGameOpening)를
+  //   탄다 — seenIntro가 false면 튜토리얼이 정상적으로 뜬다(요구사항: "1구간을
+  //   골랐고 seenIntro가 false인 경우에만 평소대로 실행"). 나머지(n=1~5)는
+  //   startGame(n)을 직접 불러 오프닝 자체를 건너뛴다 — opts가 없으므로
+  //   state.tutorial.active가 항상 false로 떨어져 튜토리얼이 절대 안 뜬다
+  //   (core/stageManager.js의 startGame 시그니처 주석 참고, debug.js의 구간
+  //   즉시 이동 버튼과 같은 호출 패턴).
+  // ★ 무한 모드(n=5=config.stage.finiteCount)도 hasCompletedRun() 같은 해금
+  //   조건을 전혀 안 거친다 — 조사 결과 그 조건은 타이틀 버튼의 노출 여부에만
+  //   쓰이고(save.completed을 다른 어디서도 안 읽는다) 판 규칙은 오직
+  //   stageIndex로만 정해지므로, 그냥 startGame(5)를 부르는 것만으로 해금
+  //   상태와 무관하게 정확히 같은 규칙(무한 전용 방해꾼·quota 곡선)으로
+  //   들어간다. 영구 업그레이드 같은 걸 임시로 채워줄 필요도 없다 — 애초에
+  //   save.upgrades/coins는 어디서도 안 읽는 자리표시 필드다.
+  document.querySelectorAll('[data-judge-stage]').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const n = Number(btn.dataset.judgeStage);
+      closeSettings();
+      if (n === 0) {
+        startGameOpening((opts) => startGame(0, opts));
+      } else {
+        startGame(n);
+      }
+    });
   });
 
   document.getElementById('settings-reset')?.addEventListener('click', () => {
