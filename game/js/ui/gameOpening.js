@@ -53,6 +53,8 @@ let headEl = null;
 let textEl = null;
 let nextBtn = null;
 let skipBtn = null;
+let catchEl = null;
+let hintEl = null;
 
 // 오프닝이 도는 중인가 — ESC 설정창 차단(ui/settingsPanel.js)과 main.js의
 // 커서 상태가 이 값을 본다.
@@ -78,6 +80,11 @@ let tutorialRun = false;
 // 쓴다 — 시작할 때 쓴 시간표와 끝낼 때 쓰는 시간표가 갈리면 안 된다.
 let shortMode = false;
 
+// ★2026-09-10 신설 — 렉·로딩 구간(강아지/튜토리얼이 뜨기 전) 동안 전면
+// 캐처(#op-skipcatch)가 클릭을 받는 중인가. 그 구간을 벗어나면(자연 도달이든
+// 클릭 스킵이든) 곧장 꺼진다 — enterAssistDecision() 한 곳에서만 끈다.
+let skippable = false;
+
 // 오프닝이 시작한 뒤 흐른 시간(초)과 남은 단계들. config.opening의 값이 전부
 // "이 시각"과 비교하는 절대 초라, 때가 된 것만 앞에서부터 꺼내 실행하면 된다
 // (ui/intro.js와 완전히 같은 방식 — setTimeout을 안 쓰는 이유도 같다).
@@ -92,6 +99,37 @@ export function isOpeningActive() {
 /** 렉 연출로 "굳은 척"하는 중인가 — main.js가 커서를 모래시계로 바꿀 때 본다. */
 export function isOpeningFrozen() {
   return frozen;
+}
+
+/** 렉·로딩 구간의 전면 클릭 캐처를 켠다(startGameOpening 맨 앞). */
+function enableSkipCatch() {
+  skippable = true;
+  catchEl.classList.add('on');
+}
+
+/** 캐처를 끈다 — enterAssistDecision()이 자연 도달/클릭 스킵 어느 쪽이든
+ * 맨 먼저 부른다. finish()도 안전망으로 한 번 더 부른다(아래 [건너뛰기]
+ * 버튼처럼 이 함수를 거치지 않고 곧장 finish()로 오는 경로가 있어서다). */
+function disableSkipCatch() {
+  skippable = false;
+  catchEl.classList.remove('on');
+  hintEl.classList.remove('on');
+}
+
+/**
+ * ★렉·로딩이 끝나는(또는 클릭으로 건너뛴) 그 시점의 갈림길 — 자연 도달(steps의
+ * assistSec 단계)과 전면 캐처 클릭 둘 다 이 함수 하나로 모인다. 그래서 "클릭해도
+ * 자연 도달과 정확히 같은 결과"가 코드로 보장된다(따로 안 베낀다).
+ *   · 튜토리얼이 예정돼 있으면(tutorialRun) 강아지를 그대로 띄운다 — 렉·로딩만
+ *     건너뛰고 튜토리얼은 예정대로 뜬다(요구사항).
+ *   · 아니면 곧장 finish()로 넘어가 판을 시작한다.
+ */
+function enterAssistDecision() {
+  frozen = false; // 강아지 버튼을 누르거나 판으로 바로 들어가야 하므로 커서를 돌려준다
+  disableSkipCatch();
+  steps = []; // 아직 안 쓴 렉·로딩 단계가 나중에 뒤늦게 실행되지 않게 비운다
+  if (tutorialRun) showTutorial();
+  else finish();
 }
 
 /** 말풍선을 띄우고 ★대본(ui/tutorial.js)을 돌린다.
@@ -126,6 +164,10 @@ function showTutorial() {
  */
 function finish() {
   if (!active) return; // 연타·중복 진입 방지
+  // ★[건너뛰기] 버튼(아래 initGameOpening)은 enterAssistDecision()을 안 거치고
+  //   곧장 여기로 온다 — 그 경로까지 캐처가 확실히 꺼지게 안전망을 한 번 더 친다
+  //   (이미 꺼져 있으면 조용히 아무 일도 안 한다).
+  disableSkipCatch();
   // ★단축판(2회차)이면 exit 시간도 단축판 표를 그대로 쓴다 — 시작할 때 쓴
   //   시간표와 끝낼 때 시간표가 갈리면 "빠르게 시작해놓고 천천히 끝나는"
   //   어색한 비대칭이 생긴다.
@@ -192,6 +234,8 @@ export function initGameOpening() {
   textEl = document.getElementById('op-assist-text');
   nextBtn = document.getElementById('op-assist-next');
   skipBtn = document.getElementById('op-assist-skip');
+  catchEl = document.getElementById('op-skipcatch');
+  hintEl = document.getElementById('op-skip-hint');
 
   // 대본이 말풍선 내용을 직접 채운다 — 이 파일은 DOM을 잡아 넘겨주기만 한다.
   initTutorial({ assist: assistEl, head: headEl, text: textEl, next: nextBtn });
@@ -209,6 +253,15 @@ export function initGameOpening() {
   skipBtn.addEventListener('click', () => {
     clearDemoEnemies();
     finish();
+  });
+
+  // ★렉·로딩 구간 전용 "아무 데나 클릭" — .on이 붙어 있을 때만(enableSkipCatch/
+  //   disableSkipCatch) 실제로 클릭을 받는다(style.css). skippable 가드는
+  //   그 위에 얹는 이중 안전장치일 뿐, 실제 클릭 차단은 CSS의 pointer-events가
+  //   한다(.op-assist.on이 클릭을 받는 것과 같은 관례).
+  catchEl.addEventListener('click', () => {
+    if (!skippable) return;
+    enterAssistDecision();
   });
 }
 
@@ -268,6 +321,7 @@ export function startGameOpening(done) {
   loadEl.classList.remove('on', 'dim', 'low');
   assistEl.classList.remove('on', 'tip');
   layer.classList.add('on');
+  enableSkipCatch();
 
   // ★loadLowSec은 본표(1회차)에만 있다 — 단축판(fast)엔 강아지가 절대 안 떠서
   //   (그건 wantTutorial=false일 때만 fast를 쓰고, wantTutorial은 seenIntro=false
@@ -291,18 +345,15 @@ export function startGameOpening(done) {
     { at: c.loadOnSec, run: () => loadEl.classList.add('on') },
     // 어두워지고 분절 로딩바·안내문이 떠오른다.
     { at: c.loadDimSec, run: () => loadEl.classList.add('dim') },
+    // "클릭하면 건너뜁니다" 힌트 — 1회차·단축판 공통(config.opening.skipHintSec).
+    { at: config.opening.skipHintSec, run: () => hintEl.classList.add('on') },
     // 로딩바가 하단 중앙으로 비켜난다(강아지 자리를 비운다) — ★본표(1회차) 전용.
     ...(shortMode ? [] : [{ at: c.loadLowSec, run: () => loadEl.classList.add('low') }]),
     // 강아지가 뿅(본표) / 단축판은 강아지 없이 이 시점이 곧 마무리 시작점이다.
-    // 튜토리얼을 안 볼 상황이면 여기서 곧장 마무리로 넘어간다.
-    {
-      at: c.assistSec,
-      run: () => {
-        frozen = false; // 강아지 버튼을 눌러야 하므로 커서를 돌려준다
-        if (wantTutorial) showTutorial();
-        else finish();
-      },
-    },
+    // 튜토리얼을 안 볼 상황이면 여기서 곧장 마무리로 넘어간다 — 클릭으로
+    // 건너뛸 때와 완전히 같은 갈림길이다(enterAssistDecision, 자연 도달·클릭
+    // 스킵 둘 다 이 함수 하나로 모인다).
+    { at: c.assistSec, run: enterAssistDecision },
   ].sort((a, b) => a.at - b.at);
 }
 

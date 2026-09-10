@@ -3030,6 +3030,21 @@ body {
   pointer-events: auto; font-size: 24px; padding: 8px 22px;
 }
 
+/* ★전면 클릭 캐처(index.html 상단 주석) — 렉·로딩 구간 동안만 .on이 붙어
+   pointer-events를 연다(ui/gameOpening.js). z-index를 안 줘서(=auto) 위
+   [건너뛰기](z50)보다 항상 얕다 — 그 버튼을 눌러도 이 캐처가 안 가로챈다. */
+#desktop .op-skipcatch { position: absolute; inset: 0; pointer-events: none; cursor: default; }
+#desktop .op-skipcatch.on { pointer-events: auto; cursor: pointer; }
+
+/* 「클릭하면 건너뜁니다」 힌트 — 화면 우하단, 0.6초 뒤부터(ui/gameOpening.js가
+   .on을 건다). 순수 라벨이라 클릭을 안 받는다(위 캐처가 이미 전체를 받는다). */
+#desktop .op-skip-hint {
+  position: absolute; right: 24px; bottom: 24px;
+  font-size: 16px; color: rgba(255, 255, 255, 0.65); pointer-events: none;
+  opacity: 0; transition: opacity 0.3s;
+}
+#desktop .op-skip-hint.on { opacity: 1; }
+
 /* ===== ★스포트라이트 (마크업 주석: index.html의 #op-spot) =====
    구멍 하나짜리 레이어. 빈 .hole에 화면보다 큰 box-shadow 확산을 걸면 그 바깥
    전부가 어두워지고 .hole만 그대로 비친다 — filter/backdrop-filter/mask 금지
