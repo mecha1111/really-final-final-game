@@ -1276,6 +1276,20 @@ body {
 #desktop .settings-controls li { font-size: 20px; color: #333; }
 #desktop .settings-controls b { color: #0a327a; }
 
+/* 심사용 구간 선택 그룹(index.html 상단 주석) — 나머지 .grp와 뼈대는 완전히
+   같다(새 색·새 박스 규칙을 안 만든다). 위 테두리만 2px→3px로 살짝 굵혀
+   "여기부터 성격이 다르다"는 구분선 역할을 겸하게 한다. */
+#desktop .settings-judge-grp { margin-top: 4px; border-top-width: 3px; }
+/* 버튼 6개를 한 줄에 — .settings-footer와 같은 flex+gap 뼈대를 그대로 쓰되
+   좌측 정렬(justify-content 없음)과 균등폭(flex:1)만 다르다. 버튼 자체는
+   .settings-btn 그대로라 새 버튼 스타일이 아니다. */
+#desktop .settings-judge-row { display: flex; gap: 8px; margin-top: 10px; }
+/* min-width:0 — flex 기본값(auto)은 내용 폭 밑으로 못 줄어들어 좁은 화면에서
+   6개가 모달 폭(700px)을 넘친다("무한 모드"가 가장 김). 줄바꿈 없이 한 줄을
+   지키는 쪽을 택했다(요구사항: "버튼 6개를 한 줄에") — 그 대신 좁은 화면에서는
+   패딩이 줄어들며 서로 맞춰 줄어든다. */
+#desktop .settings-judge-row .settings-btn { flex: 1; min-width: 0; padding-left: 6px; padding-right: 6px; text-align: center; }
+
 #desktop .settings-footer {
   display: flex; gap: 12px; padding: 16px 22px; border-top: 2px solid #c9c5b0; justify-content: flex-end;
 }

@@ -796,6 +796,33 @@
                 </ul>
               </div>
             </div>
+
+            <!-- 심사용 구간 선택 — 2026-09-10 신설. 제출 심사 편의용으로, 원하는
+                 구간부터 바로 시작해 매번 1구간부터 다시 밟지 않아도 되게 한다.
+                 config.debug와 완전히 별개다 — debug 플래그에 안 묶이고 최종
+                 제출본에도 그대로 남는다(ui/settingsPanel.js 상단 주석 참고).
+                 ★ 위 그룹들과는 구분선(굵은 위 테두리 + 여백)으로 한 번 더
+                 갈라둔다(.settings-judge-grp, style.css) — 나머지는 전부 "이
+                 판/이 기기의 설정"이고 이 그룹만 성격이 다르다(구간을 통째로
+                 건너뛰는 진행 조작)는 걸 시각적으로도 드러낸다.
+                 ★ 노출 조건은 CSS가 아니라 JS가 정한다(ui/settingsPanel.js의
+                 syncJudgeSection) — 타이틀에서 연 설정에서만 보이고, 플레이 중
+                 ESC로 연 설정에서는 숨긴다(진행 중인 판이 사라지는 사고 방지).
+                 기본은 hidden 속성으로 감춰둔다. -->
+            <div class="grp settings-judge-grp" id="settings-judge-grp" hidden>
+              <div class="h"><span data-icon="bug"></span> 심사용</div>
+              <div class="c">
+                <div class="settings-hint">원하는 구간부터 바로 시작할 수 있습니다.</div>
+                <div class="settings-judge-row">
+                  <button type="button" class="settings-btn" data-judge-stage="0">1구간</button>
+                  <button type="button" class="settings-btn" data-judge-stage="1">2구간</button>
+                  <button type="button" class="settings-btn" data-judge-stage="2">3구간</button>
+                  <button type="button" class="settings-btn" data-judge-stage="3">4구간</button>
+                  <button type="button" class="settings-btn" data-judge-stage="4">5구간</button>
+                  <button type="button" class="settings-btn" data-judge-stage="5">무한 모드</button>
+                </div>
+              </div>
+            </div>
           </div>
           <div class="settings-footer">
             <button type="button" class="settings-btn settings-btn-primary" id="settings-resume">계속하기</button>

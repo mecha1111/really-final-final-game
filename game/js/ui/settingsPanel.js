@@ -96,6 +96,20 @@ function syncFullscreenControl() {
   }
 }
 
+/**
+ * 심사용 구간 선택 그룹(index.html의 #settings-judge-grp)의 노출을 정한다.
+ * ★ 타이틀에서 연 설정에서만 보이고, 플레이 중 ESC로 연 설정에서는 숨긴다 —
+ *   진행 중인 판이 버튼 한 번에 사라지는 사고를 막기 위해서다(요구사항).
+ * openSettings()는 여러 phase(title/playing/cleared)에서 열릴 수 있는데,
+ * 그중 'title'일 때만 보여준다는 뜻이라 phase 하나만 보면 충분하다 — 패널
+ * 자체엔 "어디서 열렸는지" 기억하는 별도 플래그가 없고(조사 결과), 열릴 때마다
+ * 그 순간의 state.phase를 다시 읽는 이 방식이 새 플래그를 안 만들어도 된다.
+ */
+function syncJudgeSection() {
+  const grp = document.getElementById('settings-judge-grp');
+  if (grp) grp.hidden = state.phase !== 'title';
+}
+
 function syncAllControls() {
   syncSoundRow('soundMaster', 'set-sound-master', 'set-sound-master-out');
   syncSoundRow('soundSfx', 'set-sound-sfx', 'set-sound-sfx-out');
@@ -103,6 +117,7 @@ function syncAllControls() {
   syncCrtControls();
   syncHazardControl();
   syncFullscreenControl();
+  syncJudgeSection();
 }
 
 /**
