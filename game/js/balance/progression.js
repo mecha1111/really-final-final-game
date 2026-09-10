@@ -83,11 +83,21 @@ export const PROGRESSION = {
   //   내려 quota 곡선(180×1.09^n = 180/196/214/233/254, 4·5구간은 아래
   //   FINITE_QUOTA_OVERRIDE가 255/270으로 한 번 더 덮는다) 자체를 완화했다.
   quotaMult: 1.09,
+  // ★ 시트 값이 없을 때만 쓰는 폴백이다(위 "base* 3개" 주석 참고) — 실제 값은
+  //   balance.csv [difficulty] normal 행의 spawn_interval(0.92)이다. 아래
+  //   2026-09-10 항목은 그 시트 값 변경 얘기다.
   baseSpawn: 1.5,
   // ★ 2026-08-22 완화: 1.08 → 1.05. 나눗셈이라 이 값이 클수록 스폰이 빨리 조여진다.
-  //   normal 행의 0.8초 기준으로 2구간 0.741→0.762, 3구간 0.686→0.726으로 느슨해진다.
+  //   normal 행의 (당시) 0.8초 기준으로 2구간 0.741→0.762, 3구간 0.686→0.726으로
+  //   느슨해진다.
   spawnMult: 1.05,
-  minSpawn: 0.6, // 아무리 구간이 올라도 이보다 빨라지지 않는다(하한 클램프)
+  // ★ 2026-09-10 밸런스 재설계 — normal 스폰 간격에 ×1.15 배수 적용
+  //   (balance.csv [difficulty] normal 행 spawn_interval: 0.8 → 0.92). 동시최대
+  //   (FINITE_MAX_ALIVE)는 이미 손익분기에 맞춰 낮춰둔 상태라(위 FINITE_MAX_ALIVE
+  //   주석) 건드리지 않고, 스폰 자체의 압박만 15% 늦췄다. 이 하한(minSpawn)도
+  //   같은 비율로 같이 낮춘다(0.6 → 0.69) — 안 그러면 고구간에서 baseSpawn만
+  //   느슨해지고 실제로 부딪히는 바닥은 그대로라 뒷구간 체감이 안 바뀐다.
+  minSpawn: 0.69, // 아무리 구간이 올라도 이보다 빨라지지 않는다(하한 클램프)
   // ★ baseMax/maxAdd/maxCap 셋은 2026-09-10부터 무한모드 전용이다(아래
   //   FINITE_MAX_ALIVE 표 주석 참고) — 유한 구간(n<FINITE_COUNT)은 이 셋을
   //   더 이상 안 읽는다. 무한 쪽 계산은 옛 공식을 n 그대로 물려 한 글자도
@@ -146,8 +156,13 @@ export const FINITE_QUOTA_OVERRIDE = { 3: 255, 4: 270 };
  *
  * ★ 무한모드는 이 표를 안 본다 — rules.js가 n>=FINITE_COUNT일 때 Infinity를 준다
  *   ("종류 수 상한 없음" 요구사항).
+ *
+ * ★ 2026-09-10 밸런스 재설계 — 2구간(n=1)만 2 → 3으로 올렸다. 나머지 네 구간은
+ *   그대로다. 같은 커밋의 스폰 간격 완화(baseSpawn ×1.15, 위 PROGRESSION 주석)와
+ *   짝을 이룬다 — 스폰이 15% 느려지는 대신, 2구간에서 화면에 동시에 보일 수
+ *   있는 종류 수를 한 칸 더 열어 초반 학습 곡선을 완만하게 만든다.
  */
-export const FINITE_TYPE_CAP = [1, 2, 3, 3, 4];
+export const FINITE_TYPE_CAP = [1, 3, 3, 3, 4];
 
 /**
  * ★ config.stage.finiteCount(5)와 반드시 같아야 하는 하드코딩 중복이다. 이

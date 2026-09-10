@@ -17,7 +17,7 @@
 [difficulty]
 difficulty,spawn_interval,max_alive,dps_multiplier,lifetime_multiplier,note
 easy,2.5,5,0.5,1.25,널널함. 여유 2.35초
-normal,0.8,11,1,0.85,적당. 여유 1.35초
+normal,0.92,11,1,0.85,적당 — 2026-09-10 밸런스 재설계로 0.8→0.92(×1.15). 여유 1.35초
 hard,1,11,1.5,0.75,인간 한계선. 여유 0.55초. 더 낮추면 불가능
 
 [enemies]
