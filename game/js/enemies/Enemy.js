@@ -96,6 +96,10 @@ export class Enemy {
     // 죽고 나서도 잠깐 "죽은 프레임"을 보여주며 화면에 남아있는 시간(초).
     // kill()이 basic 클릭사망일 때만 채운다 — 그 외엔 0이라 기존처럼 즉시 치워진다.
     this.corpseTimer = 0;
+    // 죽은 뒤에도 마릿수 게이트(countsForConcurrency)에서 잠깐 더 자리를 차지하는
+    // 남은 시간(초). config.enemy.killSlotHoldSec 주석 참고 — corpseTimer(시각
+    // 연출용)와 값이 같아 보여도 별개 타이머다.
+    this.killSlotHoldTimer = 0;
     // 살아남는 피격(ransom 단계 전환 등) 직후 hit 프레임을 잠깐 보여주는 남은 시간(초).
     this.hitFrameTimer = 0;
 
@@ -215,13 +219,16 @@ export class Enemy {
 
   /**
    * 스폰 동시 상한(config.enemy.maxConcurrentById, enemies/spawner.js)을 셀 때
-   * 이 놈을 넣을지. 보통은 살아있는 놈만 센다(alive=false인 잔여 시체는 안 셈 —
-   * spawner.js 주석 참고). zombie만 예외다: 부활을 기다리는 동안(_zombiePendingRevive)도
-   * "이 자리는 곧 다시 채워진다"는 뜻이라 마저 세지 않으면, 부활 대기 동안 새 zombie가
-   * 상한 없이 계속 채워져 동시 존재 수가 상한을 훌쩍 넘어버린다(요구사항 결정: 포함).
+   * 이 놈을 넣을지. 살아있는 놈은 당연히 센다. zombie는 부활을 기다리는 동안
+   * (_zombiePendingRevive)도 "이 자리는 곧 다시 채워진다"는 뜻이라 마저 센다 —
+   * 안 그러면 부활 대기 동안 새 zombie가 상한 없이 계속 채워져 동시 존재 수가
+   * 상한을 훌쩍 넘어버린다(요구사항 결정: 포함).
+   * ★ 2026-09-10: 방금 처치된 놈도 killSlotHoldTimer가 남아있는 동안은 마저
+   *   센다(config.enemy.killSlotHoldSec 주석 참고) — 처치 직후 그 자리가 바로
+   *   다음 놈으로 채워지지 않게 하는 스로틀이다.
    */
   get countsForConcurrency() {
-    return this.alive || this._zombiePendingRevive;
+    return this.alive || this._zombiePendingRevive || this.killSlotHoldTimer > 0;
   }
 
   /** 다음 공격까지 남은 시간 대비 예비동작 진행도(0~1, 1이 발동 직전) */
@@ -242,6 +249,7 @@ export class Enemy {
       // 그 사이엔 움직이거나 공격하지 않고 그냥 시간만 깎는다. 실제로 배열에서
       // 치우는 건 processDeaths가 corpseTimer<=0(부활 대기가 아닐 때)일 때 한다.
       this.corpseTimer = Math.max(0, this.corpseTimer - dt);
+      this.killSlotHoldTimer = Math.max(0, this.killSlotHoldTimer - dt);
       this.deathAge += dt; // 처치 팝(부풀며 사라지기)/부활 대기가 이 시간으로 진행된다
       return;
     }
@@ -352,6 +360,10 @@ export class Enemy {
     this.alive = false;
     this.deathReason = reason;
     this.deathAge = 0;
+
+    // 마릿수 게이트 슬롯 점유(config.enemy.killSlotHoldSec 주석 참고) — 처치
+    // 사유와 무관하게 항상 채운다. corpseTimer(아래, 시각 연출 전용)와 별개다.
+    this.killSlotHoldTimer = this.id === 'basic' ? config.enemy.killSlotHoldBasicSec : config.enemy.killSlotHoldSec;
 
     // basic 클릭사망만 dead 프레임을 잠깐 보여주고 치운다.
     const basicLinger = reason === 'clicked' && this.id === 'basic' ? config.anim.basicDeathLingerSec : 0;

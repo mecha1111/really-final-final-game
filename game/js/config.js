@@ -500,6 +500,26 @@ export const config = {
     //     같은 선으로 맞췄다(지금까지 상한이 없던 게 오히려 예외였다).
     maxConcurrentById: { copier: 1, fake_btn: 1, hourglass: 1, zombie: 3 },
 
+    // ★ 2026-09-10: 처치된 놈이 죽은 뒤에도 마릿수 게이트(spawner.js의
+    //   aliveHeadcount, Enemy.countsForConcurrency)에서 잠깐 더 "자리"를 차지하는
+    //   시간(초) — 배경: a8786a1/3fc312f가 그 게이트를 .alive(부활 대기 zombie
+    //   포함) 기준으로 좁히면서, 시체가 슬롯을 물고 있던 예전 스로틀이 사라졌다.
+    //   그 결과 1구간 초심자 클리어율이 43%→17%로 무너졌다 — 처치 직후 바로
+    //   다음 놈이 그 자리를 채우니 숨 돌릴 틈이 없어진 것. 이 값으로 그 스로틀을
+    //   되돌린다.
+    //   ★ config.enemy.kill.popSec(0.16)·config.anim.basicDeathLingerSec(0.35)로
+    //     계산되는 Enemy.corpseTimer(죽음 연출용 시각 타이머)와 값이 같아 보여도
+    //     절대 그 값을 참조하지 말 것 — 우연히 같은 숫자에 기대면 나중에 연출
+    //     타이밍(corpseTimer)만 바꿔도 밸런스(게이트 점유 시간)가 조용히 같이
+    //     움직인다. 여기 둘은 그 사고를 막기 위한 독립 리터럴이다.
+    //   ★ 분열 클램프(core/stageManager.js의 buildSplitCap)도 같은
+    //     countsForConcurrency 기준을 그대로 물려 쓰므로 이 값을 자동으로 같이 쓴다.
+    killSlotHoldSec: 0.16,
+    // basic만 더 길게 — 초기값은 그 시점 corpseTimer 실측값(basicDeathLingerSec)과
+    // 맞췄다. basic이 이 게임의 "기본 손맛" 담당이라 가장 자주 죽는 종류이고,
+    // 1구간 스로틀도 사실상 이 값이 좌우한다.
+    killSlotHoldBasicSec: 0.35,
+
     // ★ 2026-09-10: copier·fake_btn·hourglass 상호배제 그룹. 셋 다 "손을 뺏거나
     //   오조작을 유도하는" 계열이라(copier=진짜 커서를 가리는 가짜 커서,
     //   fake_btn=잘못 누르면 진행이 꼬이는 버튼 함정, hourglass=조작 영역을 잠그는

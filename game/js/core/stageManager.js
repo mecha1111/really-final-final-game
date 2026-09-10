@@ -449,6 +449,7 @@ function reviveZombie(enemy) {
   enemy.deathReason = null;
   enemy.deathAge = 0;
   enemy.corpseTimer = 0;
+  enemy.killSlotHoldTimer = 0;
   enemy.hitFlash = 0;
   enemy.shakeTimer = 0;
   enemy._deathEffectsApplied = false; // 다음 죽음(최종 처치일 수도 있다)이 다시 효과를 타게

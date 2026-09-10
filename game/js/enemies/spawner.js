@@ -70,11 +70,13 @@ export class Spawner {
 
     // 살아있는 수가 상한이면 이번 차례는 건너뛴다.
     // ★ 2026-09-10: enemies.length(배열 전체 길이)가 아니라 aliveHeadcount로
-    //   센다. 배열엔 corpseTimer로 잠깐 남은 시체·부활 대기 zombie도 들어있는데,
-    //   길이를 그대로 쓰면 시체 한 구가 사라지는 동안 새 스폰이 그만큼 늦게
-    //   나온다 — 상한을 표기보다 빡빡하게 읽는 셈이다. core/stageManager.js의
-    //   분열 쪽 클램프(buildSplitCap)도 이 함수를 그대로 가져다 쓴다 — 같은
-    //   상한을 두 곳이 다르게 읽지 않도록.
+    //   센다 — 배열 길이를 그대로 쓰면 시체가 사라지는 동안 슬롯이 이유 없이
+    //   막힌다. core/stageManager.js의 분열 쪽 클램프(buildSplitCap)도 이 함수를
+    //   그대로 가져다 쓴다 — 같은 상한을 두 곳이 다르게 읽지 않도록.
+    //   ★ 같은 날 다시 추가: 그렇다고 시체를 "전혀" 안 세면 처치 직후 바로 다음
+    //     놈이 그 자리를 채워버려 1구간 초심자가 숨 돌릴 틈이 없어졌다(43%→17%).
+    //     그래서 killSlotHoldTimer로 아주 짧게만(config.enemy.killSlotHoldSec)
+    //     자리를 붙든다 — countsForConcurrency 게터 주석 참고.
     if (aliveHeadcount(enemies) >= rules.maxAlive) return [];
 
     // 종류별 동시 등장 상한(config.enemy.maxConcurrentById) — 이번 차례에 뽑을
@@ -128,8 +130,10 @@ export function buildPool(specs, stage) {
 /**
  * 지금 "자리를 차지하고" 있는 놈이 몇 마리인지 센다. countsForConcurrency
  * 기준이다 — 살아있는 놈은 당연히 포함하고, 부활을 기다리는 zombie도
- * 포함한다(그 게터 주석 참고 — 곧 되살아날 자리라 비워두면 안 된다).
- * corpseTimer로 잠깐 남은 순수 시체만 안 센다. "동시 마릿수" 상한
+ * 포함한다(그 게터 주석 참고 — 곧 되살아날 자리라 비워두면 안 된다). 방금
+ * 처치된 놈도 killSlotHoldTimer가 남아있는 동안은 포함한다(config.enemy.
+ * killSlotHoldSec — corpseTimer와는 독립된 별개 타이머다, 그 주석 참고). 두
+ * 타이머가 모두 닳은 순수 시각용 잔상만 안 센다. "동시 마릿수" 상한
  * (rules.maxAlive)이 묻는 질문이 정확히 이것이다.
  *
  * ★ 이 게임에서 "동시 몇 마리인가"(rules.maxAlive 상한)를 묻는 자리는 전부
@@ -162,11 +166,11 @@ export function aliveTypeSet(enemies) {
  * config.enemy.maxConcurrentById에 상한이 걸린 종류는, 지금 살아있는 수가 그
  * 상한에 이미 닿았으면 이번 굴림 후보에서 뺀다. 표에 없는 종류는 무제한(기존과
  * 동일) — copier처럼 "한 번에 하나만 쫓아와야 압박이 산다" 싶은 종류만 여기 올린다.
- * ★ corpseTimer로 잠깐 화면에 남는 시체는 안 센다(enemy.countsForConcurrency가
- *   기본은 .alive만 본다) — "지금 실제로 쫓아오는 놈"이 몇 마리인지가 기준이지,
- *   막 죽어가는 잔상까지 포함하면 다음 한 마리가 나올 타이밍이 부당하게 늦어진다.
- *   단, zombie는 부활 대기 중에도 셈에 포함된다(그 게터 주석 참고) — 그래야
- *   부활을 기다리는 동안 새 zombie가 상한 없이 계속 채워지지 않는다.
+ * ★ aliveHeadcount와 같은 countsForConcurrency 기준이라, 방금 처치된 놈도
+ *   killSlotHoldTimer가 남아있는 짧은 동안은 같이 센다(config.enemy.
+ *   killSlotHoldSec) — 그 시간이 지나 순수 시각용 잔상(corpseTimer)만 남으면
+ *   더는 안 센다. zombie는 부활 대기 중에도 셈에 포함된다(그 게터 주석 참고) —
+ *   그래야 부활을 기다리는 동안 새 zombie가 상한 없이 계속 채워지지 않는다.
  */
 function filterByConcurrencyCap(pool, enemies) {
   const limits = config.enemy.maxConcurrentById;
