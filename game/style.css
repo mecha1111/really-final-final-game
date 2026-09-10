@@ -404,6 +404,16 @@ body {
      1.5초 동안 방해꾼 클릭이 먹히지 않는다. */
 #desktop .layer-trapdlg { position: absolute; inset: 0; z-index: 7; pointer-events: none; display: none; }
 #desktop .layer-trapdlg.open { display: block; }
+/* 재부팅 오답/방치 알림(ui/rebootFailDialog.js). trapdlg와 같은 pointer-events:
+   none·display 토글 규칙이지만, trap-dlg(고정 top:300px)와 달리 "화면 중앙"이
+   요구사항이라 이 레이어 자체가 flex로 가운데 정렬한다(.hz-center와 같은
+   방식) — 안쪽 .reboot-fail-dlg는 position만 relative로 덮어써 그 정렬을
+   따른다(아래). */
+#desktop .layer-rebootfail {
+  position: absolute; inset: 0; z-index: 7; pointer-events: none;
+  display: none; align-items: center; justify-content: center;
+}
+#desktop .layer-rebootfail.open { display: flex; }
 /* 무한모드 1층 진입 안내(ui/infiniteBanner.js). trapdlg와 완전히 같은 규칙
    (pointer-events:none, display 토글) — 순수 안내문이라 클릭을 받으면 안 된다.
    ★DOM에서 .layer-hazard보다 뒤(= 위)라 안내가 항상 읽힌다 — 이 배너는 판
@@ -2335,6 +2345,17 @@ body {
   background: var(--xp-win-face); padding: 0 24px 16px;
   display: flex; justify-content: flex-end;
 }
+
+/* ── 재부팅 오답/방치 알림 ──────────────────────────────────────────────────
+   XP 시스템 대화상자 한 장(ui/rebootFailDialog.js). 본문 뼈대(.trap-dlg-body/
+   -ico/-msg/-sub/-foot)는 위 fake_btn 알림과 그대로 공유한다 — 이 규칙 자체는
+   fake_btn 전용이 아니다. 이 블록은 그 셋과 다른 점 하나(가운데 정렬 방식)만
+   따로 잡는다: trap-dlg는 position:absolute+top:300px 고정이지만, 이쪽은 부모
+   .layer-rebootfail이 이미 flex로 화면 정중앙을 잡아주므로 relative로 그
+   정렬을 그대로 따른다(.hz-center .win과 같은 관례). */
+#desktop .reboot-fail-dlg { position: relative; width: 520px; pointer-events: none; }
+#desktop .reboot-fail-dlg .tbar { cursor: default; }
+#desktop .reboot-fail-dlg .tbar .ico { background: var(--xp-tooltip-bg); font-size: 20px; }
 
 /* ── B. 스크린세이버 — XP 텍스트 마퀴 ────────────────────────────────────────
    순수 검정 화면 + 오른쪽에서 왼쪽으로 흐르는 흰 글자 하나. 별도 그라데이션·

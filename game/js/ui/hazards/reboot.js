@@ -24,6 +24,7 @@ import { registerHazard, dismissHazard } from '../../systems/hazard.js';
 import { damageUpload } from '../../systems/upload.js';
 import { playSfx, SFX } from '../../systems/sound.js';
 import { icon } from '../icons.js';
+import { showRebootFailDialog } from '../rebootFailDialog.js';
 
 /** 남은 초 → XP 대화상자 표기("00:09"). */
 function mmss(totalSec) {
@@ -110,12 +111,19 @@ registerHazard({
     if (!PENALTY_REASONS.has(reason)) return;
 
     const c = config.hazard.reboot;
-    // 피해는 반드시 damageUpload → triggerHitFeedback 한 줄기로만 보낸다
-    // (번쩍임·비네트·"-8%" 표시가 자동으로 따라온다). cause를 넘겨 HUD 캡션에
-    // "재부팅 -8%"로 원인을 밝힌다 — 진행 정지 배지(state.blocked)는 안 건드린다.
+    // ★ 2026-09-10 — "무엇을 잘못했는지 안 보인다"는 피드백으로 XP 오류
+    //   대화상자를 추가했다(ui/rebootFailDialog.js). fake_btn 함정(systems/
+    //   input.js)과 같은 조합 순서: 전용 sfx → damageUpload(silent) → 대화상자.
+    //   damageUpload를 silent로 넘겨 공통 피격음(SFX.HIT)과 겹쳐 울리지 않게
+    //   한다 — 번쩍임·비네트·"-8%" 표시는 그대로 자동으로 따라온다. cause를
+    //   넘겨 HUD 캡션에도 "재부팅 -8%"로 원인을 밝힌다 — 진행 정지 배지
+    //   (state.blocked)는 안 건드린다.
+    playSfx(SFX.POPUP_WRONG);
     damageUpload(c.penaltyPct, config.canvas.width / 2, config.canvas.height / 2, {
       cause: c.penaltyCause,
+      silent: true,
     });
+    showRebootFailDialog(reason);
   },
 
   // ★전조 — 실물 XP 자동업데이트가 그랬듯 트레이에 방패가 먼저 뜬다.

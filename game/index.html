@@ -553,6 +553,12 @@
 
       <div class="layer-hazard" id="layer-hazard"></div>
 
+      <!-- 재부팅 카운트다운 오답/방치 알림(ui/rebootFailDialog.js) — trapDialog와
+           같은 성격(게임 상태를 안 건드리는 순수 안내, pointer-events:none)이라
+           같은 자리(hazard 바로 뒤)에 둔다. reboot 창 자체는 onEnd가 부를 때
+           이미 endHazard()가 지우는 중이라(systems/hazard.js) 겹쳐 보이지 않는다. -->
+      <div class="layer-rebootfail" id="layer-rebootfail"></div>
+
       <!-- 무한모드 1층 진입 안내(ui/infiniteBanner.js) — "새로운 방해가 추가됩니다"
            1회 토스트. trapDialog와 같은 성격(게임 상태를 안 건드리는 순수 안내,
            pointer-events:none)이라 같은 자리(hazard 바로 뒤)에 둔다. -->

@@ -814,6 +814,13 @@ export const config = {
       // ★ 진행 "정지" 배지(state.blocked)와는 아무 상관이 없다. 환경 방해는 진행을
       //   멈추지 않는다(위 hazard 주석의 절대 규칙) — 이건 순수하게 피해 표시용이다.
       penaltyCause: '재부팅',
+      // ★ 2026-09-10 신설 — 오답(재시작 버튼)/방치(만료) 실패 피드백 대화상자
+      //   (ui/rebootFailDialog.js)가 뜬 뒤 저절로 사라지기까지(ms). 왜 config.
+      //   enemy.trapDialog.holdMs(같은 1500)를 그대로 안 쓰는가 — ui/
+      //   infiniteBanner.js가 같은 이유로 자기 hold 값(infiniteBannerHoldMs)을
+      //   따로 둔 것과 같다: 값이 우연히 같아도 의미상 서로 다른 대화상자라,
+      //   하나를 튜닝하다 다른 게 조용히 같이 움직이면 안 된다.
+      failDialogHoldMs: 1500,
     },
 
     // ── B. 스크린세이버(ui/hazards/screensaver.js) ──────────────────────────
