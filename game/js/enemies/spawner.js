@@ -126,24 +126,27 @@ export function buildPool(specs, stage) {
 }
 
 /**
- * 지금 살아있는 놈이 몇 마리인지 센다. .alive만 본다(corpseTimer로 잠깐 남은
- * 시체·부활 대기 zombie는 제외) — "동시 마릿수" 상한(rules.maxAlive)이 묻는
- * 질문이 정확히 이것이다.
+ * 지금 "자리를 차지하고" 있는 놈이 몇 마리인지 센다. countsForConcurrency
+ * 기준이다 — 살아있는 놈은 당연히 포함하고, 부활을 기다리는 zombie도
+ * 포함한다(그 게터 주석 참고 — 곧 되살아날 자리라 비워두면 안 된다).
+ * corpseTimer로 잠깐 남은 순수 시체만 안 센다. "동시 마릿수" 상한
+ * (rules.maxAlive)이 묻는 질문이 정확히 이것이다.
  *
  * ★ 이 게임에서 "동시 몇 마리인가"(rules.maxAlive 상한)를 묻는 자리는 전부
  *   이 함수 하나로 답한다 — 스폰 게이트(위 update())와 분열 자식의 상한
  *   클램프(core/stageManager.js의 buildSplitCap)가 각자 다시 세면 기준이
  *   조용히 갈라진다(실제로 그랬다 — update()의 마릿수 게이트가 예전엔
  *   enemies.length를, 분열 쪽은 처음부터 .alive를 써서 서로 달랐다).
- * ★ 부활 대기 zombie(_zombiePendingRevive)를 안 세는 건 의도적으로 좁힌
- *   것이다 — filterByConcurrencyCap·filterByExclusiveGroups는 그 자리를
- *   countsForConcurrency로 예약해 새 zombie가 상한 없이 채워지는 걸 막지만,
- *   zombie 자체의 동시 상한(config.enemy.maxConcurrentById.zombie)이 이미
- *   그 경로를 따로 막고 있어서, 전체 마릿수 게이트까지 굳이 예약할 필요는
- *   없다고 봤다("살아있는 놈만 센다"는 요구사항이기도 하다).
+ * ★ 2026-09-10 — 처음엔 .alive만 봤다("살아있는 놈만 센다"). 그런데 그러면
+ *   부활 대기 zombie가 이 게이트에서 자리를 못 지켜서, 대기 중에 다른 종류가
+ *   그 자리를 채웠다가 부활 순간 상한을 넘길 수 있었다 — filterByConcurrencyCap·
+ *   filterByExclusiveGroups가 진작부터 countsForConcurrency를 쓰는 것과 같은
+ *   이유로, 여기도 같은 기준으로 맞춘다. "시체 제외"와 "부활 대기 포함"은
+ *   서로 다른 축이다: 전자는 죽어서 다시 안 돌아올 놈(corpseTimer만 남았다),
+ *   후자는 잠깐 안 보일 뿐 곧 돌아올 놈이다.
  */
 export function aliveHeadcount(enemies) {
-  return enemies.filter((e) => e.alive).length;
+  return enemies.filter((e) => e.countsForConcurrency).length;
 }
 
 /**
