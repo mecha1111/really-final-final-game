@@ -142,14 +142,33 @@ let killAt = null; // 처치된 자리(캔버스 논리좌표) — "+MB"가 뜬 
 let beatSec = 0; // 지금 단락에 들어온 뒤 흐른 시간(초)
 let decayPhase = ''; // 4단계 내부 진행: '' → 'incoming' → 'hit' → 'done'
 let decayBefore = 0; // 맞기 직전 진행바 값(실제로 줄었는지 확인용)
+let quotaTickBase = 0; // 1단계(a) 진입 시점의 할당량 — 그 값에서부터 조금씩 올린다
 
 const BEATS = [
   // 1 · 목표 (a) 할당량 — "이게 차면 다음 구간"
+  // ★설명을 읽는 동안 할당량 수치가 실제로 조금씩 오른다(config.tutorial의
+  //   quotaTickRate/quotaTickSec 주석 참고) — 안 그러면 무엇을 보라는 건지
+  //   알 수 없다(요구사항). 가짜로 그리는 숫자가 아니라 state.uploaded를
+  //   직접 dt만큼씩 움직인다 — st-uploaded/st-quotabar는 매 프레임 그 값을
+  //   그대로 다시 읽으므로(ui/statusWindow.js) 별도 연출 코드가 필요 없다.
+  //   ★튜토리얼이 끝나도 원복하지 않는다(요구사항) — 그대로 실전 값이 된다.
   {
     head: '목표',
     tx: '<em>제한시간</em> 안에 이 <em>할당량</em>을 채우면 다음 구간으로 넘어갑니다.',
     btn: '다음',
+    enter: () => {
+      quotaTickBase = state.uploaded;
+    },
     spot: () => spotToIds(['st-uploaded', 'st-quota', 'st-quotabar']),
+    update: () => {
+      if (state.rules) {
+        const c = config.tutorial;
+        const target = quotaTickBase + Math.min(beatSec, c.quotaTickSec) * c.quotaTickRate;
+        // 할당량을 넘겨 설명 도중 조기 클리어되는 일이 없게 클램프한다.
+        state.uploaded = Math.min(target, state.rules.quota - 1);
+      }
+      return false; // 진행은 [다음] 버튼이 한다
+    },
   },
   // 1 · 목표 (b) 업데이트 진행바 — "이건 지금 올리는 파일 한 장"
   // ★두 바를 반드시 갈라준다. 예전 설명은 둘을 "진행바" 한 단어로 뭉뚱그렸는데,
@@ -371,6 +390,7 @@ export function stopTutorial() {
   demo = null;
   killAt = null;
   decayPhase = '';
+  quotaTickBase = 0;
   spotOff();
   assistEl?.classList.remove('tut', 'tut-left');
   nextBtn?.classList.remove('tut-hidden');

@@ -1157,6 +1157,20 @@ export const config = {
     //   "반쯤 찬" 모양이라야 늘고 주는 방향이 둘 다 읽히기 때문이다.
     uploadCapPct: 55,
 
+    // ★2026-09-10 신설 — 1단계 (a) "할당량" 설명 단락(ui/tutorial.js BEATS[0])
+    // 전용. 그 단락은 st-uploaded/st-quota/st-quotabar를 스포트라이트로
+    // 지목하는데, 정작 할당량 수치가 안 움직이면 "뭘 보라는 건지" 알 수 없다
+    // (uploadCapPct/autoOk는 "지금 올리는 파일 한 장"(1단계 b)만 다루고,
+    // 할당량(quota, state.uploaded)은 파일이 완성돼야만 오르므로 이 단락
+    // 안에서는 원래 안 움직였다). 그래서 이 단락 동안만 state.uploaded를
+    // 초당 quotaTickRate(MB)만큼, 최대 quotaTickSec초까지 직접 올린다 —
+    // 가짜로 그리는 숫자가 아니라 실제 state.uploaded를 움직인다(요구사항).
+    // ★튜토리얼이 끝나도 원복하지 않는다(요구사항) — 그대로 실전 시작 값이
+    // 된다. 두 값 다 작게 잡았다: 183MB 할당량 기준 +3MB는 눈에 띄게
+    // 움직이면서도 실전 난이도에 체감 영향이 없다.
+    quotaTickRate: 1, // MB/초
+    quotaTickSec: 3, // 이 초 이상 머물러도 더 안 오른다(위 rate와 곱해 총 +3MB)
+
     // 스포트라이트 구멍을 대상보다 사방으로 이만큼 넓힌다(#desktop 1920 기준 px).
     // 대상에 딱 맞추면 테두리가 대상을 갉아먹는 것처럼 보인다.
     spotPadPx: 14,
