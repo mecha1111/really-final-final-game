@@ -1357,7 +1357,13 @@ body {
    새 색 없이 hover와 같은 시각 언어를 그대로 쓴다. hover와 겹쳐도(마우스가
    selected 칸 위에 있는 동안) 규칙이 같아서 안 튄다. */
 #desktop .gallery-cell.unlocked.sel { outline: 2px solid #4a9bf5; outline-offset: -2px; }
-#desktop .gallery-thumb { width: 100%; height: 100%; object-fit: cover; display: block; }
+/* ★ 2026-09-10: cover → contain. 완성 그림 36장 중 34장은 정사각(1024×1024)이라
+   둘 중 뭘 써도 차이가 없지만, 2장(대형 04·05, 928×1232 세로형)은 정사각이
+   아니라서 cover가 위아래를 실제로 잘랐다 — contain은 그 2장만 정사각 셀
+   안에서 좌우로 레터박스(여백)를 두고 세로를 안 잘라 보여주고, 나머지
+   34장은 정사각 셀에 정사각 그림이라 레터박스 없이 그대로 꽉 찬다. 칸 배경이
+   흰색(.gallery-cell)이라 레터박스가 생겨도 여백이 튀지 않는다. */
+#desktop .gallery-thumb { width: 100%; height: 100%; object-fit: contain; display: block; }
 /* 잠금 칸 — "실루엣"은 흐린 그림 아이콘으로 대신한다(실제 그림 대신 그림의
    자리만 암시), lock 배지는 우하단에 얹는다. 이미지 자체가 없으므로(=<img>가
    아예 없다) 네트워크 요청도, 스포일러도 없다. */
@@ -1454,9 +1460,11 @@ body {
 
 /* 사진 자리 — .frame .img(winB "업데이트 중" 그림 자리)와 같은 베이지
    배경(--xp-win-face)을 재사용해 "같은 게임의 같은 그림 표시 방식"이라는
-   인상을 준다(그 자리와 같은 원칙, 위쪽 winB 주석 참고). 그림이 전부
-   정사각(1024×1024, assets/files/*)이라 object-fit:contain이 레터박스 없이
-   꽉 채운다. */
+   인상을 준다(그 자리와 같은 원칙, 위쪽 winB 주석 참고). 그림 36장 중 34장이
+   정사각(1024×1024, assets/files/*)이라 그 34장은 object-fit:contain이
+   레터박스 없이 꽉 채운다. ★ 2장(대형 04·05, 928×1232 세로형)은 정사각이
+   아니라서 이 460×460 상자 안에서 좌우로 레터박스가 생긴다 — 위 .gallery-thumb
+   주석 참고. 이 칸도 배경이 같은 베이지라 레터박스가 튀지 않는다. */
 #desktop .gallery-viewer-stage {
   background: var(--xp-win-face); padding: 16px;
   display: flex; align-items: center; justify-content: center;
