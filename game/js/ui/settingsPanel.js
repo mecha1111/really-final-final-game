@@ -105,6 +105,9 @@ function syncFullscreenControl() {
  * 그중 'title'일 때만 보여준다는 뜻이라 phase 하나만 보면 충분하다 — 패널
  * 자체엔 "어디서 열렸는지" 기억하는 별도 플래그가 없고(조사 결과), 열릴 때마다
  * 그 순간의 state.phase를 다시 읽는 이 방식이 새 플래그를 안 만들어도 된다.
+ * ★ 노출 조건은 이 함수(state.phase)뿐이다 — config.debug.enabled를 여기 끼워
+ *   넣지 말 것. 이 그룹은 debug와 무관하게 제출본에 항상 남는다(아래 버튼
+ *   배선의 ★★ 주석 참고).
  */
 function syncJudgeSection() {
   const grp = document.getElementById('settings-judge-grp');
@@ -215,6 +218,16 @@ export function initSettingsPanel() {
   // 심사용 구간 선택(index.html의 #settings-judge-grp, syncJudgeSection이
   // 'title'에서만 보여준다). 버튼마다 data-judge-stage(0~5, 0부터인 이 게임의
   // 구간 규칙 그대로)를 달아뒀다 — 값 하나로 갈래를 나눈다.
+  // ★★ config.debug.enabled와 완전히 별개다 — 절대 그 플래그(또는 새 환경변수·
+  //   빌드 분기)로 묶지 말 것. debug는 제출 전 반드시 false로 되돌리는 임시
+  //   개발 스위치(config.js의 그 필드 주석 — "다시 켤 일이 있으면 이 값만
+  //   true로, 끝나면 반드시 여기로 되돌릴 것"가 몇 번이나 반복된 이력 참고)지만,
+  //   이 심사용 구간 선택은 그 반대다 — 최종 제출본에 항상 켜진 채로 남아있어야
+  //   하는 기능이다(요구사항 원문: "최종 제출본에 그대로 남긴다. 제거용
+  //   분기·환경변수 만들지 말 것"). 실제로 config.debug.enabled=false인 채로
+  //   (배포 기본값 그대로) 클릭까지 전부 동작함을 Playwright로 확인했다 —
+  //   syncJudgeSection이 보는 건 오직 state.phase뿐, config.debug는 이 파일
+  //   어디에서도 안 읽는다.
   // ★ 1구간(n=0)만 타이틀 [새 게임]과 완전히 같은 경로(startGameOpening)를
   //   탄다 — seenIntro가 false면 튜토리얼이 정상적으로 뜬다(요구사항: "1구간을
   //   골랐고 seenIntro가 false인 경우에만 평소대로 실행"). 나머지(n=1~5)는
