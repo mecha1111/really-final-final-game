@@ -329,6 +329,30 @@ export function update(dt) {
 }
 
 /**
+ * 유한 구간에서 분열(enemies/effects.js의 splitEnemy)이 지킬 마릿수·종류·
+ * 종류별 개별 상한 스냅샷을 만든다. 2026-09-10 신설 — 그 함수의 cap 인자 주석에
+ * 각 필드의 기준(occupancy/types는 .alive, byId는 countsForConcurrency)과 왜
+ * 서로 다른지 적어뒀다. processDeaths()가 프레임마다 한 번 떠서 넘겨준다.
+ *
+ * ★ 이 세 필드는 지금은 여기(stageManager.js)에만 있는 계산이다. spawner.js의
+ *   스폰 게이트도 "동시 몇 마리"를 세지만 그쪽은 enemies.length를 그대로
+ *   쓰고 있어서 이 함수와 기준이 다르다(그 파일 update()의 마릿수 게이트
+ *   주석 참고) — 두 곳을 하나로 합치는 건 이번 변경 범위 밖이다.
+ */
+function buildSplitCap(enemies) {
+  const byId = new Map();
+  for (const e of enemies) {
+    if (!e.countsForConcurrency) continue;
+    byId.set(e.id, (byId.get(e.id) ?? 0) + 1);
+  }
+  return {
+    occupancy: enemies.filter((e) => e.alive).length,
+    types: new Set(enemies.filter((e) => e.alive).map((e) => e.id)),
+    byId,
+  };
+}
+
+/**
  * 죽은 방해꾼 뒤처리 — 수명만료 벌칙, 분열, copier 안착 폭발.
  * basic 클릭사망은 죽는 순간 바로 안 치우고 Enemy.corpseTimer만큼 dead 프레임을
  * 보여주며 잠깐 더 남아있는다(sprite/animator.js) — 그래서 이 함수는 죽은 프레임마다
@@ -341,6 +365,14 @@ function processDeaths(rules, playArea) {
 
   const keep = [];
   const born = [];
+  // ★ 2026-09-10 — 분열 자식도 마릿수·종류·종류별 개별 상한을 지키게 한다
+  //   (위 buildSplitCap·enemies/effects.js의 splitEnemy() cap 인자 주석 참고).
+  //   이 프레임에 이미 정해진 점유를 여기서 스냅샷으로 떠 두고, 분열이 일어날
+  //   때마다 splitEnemy에 넘겨 결과를 그대로 되돌려받는다 — 한 프레임에 clone이
+  //   여러 마리 동시에 죽어도(멀티 클릭 등) 순서대로 정확히 반영된다.
+  //   무한모드는 cap을 아예 안 만든다(undefined) — splitEnemy는 그러면 예전
+  //   그대로 무제한으로 돈다(요구사항: 무한모드 분열은 이번 변경 범위 밖).
+  const cap = isInfiniteStage(rules.stageIndex) ? undefined : buildSplitCap(state.enemies);
 
   for (const enemy of state.enemies) {
     if (enemy.alive) {
@@ -380,7 +412,7 @@ function processDeaths(rules, playArea) {
         // 자연히 같이 맞는다.
         recordEnemyEncounter(enemy.id);
         if (enemy.deathReason === 'clicked') {
-          born.push(...splitEnemy(enemy, rules, playArea));
+          born.push(...splitEnemy(enemy, rules, playArea, cap));
         }
       }
     }

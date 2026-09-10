@@ -36,8 +36,33 @@ function cloneMaxTierForStage(stageIndex) {
  *   단계 전에 멈춘다 — 시트의 분열 정의 자체는 안 건드리고, "이번에 만들 조각의
  *   tier가 이 구간에서 허용된 깊이를 넘는지"만 여기서 한 번 더 본다. split 효과를
  *   쓰는 종류가 늘어도(지금은 clone뿐) 이 함수 하나로 똑같이 적용된다.
+ *
+ * @param {object} [cap] 유한 구간의 마릿수·종류·종류별 개별 상한(2026-09-10
+ *   신설). 호출부(core/stageManager.js의 processDeaths)가 "이번 프레임에 이미
+ *   정해진 점유"를 들고 있다가 넘겨준다 — { occupancy, types, byId } 형태이고,
+ *   이 함수가 실제로 몇 마리를 낳을지 정한 뒤 그 결과를 이 객체에 되먹인다
+ *   (같은 프레임에 분열이 여러 번 겹쳐도 순서대로 정확히 반영되게). 무한모드는
+ *   호출부가 아예 안 넘긴다(cap === undefined) — 그러면 이 함수는 예전 그대로
+ *   무제한으로 돈다(요구사항: 무한모드 분열은 이번 변경 범위 밖).
+ *
+ *   왜 필요했는가 — 이 함수는 enemies/spawner.js의 update()를 거치지 않는
+ *   유일한 생성 경로라, 예전엔 세 상한(마릿수·종류·종류별 개별)을 전부
+ *   우회했다(실측: 4구간 표기 6 → 동시 마릿수 최대 10, 400판 중 95%에서 초과 —
+ *   헤드리스 시뮬레이터로 확인).
+ *
+ *   세 필드는 서로 다른 기준을 쓴다 — 각자 대응하는 기존 스폰 필터가 이미
+ *   쓰던 기준을 그대로 물려받았을 뿐, 여기서 새로 정한 게 아니다:
+ *     occupancy — .alive 기준(살아있는 놈만, corpseTimer 시체 제외). "동시
+ *       몇 마리"를 묻는 rules.maxAlive 게이트의 기준이다.
+ *     types     — .alive 기준. enemies/spawner.js의 filterByTypeCap이 쓰는
+ *       기준과 같다(그 함수 주석 참고 — 시체·부활 대기는 "화면에 안 보인다"고 본다).
+ *     byId      — countsForConcurrency 기준(부활 대기 zombie도 포함). 같은
+ *       파일의 filterByConcurrencyCap이 config.enemy.maxConcurrentById를
+ *       읽을 때 쓰는 기준과 같다 — 지금은 그 표에 분열하는 종류가 없어서(clone은
+ *       표에 없다) 실질적으로 아무 것도 안 막지만, 나중에 분열하는 종류가
+ *       상한표에 오르면 이 필드만으로 저절로 맞물린다.
  */
-export function splitEnemy(parent, rules, playArea) {
+export function splitEnemy(parent, rules, playArea, cap) {
   const split = parent.effect.split;
   if (!split) return [];
 
@@ -45,12 +70,45 @@ export function splitEnemy(parent, rules, playArea) {
   if (nextTier >= split.tiers.length) return []; // 막내는 그냥 죽는다
   if (nextTier > cloneMaxTierForStage(rules.stageIndex)) return []; // 이 구간엔 여기까지
 
+  // ★ 2026-09-10 — 유한 구간의 상한을 분열 자식에도 적용한다(위 @param cap 주석
+  //   참고). cap이 없으면(무한모드) 이 블록 전체를 건너뛰고 예전과 완전히
+  //   동일하게 돈다.
+  let count = split.count;
+  if (cap) {
+    // 종류 상한: 이 변종(parent.id, 자식도 부모와 같은 spec이라 id가 같다)이
+    // 지금 화면에 이미 있으면(다른 자리의 clone이 살아있으면) 상한과 무관하게
+    // 허용한다 — "이미 떠 있는 종류를 한 마리 더 늘리는 것"이지 새 종류가
+    // 아니다(enemies/spawner.js의 filterByTypeCap과 같은 원칙). 없는데 상한이
+    // 이미 찼으면 분열 자체를 접는다 — 위 cloneMaxTierForStage와 같은 자리·
+    // 같은 취급이라 "가끔 안 갈라진다"는 이 게임에 이미 있는 정상 동작이다.
+    const alreadyOnScreen = cap.types.has(parent.id);
+    if (!alreadyOnScreen && cap.types.size >= rules.typeCap) return [];
+
+    // 종류별 개별 상한(config.enemy.maxConcurrentById) — 지금은 clone이 이
+    // 표에 없어서 idCap이 항상 null이라 이 블록이 실질적으로 아무 것도 안 막는다.
+    const idCap = config.enemy.maxConcurrentById?.[parent.id];
+    if (idCap != null) {
+      const idOccupancy = cap.byId.get(parent.id) ?? 0;
+      count = Math.min(count, Math.max(0, idCap - idOccupancy));
+      if (count <= 0) return [];
+    }
+
+    // 마릿수 상한: 남은 자리만큼만 낳는다. split.count(원래 갈래 수)를 다 낳을
+    // 자리가 없다고 분열 자체를 취소하진 않는다 — 한 마리라도 나올 자리가
+    // 있으면 그만큼은 내보낸다. 자리가 0이면 이 놈도 그냥 죽는다.
+    const room = Math.max(0, rules.maxAlive - cap.occupancy);
+    count = Math.min(count, room);
+    if (count <= 0) return [];
+  }
+
   const baseW = parent.spec.size_w || 60;
   const scale = split.tiers[nextTier] / baseW;
   const children = [];
 
-  for (let i = 0; i < split.count; i++) {
-    // 부모 자리에서 살짝 벌려서 튀어나오게 한다
+  for (let i = 0; i < count; i++) {
+    // 부모 자리에서 살짝 벌려서 튀어나오게 한다. 각도 배치는 상한에 걸려 덜
+    // 태어나도 split.count(원래 갈래 수) 기준을 그대로 쓴다 — count로 나누면
+    // 둘만 남았을 때 반대편으로 확 벌어져 보여서 "원래 몇 갈래였는지"가 안 보인다.
     const angle = (Math.PI * 2 * i) / split.count + rand(-0.3, 0.3);
     const spread = parent.w * 0.4;
 
@@ -69,10 +127,19 @@ export function splitEnemy(parent, rules, playArea) {
     children.push(child);
   }
 
-  // 실제로 조각이 나왔을 때만 낸다 — 위 두 가드(막내 tier, 구간 게이트)에 걸려
-  // 그냥 죽는 경우엔 분열이 일어나지 않았으므로 분열음도 나면 안 된다.
+  // 실제로 조각이 나왔을 때만 낸다 — 위 가드(막내 tier, 구간 게이트, 이번에
+  // 신설한 상한)에 걸려 그냥 죽는 경우엔 분열이 일어나지 않았으므로 분열음도
+  // 나면 안 된다.
   // (그 경우에도 Enemy.kill()의 처치음은 이미 났다 — 잡힌 건 잡힌 것이다)
   if (children.length) playSfx(SFX.CLONE_SPLIT);
+
+  // 이번 분열로 실제로 늘어난 만큼을 점유·종류·종류별 카운트에 되먹인다 — 같은
+  // 프레임에 또 다른 clone이 죽어 splitEnemy가 다시 불릴 때 이 결과를 반영해서 본다.
+  if (cap && children.length) {
+    cap.occupancy += children.length;
+    cap.types.add(parent.id);
+    cap.byId.set(parent.id, (cap.byId.get(parent.id) ?? 0) + children.length);
+  }
 
   return children;
 }
