@@ -5,7 +5,7 @@ import { state, emptyStats, setPhase } from './state.js';
 import { recordStageCleared, recordGameOver, recordRunCompleted, recordEnemyEncounter } from './save.js';
 import { openEnding } from '../ui/endingScreen.js';
 import { resetRoverQueue } from '../ui/rover.js';
-import { Spawner, buildPool } from '../enemies/spawner.js';
+import { Spawner, buildPool, aliveHeadcount, aliveTypeSet } from '../enemies/spawner.js';
 import { splitEnemy, applyExpiryEffect, triggerSelfDestruct, updateFakeCursors } from '../enemies/effects.js';
 import { clearJuice } from '../systems/juice.js';
 import { clearRipples } from '../systems/clickRipple.js';
@@ -331,13 +331,18 @@ export function update(dt) {
 /**
  * 유한 구간에서 분열(enemies/effects.js의 splitEnemy)이 지킬 마릿수·종류·
  * 종류별 개별 상한 스냅샷을 만든다. 2026-09-10 신설 — 그 함수의 cap 인자 주석에
- * 각 필드의 기준(occupancy/types는 .alive, byId는 countsForConcurrency)과 왜
- * 서로 다른지 적어뒀다. processDeaths()가 프레임마다 한 번 떠서 넘겨준다.
+ * 각 필드의 기준과 왜 서로 다른지 적어뒀다. processDeaths()가 프레임마다 한 번
+ * 떠서 넘겨준다.
  *
- * ★ 이 세 필드는 지금은 여기(stageManager.js)에만 있는 계산이다. spawner.js의
- *   스폰 게이트도 "동시 몇 마리"를 세지만 그쪽은 enemies.length를 그대로
- *   쓰고 있어서 이 함수와 기준이 다르다(그 파일 update()의 마릿수 게이트
- *   주석 참고) — 두 곳을 하나로 합치는 건 이번 변경 범위 밖이다.
+ * ★ occupancy·types는 enemies/spawner.js의 aliveHeadcount·aliveTypeSet을
+ *   그대로 가져다 쓴다 — 그 파일의 스폰 게이트(마릿수 상한)·filterByTypeCap
+ *   (종류 상한)과 정확히 같은 기준이어야 "같은 상한을 두 곳이 다르게 읽는다"는
+ *   문제가 재발하지 않는다(2026-09-10, 실제로 이 프로젝트가 그 문제를 겪었다 —
+ *   그 파일의 aliveHeadcount 주석 참고). byId만 예외로 여기서 직접 센다 —
+ *   countsForConcurrency 기준이고, spawner.js엔 이 기준의 "종류별 합계"를
+ *   미리 만들어주는 공용 함수가 없어서(filterByConcurrencyCap은 종류 하나씩
+ *   그때그때 세지, 표 전체를 한 번에 만들지 않는다) 새로 만들 이유가 아직
+ *   없다 — clone이 maxConcurrentById 표에 없어 지금은 어차피 무동작이다.
  */
 function buildSplitCap(enemies) {
   const byId = new Map();
@@ -345,11 +350,7 @@ function buildSplitCap(enemies) {
     if (!e.countsForConcurrency) continue;
     byId.set(e.id, (byId.get(e.id) ?? 0) + 1);
   }
-  return {
-    occupancy: enemies.filter((e) => e.alive).length,
-    types: new Set(enemies.filter((e) => e.alive).map((e) => e.id)),
-    byId,
-  };
+  return { occupancy: aliveHeadcount(enemies), types: aliveTypeSet(enemies), byId };
 }
 
 /**

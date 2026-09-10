@@ -69,7 +69,13 @@ export class Spawner {
     this.timer = rules.spawnInterval;
 
     // 살아있는 수가 상한이면 이번 차례는 건너뛴다.
-    if (enemies.length >= rules.maxAlive) return [];
+    // ★ 2026-09-10: enemies.length(배열 전체 길이)가 아니라 aliveHeadcount로
+    //   센다. 배열엔 corpseTimer로 잠깐 남은 시체·부활 대기 zombie도 들어있는데,
+    //   길이를 그대로 쓰면 시체 한 구가 사라지는 동안 새 스폰이 그만큼 늦게
+    //   나온다 — 상한을 표기보다 빡빡하게 읽는 셈이다. core/stageManager.js의
+    //   분열 쪽 클램프(buildSplitCap)도 이 함수를 그대로 가져다 쓴다 — 같은
+    //   상한을 두 곳이 다르게 읽지 않도록.
+    if (aliveHeadcount(enemies) >= rules.maxAlive) return [];
 
     // 종류별 동시 등장 상한(config.enemy.maxConcurrentById) — 이번 차례에 뽑을
     // 후보에서 이미 상한에 닿은 종류를 미리 걸러낸다. 그러니까 "대체"다: copier가
@@ -117,6 +123,36 @@ export class Spawner {
 export function buildPool(specs, stage) {
   const disabled = config.enemy.disabledIds;
   return specs.filter((s) => (s.min_stage ?? 1) <= stage && !disabled.includes(s.id));
+}
+
+/**
+ * 지금 살아있는 놈이 몇 마리인지 센다. .alive만 본다(corpseTimer로 잠깐 남은
+ * 시체·부활 대기 zombie는 제외) — "동시 마릿수" 상한(rules.maxAlive)이 묻는
+ * 질문이 정확히 이것이다.
+ *
+ * ★ 이 게임에서 "동시 몇 마리인가"(rules.maxAlive 상한)를 묻는 자리는 전부
+ *   이 함수 하나로 답한다 — 스폰 게이트(위 update())와 분열 자식의 상한
+ *   클램프(core/stageManager.js의 buildSplitCap)가 각자 다시 세면 기준이
+ *   조용히 갈라진다(실제로 그랬다 — update()의 마릿수 게이트가 예전엔
+ *   enemies.length를, 분열 쪽은 처음부터 .alive를 써서 서로 달랐다).
+ * ★ 부활 대기 zombie(_zombiePendingRevive)를 안 세는 건 의도적으로 좁힌
+ *   것이다 — filterByConcurrencyCap·filterByExclusiveGroups는 그 자리를
+ *   countsForConcurrency로 예약해 새 zombie가 상한 없이 채워지는 걸 막지만,
+ *   zombie 자체의 동시 상한(config.enemy.maxConcurrentById.zombie)이 이미
+ *   그 경로를 따로 막고 있어서, 전체 마릿수 게이트까지 굳이 예약할 필요는
+ *   없다고 봤다("살아있는 놈만 센다"는 요구사항이기도 하다).
+ */
+export function aliveHeadcount(enemies) {
+  return enemies.filter((e) => e.alive).length;
+}
+
+/**
+ * 지금 화면에 "보이는" 종류 집합. 위 aliveHeadcount와 같은 .alive 기준이다 —
+ * 아래 filterByTypeCap과 core/stageManager.js의 분열 쪽 종류 상한
+ * (buildSplitCap)이 이 함수 하나를 같이 쓴다.
+ */
+export function aliveTypeSet(enemies) {
+  return new Set(enemies.filter((e) => e.alive).map((e) => e.id));
 }
 
 /**
@@ -183,7 +219,7 @@ function filterByExclusiveGroups(pool, enemies) {
  * cap이 Infinity(무한모드)면 비교가 항상 거짓이라 그대로 통과시킨다.
  */
 function filterByTypeCap(pool, enemies, cap) {
-  const aliveTypes = new Set(enemies.filter((e) => e.alive).map((e) => e.id));
+  const aliveTypes = aliveTypeSet(enemies);
   if (aliveTypes.size < cap) return pool;
   return pool.filter((spec) => aliveTypes.has(spec.id));
 }
