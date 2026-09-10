@@ -72,6 +72,12 @@ let onDone = null;
 // "게이트를 풀어야 하나(1회차)"를 가르는 데 쓴다 — 두 회차의 끝맺음이 다르다.
 let tutorialRun = false;
 
+// ★2026-09-10 신설 — 2회차 이상(seenIntro=true)이라 config.opening.fast
+// (단축 시간표)를 쓰는 중인가. startGameOpening()이 그때그때 정하고,
+// finish()가 exit 시간(outAssistSec/outDimSec)을 같은 기준으로 고르는 데
+// 쓴다 — 시작할 때 쓴 시간표와 끝낼 때 쓰는 시간표가 갈리면 안 된다.
+let shortMode = false;
+
 // 오프닝이 시작한 뒤 흐른 시간(초)과 남은 단계들. config.opening의 값이 전부
 // "이 시각"과 비교하는 절대 초라, 때가 된 것만 앞에서부터 꺼내 실행하면 된다
 // (ui/intro.js와 완전히 같은 방식 — setTimeout을 안 쓰는 이유도 같다).
@@ -120,7 +126,10 @@ function showTutorial() {
  */
 function finish() {
   if (!active) return; // 연타·중복 진입 방지
-  const c = config.opening;
+  // ★단축판(2회차)이면 exit 시간도 단축판 표를 그대로 쓴다 — 시작할 때 쓴
+  //   시간표와 끝낼 때 시간표가 갈리면 "빠르게 시작해놓고 천천히 끝나는"
+  //   어색한 비대칭이 생긴다.
+  const c = shortMode ? config.opening.fast : config.opening;
 
   // ★여기서야 "봤다"고 찍는다 — 튜토리얼 본체가 이제 이 오프닝이라, 인트로가
   //   아니라 이 지점이 "첫 실행 안내를 끝까지 봤다"의 기준이다. 그래서 도중에
@@ -227,7 +236,14 @@ export function startGameOpening(done) {
   //   그 자리에서 곧바로 판이 시작된다.
   const wantTutorial = config.tutorial.enabled && !hasSeenIntro();
 
-  const c = config.opening;
+  // ★2026-09-10 신설 — 단축판 여부는 seenIntro 하나로만 정한다(wantTutorial과
+  //   다른 축이다). "1회차(seenIntro=false)는 현행 그대로"가 요구사항 원문이라,
+  //   설정에서 튜토리얼을 꺼놨어도(그래서 wantTutorial=false여도) 아직 seenIntro가
+  //   false인 1회차라면 본표(전체 길이)를 그대로 쓴다. seenIntro=true는 항상
+  //   wantTutorial=false를 뜻하므로(hasSeenIntro()가 true면 !hasSeenIntro()가
+  //   false) 이 둘이 동시에 어긋날 일은 없다.
+  shortMode = hasSeenIntro();
+  const c = shortMode ? config.opening.fast : config.opening;
   tutorialRun = wantTutorial;
   active = true;
   frozen = false;
@@ -253,26 +269,32 @@ export function startGameOpening(done) {
   assistEl.classList.remove('on', 'tip');
   layer.classList.add('on');
 
+  // ★loadLowSec은 본표(1회차)에만 있다 — 단축판(fast)엔 강아지가 절대 안 떠서
+  //   (그건 wantTutorial=false일 때만 fast를 쓰고, wantTutorial은 seenIntro=false
+  //   일 때만 켜지므로 둘이 동시에 참일 수 없다) 로딩바를 하단으로 비킬 이유가
+  //   없다. .at으로 정렬해두므로 배열에 넣는 순서는 상관없다.
   steps = [
     // 0.0s — 창이 뜬다. "프로그램을 실행한 것처럼"
     { at: c.hangSec, run: () => hangEl.classList.add('on') },
-    // 0.5s — ★굳는다. 제목에 (응답 없음) + 타이틀바 채도 죽음 + 흰 고스트 + 모래시계 커서.
-    //        ★진짜로 멈추는 게 아니다 — 클래스와 플래그만 바꾼다.
+    // 0.5s(단축판 0.1s) — ★굳는다. 제목에 (응답 없음) + 타이틀바 채도 죽음 +
+    //        흰 고스트 + 모래시계 커서. ★진짜로 멈추는 게 아니다 — 클래스와
+    //        플래그만 바꾼다.
     {
       at: c.deadSec,
       run: () => {
         hangEl.classList.add('dead');
-        hangTitleEl.textContent = HANG_TITLE + c.deadSuffix;
+        hangTitleEl.textContent = HANG_TITLE + config.opening.deadSuffix;
         frozen = true;
       },
     },
-    // 1.5s — 로딩 레이어를 붙인다(아직 투명, transition이 이어받게).
+    // 로딩 레이어를 붙인다(아직 투명, transition이 이어받게).
     { at: c.loadOnSec, run: () => loadEl.classList.add('on') },
-    // 1.6s — 어두워지고 분절 로딩바·안내문이 떠오른다.
+    // 어두워지고 분절 로딩바·안내문이 떠오른다.
     { at: c.loadDimSec, run: () => loadEl.classList.add('dim') },
-    // 2.82s — 로딩바가 하단 중앙으로 비켜난다(강아지 자리를 비운다).
-    { at: c.loadLowSec, run: () => loadEl.classList.add('low') },
-    // 3.0s — ★강아지가 뿅. 튜토리얼을 안 볼 상황이면 여기서 곧장 마무리로 넘어간다.
+    // 로딩바가 하단 중앙으로 비켜난다(강아지 자리를 비운다) — ★본표(1회차) 전용.
+    ...(shortMode ? [] : [{ at: c.loadLowSec, run: () => loadEl.classList.add('low') }]),
+    // 강아지가 뿅(본표) / 단축판은 강아지 없이 이 시점이 곧 마무리 시작점이다.
+    // 튜토리얼을 안 볼 상황이면 여기서 곧장 마무리로 넘어간다.
     {
       at: c.assistSec,
       run: () => {
@@ -281,7 +303,7 @@ export function startGameOpening(done) {
         else finish();
       },
     },
-  ];
+  ].sort((a, b) => a.at - b.at);
 }
 
 /** 매 프레임(main.js). 때가 된 단계를 순서대로 실행한다.
