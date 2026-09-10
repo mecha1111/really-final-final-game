@@ -36,6 +36,10 @@ let layerEl = null;
 let holeEl = null;
 let desktopEl = null;
 
+// ★값이 바뀔 때만 style을 쓰기 위한 마지막 기록(spotToRect 주석 참고).
+let lastRect = null; // { x, y, w, h }
+let lastSnap = null;
+
 /** 최초 1회(main.js). DOM만 잡아둔다. */
 export function initTutorialSpotlight() {
   layerEl = document.getElementById('op-spot');
@@ -66,7 +70,18 @@ function desktopScale() {
 export function spotToRect(x, y, w, h, pad, snap) {
   if (!holeEl) return;
   const p = pad ?? config.tutorial.spotPadPx;
-  holeEl.classList.toggle('snap', !!snap);
+  // ★값이 실제로 바뀔 때만 쓴다(2026-09-10) — 대본의 spot()은 매 프레임 불리는데
+  //   (ui/tutorial.js의 updateTutorial), 지목 대상이 고정된 단락(설명 단계 대부분)
+  //   에서는 이 함수가 매번 "이미 똑같은 값"을 다시 쓰는 셈이었다. 값이 같아도
+  //   style을 대입하면 그 프레임에 레이아웃/스타일이 다시 계산되고, 하필 그
+  //   순간 버튼 클릭(mousedown→mouseup)이 걸리면 브라우저가 드물게 히트테스트를
+  //   놓쳤다(ui/tutorial.js의 syncButton 주석 — "버튼 반응 지연"의 실측 원인).
+  //   ★따라다녀야 하는 대상(snap=false, 움직이는 방해꾼)은 매 프레임 값이 실제로
+  //   바뀌므로 이 메모이즈가 자연히 통과시킨다 — 무해하다.
+  if (lastSnap !== !!snap) {
+    holeEl.classList.toggle('snap', !!snap);
+    lastSnap = !!snap;
+  }
 
   // ★무대 밖으로 삐져나가지 않게 자른다. 화면 가장자리에 붙는 대상(모서리에
   //   고정되는 bait가 그렇다 — 실측에서 구멍이 위로 44px 넘어갔다)은 그냥 두면
@@ -78,11 +93,18 @@ export function spotToRect(x, y, w, h, pad, snap) {
   const y0 = Math.max(0, y - p);
   const x1 = Math.min(maxW, x + w + p);
   const y1 = Math.min(maxH, y + h + p);
+  const nx = Math.round(x0);
+  const ny = Math.round(y0);
+  const nw = Math.round(Math.max(0, x1 - x0));
+  const nh = Math.round(Math.max(0, y1 - y0));
 
-  holeEl.style.left = `${Math.round(x0)}px`;
-  holeEl.style.top = `${Math.round(y0)}px`;
-  holeEl.style.width = `${Math.round(Math.max(0, x1 - x0))}px`;
-  holeEl.style.height = `${Math.round(Math.max(0, y1 - y0))}px`;
+  if (!lastRect || lastRect.x !== nx || lastRect.y !== ny || lastRect.w !== nw || lastRect.h !== nh) {
+    holeEl.style.left = `${nx}px`;
+    holeEl.style.top = `${ny}px`;
+    holeEl.style.width = `${nw}px`;
+    holeEl.style.height = `${nh}px`;
+    lastRect = { x: nx, y: ny, w: nw, h: nh };
+  }
   layerEl.classList.add('on'); // ★.on 토글 — hidden 속성은 안 쓴다(display에 특이도로 밀린다)
 }
 

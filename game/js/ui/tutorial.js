@@ -333,14 +333,32 @@ function renderBeat() {
   syncButton();
 }
 
-/** [다음]/[업데이트 재개] 노출을 지금 단락에 맞춘다. 시연 단락에는 버튼이 없다. */
+/** [다음]/[업데이트 재개] 노출을 지금 단락에 맞춘다. 시연 단락에는 버튼이 없다.
+ * ★ 값이 바뀔 때만 DOM을 건드린다(core/... reboot.js의 hz-count와 같은 이유) —
+ *   updateTutorial이 이 함수를 매 프레임 부르는데, 대부분의 프레임은 b.btn도
+ *   show도 지난 프레임과 똑같다. 그런데도 textContent/classList를 매번 다시
+ *   대입하면(값이 같아도) 버튼 위에서 레이아웃/스타일이 계속 다시 계산되고,
+ *   그 프레임에 마침 클릭(mousedown→mouseup)이 걸리면 브라우저가 드물게
+ *   히트테스트를 놓친다 — 실측(Playwright로 재현): 좌표·pointer-events·투명도
+ *   전부 정상인데도 클릭 이벤트 자체가 0건 기록된 프레임이 있었다("버튼 반응
+ *   지연" 원인). 값이 실제로 바뀐 프레임에만 쓰면 이 경합이 사라진다. */
+let lastBtnText = null;
+let lastBtnHidden = null;
 function syncButton() {
   const b = BEATS[index];
   const show = !!b.btn && (!b.ready || b.ready());
-  nextBtn.textContent = b.btn ?? '';
-  // ★hidden 속성이 아니라 클래스로 숨긴다 — .settings-btn에 display가 박혀 있어
-  //   [hidden]이 특이도로 밀리는 함정을 이 프로젝트가 두 번 겪었다(style.css 주석).
-  nextBtn.classList.toggle('tut-hidden', !show);
+  const text = b.btn ?? '';
+  if (text !== lastBtnText) {
+    nextBtn.textContent = text;
+    lastBtnText = text;
+  }
+  const hidden = !show;
+  if (hidden !== lastBtnHidden) {
+    // ★hidden 속성이 아니라 클래스로 숨긴다 — .settings-btn에 display가 박혀 있어
+    //   [hidden]이 특이도로 밀리는 함정을 이 프로젝트가 두 번 겪었다(style.css 주석).
+    nextBtn.classList.toggle('tut-hidden', hidden);
+    lastBtnHidden = hidden;
+  }
 }
 
 function enterBeat(i) {
@@ -391,6 +409,8 @@ export function stopTutorial() {
   killAt = null;
   decayPhase = '';
   quotaTickBase = 0;
+  lastBtnText = null;
+  lastBtnHidden = null;
   spotOff();
   assistEl?.classList.remove('tut', 'tut-left');
   nextBtn?.classList.remove('tut-hidden');
