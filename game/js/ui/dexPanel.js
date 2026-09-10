@@ -114,13 +114,18 @@ let thumbObserver = null;
 let unlockedList = [];
 let curIndex = -1;
 
-/** 잠금 칸 — 그림 갤러리의 잠금 칸과 같은 실루엣+lock이되, "???"로 이름 자리까지 가린다. */
+/** 잠금 칸 — 해금 칸과 똑같은 두 조각 구조(썸네일 영역 + 이름 영역)를 쓴다
+ * (style.css의 .gallery-dex-grid 재작성 주석 참고) — 그래야 잠금/해금이 같은
+ * 행에 섞여도 셀 높이가 항상 같다. 썸네일 자리엔 실루엣+lock, 이름 자리엔
+ * "???"를 넣어 그림 갤러리의 잠금 칸과 같은 느낌을 유지한다. */
 function lockedCellHtml() {
   return (
     `<div class="gallery-cell locked">` +
+    `<div class="dex-thumb dex-thumb-locked">` +
     `<div class="gallery-silhouette">${icon('image', 40)}</div>` +
     `<div class="gallery-lock">${icon('lock', 14)}</div>` +
-    `<div class="dex-unknown-name">???</div>` +
+    `</div>` +
+    `<div class="dex-name dex-unknown-name">???</div>` +
     `</div>`
   );
 }

@@ -1401,23 +1401,51 @@ body {
 #desktop .gallery-lock .xicon { width: 14px; height: 14px; }
 
 /* 방해꾼 도감 그리드 — 그림 그리드와 같은 뼈대(.gallery-grid의 스크롤·간격을
-   그대로 물려받는다)에 열만 3열로 넓힌다. 칸 안에 이름·설명·처치 수까지
-   들어가서 그림 칸(정사각형 썸네일만)보다 세로로 길다 — 정사각형 강제를
-   풀고 위→아래로 쌓는 flex-column을 쓴다. 잠금 칸만은 그림 갤러리의 잠금
-   칸과 같은 느낌을 유지하려고 정사각형+가운데 정렬을 그대로 둔다. */
+   그대로 물려받는다)에 열만 3열로 넓힌다.
+   ★ 2026-09-10 재작성 — 잠금/해금 셀이 서로 다른 높이 공식을 쓰던 게 실제
+   버그였다: 잠금은 aspect-ratio:1(정사각형), 해금은 aspect-ratio:auto +
+   flex-column(내용 높이, 썸네일 108px + 이름 줄 수만큼)이라 둘의 높이가
+   서로 달랐다. 해금 순서는 플레이에 따라 뒤죽박죽이라 잠금·해금이 같은
+   그리드 행에 섞이는 배치가 흔한데, 그때 행 높이가 두 공식 중 더 큰 쪽으로
+   들쭉날쭉 벌어지면서 셀이 위아래로 겹쳐 보였다(스크린샷으로 재현 확인 —
+   이전 조사에서 "문제없다"고 판단한 건 마침 잠금 칸이 전부 뒤로 몰린
+   배치만 확인해서였다).
+   ★ 지금은 잠금·해금 둘 다 정확히 같은 두 조각으로만 이루어진다 —
+   썸네일 영역(.dex-thumb, 고정 108px)과 이름 영역(.dex-name, 고정 60px).
+   아래에서 flex-basis로 두 조각의 높이를 못박아 두므로(grow/shrink 없음)
+   셀 전체 높이가 항상 168px로 고정되고, 어떤 잠금/해금 조합으로 섞여도
+   행 높이가 흔들리지 않는다(index.html 쪽 마크업도 잠금 칸에 같은 두 조각
+   구조를 쓰도록 ui/dexPanel.js의 lockedCellHtml()을 같이 고쳤다). */
 #desktop .gallery-dex-grid { grid-template-columns: repeat(3, 1fr); }
-#desktop .gallery-dex-grid .gallery-cell.unlocked { aspect-ratio: auto; display: flex; flex-direction: column; }
-#desktop .gallery-dex-grid .gallery-cell.locked { aspect-ratio: 1; flex-direction: column; gap: 4px; }
+#desktop .gallery-dex-grid .gallery-cell { aspect-ratio: auto; display: flex; flex-direction: column; align-items: stretch; }
+/* 잠금 칸은 그림 갤러리 쪽 공용 규칙(위 .gallery-cell.locked)이 걸어둔
+   가운데 정렬을 이 그리드 안에서만 되돌린다 — 이제 두 고정 박스를 위→아래로
+   그냥 쌓기만 하면 되므로 가운데 정렬이 필요 없다. */
+#desktop .gallery-dex-grid .gallery-cell.locked { justify-content: flex-start; }
 #desktop .dex-thumb {
-  width: 100%; height: 108px; object-fit: contain; background: #f4f2e6;
+  width: 100%; height: 108px; flex: 0 0 108px; box-sizing: border-box;
+  object-fit: contain; background: #f4f2e6;
   border-bottom: 2px solid #a9a488; image-rendering: pixelated;
+}
+/* 잠금 칸의 썸네일 자리 — 해금 칸의 <img class="dex-thumb">와 같은 상자(같은
+   고정 높이)에 실루엣+lock을 넣는다. position:relative를 여기 걸어 lock
+   배지가 셀 전체가 아니라 이 상자 기준 우하단에 앉게 한다(아래 .gallery-lock
+   은 가장 가까운 position 조상을 기준으로 움직인다). */
+#desktop .dex-thumb.dex-thumb-locked {
+  position: relative; display: flex; align-items: center; justify-content: center;
 }
 /* ★ 2026-09-09: 칸에는 이름만 남았다(설명·처치 수는 상세 팝업으로 옮겼다) —
    그래서 이름이 칸 아래쪽 한 줄을 통째로 쓴다. 긴 이름("업데이트 취소 버튼")도
-   두 줄까지는 그대로 들어가고, 그보다 길어지면 말줄임한다. */
+   두 줄까지는 그대로 들어간다. 높이(60px)는 2줄(16px·line-height 1.3)+패딩이
+   딱 들어가는 값이라 세 번째 줄이 생길 만큼 긴 이름은 없다(overflow:hidden은
+   그런 극단적인 경우의 안전망일 뿐).
+   ★가로·세로 모두 가운데 정렬 — 1줄 이름(예: "기본 잡몹")이 2줄 이름과
+   같은 높이 상자 안에서 위쪽에 붙지 않고 상자 한가운데 오게 한다. */
 #desktop .dex-name {
+  height: 60px; flex: 0 0 60px; box-sizing: border-box; overflow: hidden;
   font-size: 16px; font-weight: bold; color: #0a327a; padding: 7px 8px 8px;
   text-align: center; line-height: 1.3;
+  display: flex; align-items: center; justify-content: center;
 }
 #desktop .dex-unknown-name { font-size: 15px; color: #a9a488; }
 /* 환경 방해 칸의 글리프 자리 — 방해꾼 스프라이트(.dex-thumb)와 같은 상자를
