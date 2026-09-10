@@ -22,6 +22,7 @@
 
 import { config } from '../config.js';
 import { state, setPhase } from '../core/state.js';
+import { isDesktopApp } from '../core/platform.js';
 import { getSave, saveSettings, clearSave, resetSeenTips } from '../core/save.js';
 import { playSfx, refreshSfxVolume, SFX } from '../systems/sound.js';
 import { refreshBgmVolume } from '../systems/bgm.js';
@@ -86,6 +87,18 @@ function syncHazardControl() {
 function syncFullscreenControl() {
   const box = document.getElementById('set-fullscreen');
   if (!box) return;
+
+  // ★ exe(Electron)에서는 전체화면이 네이티브 창 단위(win.setFullScreen)라
+  // document.fullscreenElement가 항상 null이다 — DOM Fullscreen API를 아예 안
+  // 쓰기 때문(electron/main.cjs 상단 주석 참고, ESC가 전체화면을 깨는 걸 막으려는
+  // 조치). 그래서 진짜 상태는 IPC로 메인 프로세스에 물어봐야 한다.
+  if (isDesktopApp()) {
+    window.electronAPI?.isFullscreen?.().then((v) => {
+      box.checked = !!v;
+    });
+    return;
+  }
+
   box.checked = !!document.fullscreenElement;
   // 애초에 브라우저가 전체화면을 허용 안 하면(예: Verse8 iframe에 allow="fullscreen"이
   // 없는 경우 — index.html 상단 주석의 "Verse8 iframe에서 API가 막힌다" 전례와 같은
@@ -350,6 +363,16 @@ export function initSettingsPanel() {
 
   const fsBox = document.getElementById('set-fullscreen');
   fsBox?.addEventListener('change', () => {
+    // ★ exe에서는 DOM Fullscreen API를 절대 안 쓴다 — 페이지가 직접
+    // requestFullscreen()을 부르면 그 순간 Chromium이 ESC-전체화면해제 UA
+    // 개입 대상으로 다시 잡아버려서(electron/main.cjs 상단 주석), 메인
+    // 프로세스가 네이티브로 걸어둔 "ESC로 안 깨지는" 전체화면이 무의미해진다.
+    // 대신 IPC로 메인 프로세스의 win.setFullScreen()을 부른다.
+    if (isDesktopApp()) {
+      window.electronAPI?.setFullscreen?.(fsBox.checked);
+      return;
+    }
+
     if (fsBox.checked) {
       // 실패(예: 사용자 제스처 밖에서 호출됐거나 iframe이 허용을 안 한 경우)하면
       // 체크만 되돌린다 — fullscreenchange가 안 오므로 여기서 직접 되돌려야 한다.
@@ -360,11 +383,20 @@ export function initSettingsPanel() {
       document.exitFullscreen().catch(() => {});
     }
   });
-  // 전체화면을 F11이나 브라우저 자체 ESC로 빠져나가는 경우까지 체크박스를 맞게
-  // 유지하려고 실제 상태(document.fullscreenElement)를 진실의 원천으로 삼는다.
-  document.addEventListener('fullscreenchange', () => {
-    if (fsBox) fsBox.checked = !!document.fullscreenElement;
-  });
+
+  if (isDesktopApp()) {
+    // F11(메인 프로세스가 직접 토글)처럼 체크박스 밖에서 상태가 바뀌는 경우까지
+    // 맞게 따라오도록 electron/main.cjs가 보내는 상태 변화를 구독한다.
+    window.electronAPI?.onFullscreenChange?.((value) => {
+      if (fsBox) fsBox.checked = !!value;
+    });
+  } else {
+    // 전체화면을 F11이나 브라우저 자체 ESC로 빠져나가는 경우까지 체크박스를 맞게
+    // 유지하려고 실제 상태(document.fullscreenElement)를 진실의 원천으로 삼는다.
+    document.addEventListener('fullscreenchange', () => {
+      if (fsBox) fsBox.checked = !!document.fullscreenElement;
+    });
+  }
 }
 
 /** 디버그 전용 키를 처리하는 debug.js의 handleDebugKey와 같은 자리 — systems/input.js가

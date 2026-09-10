@@ -3,13 +3,17 @@
   "private": true,
   "version": "0.0.0",
   "type": "module",
+  "main": "electron/main.cjs",
   "scripts": {
     "dev": "vite",
     "build": "bash -c 'vite build && find dist -name .DS_Store -delete' _",
     "preview": "vite preview",
-    "serve": "node tools/serve.mjs dist 8877"
+    "serve": "node tools/serve.mjs dist 8877",
+    "electron": "electron ."
   },
   "devDependencies": {
+    "electron": "^44.3.0",
+    "electron-builder": "^26.15.3",
     "vite": "^6.4.3"
   },
   "dependencies": {
