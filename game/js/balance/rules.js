@@ -55,8 +55,9 @@ export function createRules(stageIndex = 0) {
     // 할당량: 유한/무한이 서로 다른 독립 곡선을 쓴다. 무한 쪽(INFINITE)은 유한
     // 쪽 base/mult를 단 하나도 참조하지 않는다 — 유한을 튜닝해도 무한이 조용히
     // 따라가지 않는다(progression.js의 INFINITE 주석 참고, 요구사항이기도 하다).
-    // 유한 쪽은 FINITE_QUOTA_OVERRIDE에 n이 있으면(4·5구간) 그 값이 공식을
-    // 대체한다 — 나머지 구간(1~3)은 공식 그대로다(progression.js의 그 표 주석).
+    // 유한 쪽은 FINITE_QUOTA_OVERRIDE에 n이 있으면 그 값이 공식을 대체한다 —
+    // 2026-09-10부터 유한 5구간(n=0..4) 전부가 표에 있어 공식은 사실상 안 쓰인다
+    // (progression.js의 그 표 주석).
     quota: isInfinite
       ? Math.round(INFINITE.baseQuota * Math.pow(INFINITE.quotaMult, layer - 1))
       : (FINITE_QUOTA_OVERRIDE[n] ?? Math.round(baseQuota * Math.pow(p.quotaMult, n))),

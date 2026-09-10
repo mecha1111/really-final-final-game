@@ -15,7 +15,7 @@
  *   (enemies 시트의 min_stage는 1부터라 해금 판정만 n+1 로 맞춘다 — rules.js)
  *
  * 공식 (rules.js의 createRules가 유일한 구현부):
- *   할당량(MB)   = baseQuota × quotaMult^n            (유한 4·5구간은 FINITE_QUOTA_OVERRIDE로 한 번 더 덮인다)
+ *   할당량(MB)   = baseQuota × quotaMult^n            (2026-09-10부터 유한 5구간 전부 FINITE_QUOTA_OVERRIDE 표로 대체된다 — 이 공식은 사실상 더는 안 쓰인다)
  *   스폰간격(초) = max(baseSpawn ÷ spawnMult^n, minSpawn)   ← 나눗셈이라 n이 크면 빨라진다
  *   동시최대     = 유한(n<FINITE_COUNT)은 FINITE_MAX_ALIVE[n] 표를 그대로 쓴다.
  *                  무한(n>=FINITE_COUNT)은 옛 공식 min(baseMax + maxAdd×n, maxCap) 그대로.
@@ -80,8 +80,13 @@ export const PROGRESSION = {
   //   폭주"를 만들던 진짜 원인이었다(헤드리스 시뮬레이터 실측: 5구간 보통 실력에서
   //   동시최대 6→8 사이에 클리어율 49.5%→7.5%로 붕괴). 동시최대를 낮추면 같은
   //   quotaMult로도 체감 난이도가 훨씬 가팔라지므로, baseQuota를 250→180으로
-  //   내려 quota 곡선(180×1.09^n = 180/196/214/233/254, 4·5구간은 아래
-  //   FINITE_QUOTA_OVERRIDE가 255/270으로 한 번 더 덮는다) 자체를 완화했다.
+  //   내려 quota 곡선(180×1.09^n = 180/196/214/233/254) 자체를 완화했다.
+  //   ★ 같은 날(2026-09-10) 안에 다시 한 번 확정 — 아래 FINITE_QUOTA_OVERRIDE가
+  //     유한 5구간 전부(0~4)를 시간 목표 역산값(183/153/196/200/173)으로
+  //     덮으면서, 이 baseQuota×quotaMult^n 공식은 유한 구간에서 더는 실제로
+  //     쓰이지 않는다(그 표 주석 참고). 여기 남겨둔 이유는 quotaMult=1.09
+  //     자체의 실측 근거(위 문단)가 여전히 유효해서다 — 무한모드(INFINITE)는
+  //     이 quotaMult를 그대로 쓴다.
   quotaMult: 1.09,
   // ★ 시트 값이 없을 때만 쓰는 폴백이다(위 "base* 3개" 주석 참고) — 실제 값은
   //   balance.csv [difficulty] normal 행의 spawn_interval(0.92)이다. 아래
@@ -132,20 +137,22 @@ export const PROGRESSION = {
 export const FINITE_MAX_ALIVE = [4, 4, 5, 6, 6];
 
 /**
- * 유한 4·5구간(n=3,4) 전용 quota 덮어쓰기. 1~3구간(n=0,1,2)은 손대지 않고
- * PROGRESSION.quotaMult 공식 그대로 간다(180/196/214) — rules.js가 이 표에
- * 키가 있는 n만 골라 대체한다.
+ * 유한 5구간(n=0..4) 전용 quota 덮어쓰기. 2026-09-10 밸런스 재설계로 5구간
+ * 전부를 이 표가 덮는다 — PROGRESSION.quotaMult 공식(baseQuota × 1.09^n)은
+ * 더는 유한 구간에 안 쓰인다(rules.js가 이 표에 있는 n만 골라 대체하던 구조를
+ * 그대로 유지하되, 이제 n=0..4 전부가 표에 있어 공식 쪽 분기가 사실상 죽는다).
  *
- * ★ 2026-09-10 밸런스 재설계 — copier weight 5→2, hourglass freezeSec 4.0→2.5로
- *   회피 불가 요소(둘 다 클릭 판정만으로 갈리고 실력으로 막을 수 없다)를
- *   완화하면서 4·5구간이 그만큼 물러졌다. 같은 판정 조건(quota를 목표
- *   클리어율에서 역산)으로 다시 맞춘 값이 255/270이다 — 공식이 내는 233/254보다
- *   높다(완화한 만큼 quota로 되갚는다).
+ * ★ 등비수열(공식)로 만들려 하지 말 것 — 아래 값은 구간별 소요시간 목표에서
+ *   역산한 값이라 단조 증가가 아니다(183/153/196/200/173, 2구간이 오히려
+ *   1구간보다 낮고 5구간이 4구간보다 낮다). 공식으로 다시 맞추면 이 표를
+ *   만든 근거(시간 목표)가 깨진다.
+ * ★ 이 표를 만든 뒤로 밸런스 시뮬레이션은 더 돌리지 않는다 — 남은 판단은
+ *   실제 플레이로 한다(2026-09-10 결정).
  *
  * ★ 무한모드는 이 표를 안 본다 — INFINITE.baseQuota/quotaMult는 원래부터
  *   독립 리터럴이다(위 INFINITE 주석의 절대 원칙).
  */
-export const FINITE_QUOTA_OVERRIDE = { 3: 255, 4: 270 };
+export const FINITE_QUOTA_OVERRIDE = { 0: 183, 1: 153, 2: 196, 3: 200, 4: 173 };
 
 /**
  * 유한 5구간(n=0..4) 전용 "동시 화면 종류 수" 상한. 마릿수 상한(FINITE_MAX_ALIVE)과는
